@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistema de Presença</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#111;}
+    a{color:inherit;text-decoration:none;}
+
+    /* HEADER */
+    .header{background:#fff;border-bottom:1px solid #e5e5e5;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
+    .header-logo{font-size:15px;font-weight:600;color:#111;}
+    .hright{display:flex;align-items:center;gap:8px;}
+    .avatar{width:30px;height:30px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#1e40af;}
+    .logout-btn{font-size:12px;color:#666;background:none;border:1px solid #e5e5e5;border-radius:6px;padding:4px 10px;cursor:pointer;}
+    .logout-btn:hover{background:#f5f5f5;}
+
+    /* NAV */
+    .nav{background:#fff;border-bottom:1px solid #e5e5e5;display:flex;padding:0 1.5rem;gap:2px;}
+    .nav-btn{padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;}
+    .nav-btn.active{color:#1d4ed8;border-bottom-color:#1d4ed8;font-weight:500;}
+
+    /* CONTENT */
+    .content{padding:1.25rem;max-width:1200px;margin:0 auto;}
+    .screen{display:none;}.screen.active{display:block;}
+
+    /* LOGIN */
+    #login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f5;}
+    .login-card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:2rem;width:320px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+    .logo-box{text-align:center;margin-bottom:1.5rem;}
+    .logo-icon{width:44px;height:44px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;}
+    .logo-box h1{font-size:17px;font-weight:600;color:#111;}
+    .logo-box p{font-size:12px;color:#666;margin-top:3px;}
+    .field{margin-bottom:.875rem;}
+    .field label{display:block;font-size:12px;color:#555;margin-bottom:4px;font-weight:500;}
+    .field input,.field select{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;background:#fff;color:#111;outline:none;}
+    .field input:focus,.field select:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1);}
+    .btn-primary{width:100%;padding:9px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;}
+    .btn-primary:hover{background:#1e40af;}
+    .err{font-size:11px;color:#dc2626;margin-top:5px;display:none;}
+
+    /* BADGES */
+    .badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500;white-space:nowrap;display:inline-block;}
+    .badge-blue{background:#dbeafe;color:#1e40af;}
+    .badge-green{background:#d1fae5;color:#065f46;}
+    .badge-amber{background:#fef3c7;color:#92400e;}
+    .badge-red{background:#fee2e2;color:#991b1b;}
+    .badge-gray{background:#f3f4f6;color:#4b5563;}
+    .badge-purple{background:#ede9fe;color:#4c1d95;}
+    .badge-pink{background:#fce7f3;color:#831843;}
+
+    /* STATS */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem;}
+    @media(max-width:640px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+    .stat-card{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:.875rem 1rem;}
+    .stat-label{font-size:11px;color:#666;margin-bottom:4px;}
+    .stat-val{font-size:22px;font-weight:600;color:#111;}
+    .stat-val.red{color:#dc2626;}.stat-val.green{color:#059669;}.stat-val.amber{color:#d97706;}
+
+    /* FILTER BAR */
+    .filter-bar{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:.75rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .filter-bar label{font-size:12px;color:#555;white-space:nowrap;font-weight:500;}
+    .filter-bar select,.filter-bar input{font-size:13px;padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#111;outline:none;}
+    .filter-bar input{width:180px;}
+
+    /* CURSO PILLS */
+    .curso-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
+    .cpill{padding:5px 14px;border-radius:99px;font-size:12px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#555;font-weight:500;}
+    .cpill.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8;}
+
+    /* TURMA CARDS */
+    .turmas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
+    .turma-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:1rem 1.25rem;cursor:default;}
+    .btn-chamada{margin-top:10px;width:100%;padding:7px;font-size:12px;background:none;border:1px solid #d1d5db;border-radius:7px;cursor:pointer;color:#111;font-weight:500;}
+    .btn-chamada:hover{background:#f5f5f5;}
+
+    /* CHAMADA */
+    .back-btn{display:flex;align-items:center;gap:5px;font-size:12px;color:#666;background:none;border:none;cursor:pointer;margin-bottom:1rem;padding:0;}
+    .chamada-top{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:.875rem 1.25rem;margin-bottom:.875rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+    .chamada-counters{background:#fff;border:1px solid #e5e5e5;border-radius:7px;padding:.625rem 1.25rem;margin-bottom:.875rem;display:flex;gap:1.5rem;font-size:12px;color:#666;}
+    .alunos-list{background:#fff;border:1px solid #e5e5e5;border-radius:10px;overflow:hidden;}
+    .aluno-row{display:flex;align-items:center;padding:10px 1.25rem;border-bottom:1px solid #f0f0f0;gap:10px;}
+    .aluno-row:last-child{border-bottom:none;}
+    .aluno-row.inativo{opacity:.45;}
+    .aluno-num{font-size:11px;color:#aaa;width:22px;flex-shrink:0;}
+    .aluno-nome{flex:1;font-size:13px;color:#111;}
+    .pbtns{display:flex;gap:5px;}
+    .pbtn{padding:5px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid;transition:all .1s;}
+    .pbtn-p{background:#fff;border-color:#10b981;color:#065f46;}
+    .pbtn-p.on{background:#d1fae5;}
+    .pbtn-f{background:#fff;border-color:#ef4444;color:#991b1b;}
+    .pbtn-f.on{background:#fee2e2;}
+    .btn-save{padding:7px 16px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;}
+    .btn-save:hover{background:#1e40af;}
+    .btn-save:disabled{background:#93c5fd;cursor:not-allowed;}
+
+    /* TABLE */
+    .table-wrap{background:#fff;border:1px solid #e5e5e5;border-radius:10px;overflow:auto;margin-bottom:1rem;}
+    table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px;}
+    th{text-align:left;padding:9px 1rem;font-weight:600;font-size:11px;color:#666;border-bottom:1px solid #e5e5e5;background:#fafafa;}
+    td{padding:9px 1rem;border-bottom:1px solid #f0f0f0;color:#111;vertical-align:middle;}
+    tr:last-child td{border-bottom:none;}
+    tr.row-alerta td{background:#fff7f7;}
+    tr.row-inativo{opacity:.45;}
+    tr.clickable{cursor:pointer;}
+    tr.clickable:hover td{background:#fafafa;}
+
+    /* FREQ BAR */
+    .freq-wrap{display:flex;align-items:center;gap:5px;}
+    .fbar{height:5px;border-radius:99px;background:#e5e7eb;width:48px;overflow:hidden;}
+    .fbar-fill{height:100%;border-radius:99px;}
+    .dots{display:flex;gap:2px;}
+    .dot{width:11px;height:11px;border-radius:2px;}
+    .dot-p{background:#10b981;}.dot-f{background:#ef4444;}.dot-n{background:#e5e7eb;}
+
+    /* MODAL */
+    .modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);align-items:flex-start;justify-content:center;padding:60px 1rem 1rem;}
+    .modal-bg.open{display:flex;}
+    .modal{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:1.5rem;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.12);}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+    .modal-title{font-size:15px;font-weight:600;color:#111;}
+    .close-btn{background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;line-height:1;padding:0;}
+    .modal .field{margin-bottom:.875rem;}
+    .modal .field label{display:block;font-size:12px;color:#555;margin-bottom:4px;font-weight:500;}
+    .modal .field input,.modal .field select{width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;background:#fff;color:#111;outline:none;}
+    .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:1px solid #e5e5e5;}
+    .btn-sec{padding:7px 16px;background:none;border:1px solid #d1d5db;border-radius:7px;font-size:13px;cursor:pointer;color:#111;}
+    .btn-danger{padding:7px 16px;background:#fee2e2;border:1px solid #fca5a5;border-radius:7px;font-size:13px;cursor:pointer;color:#991b1b;font-weight:500;}
+    .btn-warning{padding:7px 16px;background:#fef3c7;border:1px solid #fcd34d;border-radius:7px;font-size:13px;cursor:pointer;color:#92400e;font-weight:500;}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;}
+    .info-item{background:#f9fafb;border-radius:7px;padding:.75rem;}
+    .info-label{font-size:11px;color:#666;margin-bottom:3px;}
+    .info-val{font-size:13px;font-weight:600;color:#111;}
+    .aulas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+    .aula-item{border-radius:7px;padding:8px;text-align:center;}
+    .aula-item-label{font-size:10px;color:#666;margin-bottom:3px;}
+    .aula-item-val{font-size:11px;font-weight:600;}
+    .hist-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:12px;}
+    .hist-item:last-child{border-bottom:none;}
+    .info-box{background:#eff6ff;border-radius:7px;padding:.75rem 1rem;font-size:12px;color:#1e40af;margin-bottom:1rem;}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:1.5rem;right:1.5rem;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;display:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.15);}
+    .toast.green{background:#059669;color:#fff;}
+    .toast.blue{background:#1d4ed8;color:#fff;}
+    .toast.red{background:#dc2626;color:#fff;}
+
+    /* LOADING */
+    .loading{text-align:center;padding:3rem;color:#666;font-size:13px;}
+    .spinner{display:inline-block;width:20px;height:20px;border:2px solid #e5e5e5;border-top-color:#1d4ed8;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .empty{padding:2rem;text-align:center;color:#aaa;font-size:13px;}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="logo-box">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="8" height="8" rx="2" fill="#1d4ed8"/>
+          <rect x="13" y="3" width="8" height="8" rx="2" fill="#93c5fd"/>
+          <rect x="3" y="13" width="8" height="8" rx="2" fill="#93c5fd"/>
+          <rect x="13" y="13" width="8" height="8" rx="2" fill="#1d4ed8"/>
+        </svg>
+      </div>
+      <h1>Sistema de Presença</h1>
+      <p>Gestão de turmas e frequência</p>
+    </div>
+    <div class="field">
+      <label>E-mail</label>
+      <input type="email" id="inp-email" placeholder="seu@email.com"/>
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="inp-senha" placeholder="Senha"/>
+      <div class="err" id="login-err">E-mail ou senha incorretos.</div>
+    </div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+  <div class="header">
+    <div class="header-logo">Sistema de Presença</div>
+    <div class="hright">
+      <div class="avatar" id="av">--</div>
+      <span style="font-size:13px;color:#555;" id="hname"></span>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="goTab('turmas')">Turmas</button>
+    <button class="nav-btn" onclick="goTab('alunos')">Alunos</button>
+    <button class="nav-btn" onclick="goTab('relatorio')">Relatórios</button>
+  </div>
+  <div class="content">
+
+    <!-- TAB TURMAS -->
+    <div id="tab-turmas" class="screen active">
+      <div id="dash-view">
+        <div class="stats-row" id="stats-area"></div>
+        <div class="curso-pills" id="curso-pills"></div>
+        <div id="turmas-grid" class="turmas-grid"></div>
+      </div>
+      <div id="chamada-view" style="display:none;">
+        <button class="back-btn" onclick="voltarDash()">← Voltar para turmas</button>
+        <div class="chamada-top">
+          <div>
+            <div style="font-size:14px;font-weight:600;" id="ch-titulo"></div>
+            <div style="font-size:12px;color:#666;margin-top:2px;" id="ch-sub"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <label style="font-size:12px;color:#555;font-weight:500;">Aula:</label>
+            <select id="aula-sel" onchange="renderChamada()" style="font-size:13px;padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;"></select>
+            <button class="btn-save" id="btn-salvar-chamada" onclick="salvarChamada()">Salvar chamada</button>
+          </div>
+        </div>
+        <div class="chamada-counters" id="ch-counters"></div>
+        <div class="alunos-list" id="alunos-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB ALUNOS -->
+    <div id="tab-alunos" class="screen">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+        <div class="filter-bar" style="margin:0;flex:1;">
+          <label>Buscar:</label>
+          <input type="text" id="busca-alunos" placeholder="Nome do aluno..." oninput="renderTabelaAlunos()">
+          <label>Curso:</label>
+          <select id="f-curso-alunos" onchange="renderTabelaAlunos()">
+            <option value="">Todos</option>
+          </select>
+          <label>Status:</label>
+          <select id="f-status-alunos" onchange="renderTabelaAlunos()">
+            <option value="">Todos</option>
+            <option value="ativo">Ativos</option>
+            <option value="inativo">Inativos</option>
+            <option value="alerta">Alerta (3+ faltas seguidas)</option>
+            <option value="irregular">Irregular (&lt;75%)</option>
+          </select>
+        </div>
+        <button class="btn-save" onclick="abrirModalNovoAluno()">+ Novo aluno</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th style="width:32%;">Aluno</th>
+          <th style="width:14%;">Curso</th>
+          <th style="width:16%;">Turma</th>
+          <th style="width:8%;text-align:center;">P</th>
+          <th style="width:8%;text-align:center;">F</th>
+          <th style="width:10%;text-align:center;">Consec.</th>
+          <th style="width:12%;">Freq.</th>
+        </tr></thead>
+        <tbody id="tbody-alunos"></tbody>
+      </table></div>
+      <div style="font-size:11px;color:#666;margin-top:.5rem;" id="alunos-count"></div>
+    </div>
+
+    <!-- TAB RELATORIO -->
+    <div id="tab-relatorio" class="screen">
+      <div class="filter-bar">
+        <label>Curso:</label>
+        <select id="f-curso-rel" onchange="renderRel()"><option value="">Todos</option></select>
+        <label>Professor:</label>
+        <select id="f-prof-rel" onchange="renderRel()"><option value="">Todos</option></select>
+        <label>Mostrar:</label>
+        <select id="f-tipo-rel" onchange="renderRel()">
+          <option value="">Todos</option>
+          <option value="alerta">Só alertas (3+ faltas seguidas)</option>
+          <option value="irregular">Só irregulares (&lt;75%)</option>
+        </select>
+      </div>
+      <div id="rel-area"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL ALUNO -->
+<div class="modal-bg" id="modal-aluno">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="ma-nome"></div>
+      <button class="close-btn" onclick="fecharModal('modal-aluno')">×</button>
+    </div>
+    <div id="ma-status" style="margin-bottom:1rem;"></div>
+    <div class="info-grid" id="ma-info"></div>
+    <div style="font-size:12px;color:#666;margin-bottom:.5rem;">Histórico por aula</div>
+    <div class="aulas-grid" id="ma-aulas"></div>
+    <div id="ma-hist" style="margin-top:1rem;"></div>
+    <div class="modal-footer">
+      <button class="btn-warning" id="ma-btn-inativar" onclick="toggleInativo()"></button>
+      <button class="btn-sec" onclick="abrirModalEditar()">Editar nome</button>
+      <button class="btn-save" onclick="abrirModalTransferir()">Transferir turma</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal-bg" id="modal-editar">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Editar aluno</div>
+      <button class="close-btn" onclick="fecharModal('modal-editar')">×</button>
+    </div>
+    <div class="field"><label>Nome completo</label><input type="text" id="edit-nome"/></div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-editar')">Cancelar</button>
+      <button class="btn-save" onclick="salvarEdicao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TRANSFERIR -->
+<div class="modal-bg" id="modal-transferir">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Transferir aluno de turma</div>
+      <button class="close-btn" onclick="fecharModal('modal-transferir')">×</button>
+    </div>
+    <div id="transf-info" style="background:#f9fafb;border-radius:7px;padding:.75rem 1rem;margin-bottom:1rem;font-size:13px;"></div>
+    <div class="field"><label>Nova turma</label>
+      <select id="transf-sel" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;"></select>
+    </div>
+    <div class="info-box">O histórico de presenças na turma atual ficará registrado. O aluno começa do zero na nova turma.</div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-transferir')">Cancelar</button>
+      <button class="btn-save" onclick="confirmarTransferencia()">Confirmar transferência</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO ALUNO -->
+<div class="modal-bg" id="modal-novo">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Adicionar novo aluno</div>
+      <button class="close-btn" onclick="fecharModal('modal-novo')">×</button>
+    </div>
+    <div class="field"><label>Nome completo</label><input type="text" id="novo-nome" placeholder="Nome completo"/></div>
+    <div class="field"><label>Turma</label>
+      <select id="novo-turma" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;"></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-novo')">Cancelar</button>
+      <button class="btn-save" onclick="salvarNovoAluno()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast green" id="toast"></div>
+
+<script>
+// =============================================
+// CONFIGURAÇÃO SUPABASE
+// =============================================
+const SUPABASE_URL = 'https://wrdguclwncirgzlpfgjq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_1VuBPwpudDD3E-YKAFihYA_wIoFQpvR';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const AULAS = ['Aula 1','Aula 2','Aula 3','Aula 4','Aula 5','Aula 6','Aula 7','Aula 8',
+               'Aula 9','Aula 10','Aula 11','Aula 12','Aula 13','Aula 14','Aula 15','Aula 16',
+               'Aula 17','Aula 18','Aula 19','Aula 20'];
+
+// =============================================
+// ESTADO DA APLICAÇÃO
+// =============================================
+let TURMAS = [];
+let ALUNOS = [];
+let PRESENCAS = {};
+let HISTORICO = [];
+let usuarioLogado = null;
+let perfilLogado = null;
+let turmaAtual = null;
+let filtroCurso = '';
+let alunoSelecionadoId = null;
+let chamadaAlterada = {};
+
+// =============================================
+// AUTH
+// =============================================
+async function doLogin() {
+  const email = document.getElementById('inp-email').value.trim();
+  const senha = document.getElementById('inp-senha').value;
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  document.getElementById('login-err').style.display = 'none';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+  if (error) {
+    document.getElementById('login-err').style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Entrar';
+    return;
+  }
+  usuarioLogado = data.user;
+  await carregarPerfil();
+  await inicializarApp();
+}
+
+async function carregarPerfil() {
+  const { data } = await sb.from('professores').select('*').eq('user_id', usuarioLogado.id).single();
+  perfilLogado = data;
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  usuarioLogado = null; perfilLogado = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+  document.getElementById('inp-senha').value = '';
+}
+
+// =============================================
+// INICIALIZAÇÃO
+// =============================================
+async function inicializarApp() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const ini = perfilLogado?.nome ? perfilLogado.nome.substring(0,2).toUpperCase() : '--';
+  document.getElementById('av').textContent = ini;
+  document.getElementById('hname').textContent = perfilLogado?.nome || usuarioLogado.email;
+
+  await Promise.all([carregarTurmas(), carregarAlunos(), carregarPresencas(), carregarHistorico()]);
+  popularFiltros();
+  renderDash();
+  renderTabelaAlunos();
+  renderRel();
+}
+
+async function carregarTurmas() {
+  let q = sb.from('turmas').select('*').order('turma');
+  if (perfilLogado?.papel !== 'admin') q = q.eq('professor_id', perfilLogado?.id);
+  const { data } = await q;
+  TURMAS = data || [];
+}
+
+async function carregarAlunos() {
+  const turmaIds = TURMAS.map(t => t.id);
+  if (!turmaIds.length) { ALUNOS = []; return; }
+  const { data } = await sb.from('alunos').select('*').in('turma_id', turmaIds).order('nome');
+  ALUNOS = data || [];
+}
+
+async function carregarPresencas() {
+  const turmaIds = TURMAS.map(t => t.id);
+  if (!turmaIds.length) { PRESENCAS = {}; return; }
+  const { data } = await sb.from('presencas').select('*').in('turma_id', turmaIds);
+  PRESENCAS = {};
+  (data || []).forEach(p => {
+    const key = `${p.turma_id}_${p.aula}`;
+    if (!PRESENCAS[key]) PRESENCAS[key] = {};
+    PRESENCAS[key][p.aluno_id] = p.status;
+  });
+}
+
+async function carregarHistorico() {
+  const alunoIds = ALUNOS.map(a => a.id);
+  if (!alunoIds.length) { HISTORICO = []; return; }
+  const { data } = await sb.from('historico').select('*').in('aluno_id', alunoIds).order('created_at', { ascending: false });
+  HISTORICO = data || [];
+}
+
+// =============================================
+// HELPERS
+// =============================================
+function calcAluno(aluno) {
+  const seq = AULAS.map(aula => {
+    const k = `${aluno.turma_id}_${aula}`;
+    return (PRESENCAS[k] && PRESENCAS[k][aluno.id]) || 'N';
+  });
+  const p = seq.filter(v => v === 'P').length;
+  const f = seq.filter(v => v === 'F').length;
+  const freq = p + f > 0 ? Math.round((p / (p + f)) * 100) : null;
+  let maxC = 0, cur = 0;
+  seq.forEach(v => { if (v === 'F') { cur++; maxC = Math.max(maxC, cur); } else cur = 0; });
+  return { seq, p, f, freq, maxConsec: maxC };
+}
+
+function freqBar(freq) {
+  if (freq === null) return '<span style="font-size:11px;color:#aaa;">—</span>';
+  const c = freq >= 75 ? '#10b981' : freq >= 50 ? '#f59e0b' : '#ef4444';
+  return `<div class="freq-wrap"><div class="fbar"><div class="fbar-fill" style="width:${freq}%;background:${c};"></div></div><span style="font-size:11px;font-weight:600;color:${c};">${freq}%</span></div>`;
+}
+
+function dotsHtml(seq) {
+  return `<div class="dots">${seq.slice(0,8).map(v => `<div class="dot ${v==='P'?'dot-p':v==='F'?'dot-f':'dot-n'}"></div>`).join('')}</div>`;
+}
+
+function statusBadge(freq, maxC, ativo) {
+  if (!ativo) return `<span class="badge badge-gray">Inativo</span>`;
+  if (maxC >= 3) return `<span class="badge badge-red">⚠ Alerta</span>`;
+  if (freq === null) return `<span class="badge badge-gray">Sem registro</span>`;
+  if (freq >= 75) return `<span class="badge badge-green">Regular</span>`;
+  return `<span class="badge badge-amber">Atenção</span>`;
+}
+
+function showToast(msg, type = 'green') {
+  const t = document.getElementById('toast');
+  t.className = `toast ${type}`; t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2800);
+}
+
+function corBadge(curso) {
+  if (curso?.includes('Elas')) return 'badge-blue';
+  if (curso?.includes('Master')) return 'badge-amber';
+  if (curso?.includes('Evolution')) return 'badge-green';
+  return 'badge-gray';
+}
+
+function popularFiltros() {
+  const cursos = [...new Set(TURMAS.map(t => t.curso))].sort();
+  const profs = [...new Set(TURMAS.map(t => t.professor))].sort();
+  ['f-curso-alunos','f-curso-rel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = '<option value="">Todos</option>' + cursos.map(c => `<option>${c}</option>`).join(''); }
+  });
+  const fp = document.getElementById('f-prof-rel');
+  if (fp) fp.innerHTML = '<option value="">Todos</option>' + profs.map(p => `<option>${p}</option>`).join('');
+}
+
+// =============================================
+// NAVEGAÇÃO
+// =============================================
+function goTab(tab) {
+  document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', ['turmas','alunos','relatorio'][i] === tab));
+  document.querySelectorAll('#app .screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'turmas') { document.getElementById('dash-view').style.display = 'block'; document.getElementById('chamada-view').style.display = 'none'; }
+  if (tab === 'relatorio') renderRel();
+}
+
+// =============================================
+// DASHBOARD / TURMAS
+// =============================================
+function renderDash() {
+  const ativos = ALUNOS.filter(a => a.ativo);
+  const dados = ativos.map(a => calcAluno(a));
+  const alertas = dados.filter(d => d.maxConsec >= 3).length;
+  const irregulares = dados.filter(d => d.freq !== null && d.freq < 75).length;
+
+  document.getElementById('stats-area').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Turmas</div><div class="stat-val">${TURMAS.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Alunos ativos</div><div class="stat-val">${ativos.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Irregulares (&lt;75%)</div><div class="stat-val amber">${irregulares}</div></div>
+    <div class="stat-card"><div class="stat-label">Alertas (3+ seguidas)</div><div class="stat-val red">${alertas}</div></div>`;
+
+  const cursos = [...new Set(TURMAS.map(t => t.curso))];
+  document.getElementById('curso-pills').innerHTML =
+    `<button class="cpill ${filtroCurso === '' ? 'active' : ''}" onclick="setCurso('')">Todos</button>` +
+    cursos.map(c => `<button class="cpill ${filtroCurso === c ? 'active' : ''}" onclick="setCurso('${c}')">${c}</button>`).join('');
+
+  const filtradas = filtroCurso ? TURMAS.filter(t => t.curso === filtroCurso) : TURMAS;
+  document.getElementById('turmas-grid').innerHTML = filtradas.map(t => {
+    const al = ALUNOS.filter(a => a.ativo && a.turma_id === t.id);
+    const at = al.filter(a => calcAluno(a).maxConsec >= 3).length;
+    return `<div class="turma-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div style="width:9px;height:9px;border-radius:50%;background:${t.cor || '#3b82f6'};flex-shrink:0;"></div>
+        <div style="font-size:13px;font-weight:600;">${t.turma}</div>
+      </div>
+      <div style="font-size:12px;color:#666;display:flex;flex-direction:column;gap:4px;">
+        <span><span class="badge ${corBadge(t.curso)}">${t.curso}</span></span>
+        <span>Prof. ${t.professor} · ${al.length} alunos${at > 0 ? ` · <span style="color:#dc2626;font-weight:600;">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
+      </div>
+      <button class="btn-chamada" onclick="abrirChamada(${t.id})">Fazer chamada →</button>
+    </div>`;
+  }).join('') || '<div class="empty">Nenhuma turma encontrada.</div>';
+}
+
+function setCurso(c) { filtroCurso = c; renderDash(); }
+
+// =============================================
+// CHAMADA
+// =============================================
+function abrirChamada(tId) {
+  turmaAtual = TURMAS.find(t => t.id === tId);
+  chamadaAlterada = {};
+  document.getElementById('dash-view').style.display = 'none';
+  document.getElementById('chamada-view').style.display = 'block';
+  document.getElementById('ch-titulo').textContent = turmaAtual.turma + ' — ' + turmaAtual.curso;
+  document.getElementById('ch-sub').textContent = 'Prof. ' + turmaAtual.professor;
+  const sel = document.getElementById('aula-sel');
+  sel.innerHTML = AULAS.map(a => `<option>${a}</option>`).join('');
+  renderChamada();
+}
+
+function voltarDash() {
+  document.getElementById('chamada-view').style.display = 'none';
+  document.getElementById('dash-view').style.display = 'block';
+}
+
+function renderChamada() {
+  const aula = document.getElementById('aula-sel').value;
+  const key = `${turmaAtual.id}_${aula}`;
+  if (!PRESENCAS[key]) PRESENCAS[key] = {};
+  const alunos = ALUNOS.filter(a => a.ativo && a.turma_id === turmaAtual.id);
+  let p = 0, f = 0, s = 0;
+  alunos.forEach(a => { const v = PRESENCAS[key][a.id]; if (v === 'P') p++; else if (v === 'F') f++; else s++; });
+  document.getElementById('ch-counters').innerHTML =
+    `<span style="color:#059669;">✓ ${p} presentes</span><span style="color:#dc2626;">✗ ${f} faltas</span><span>○ ${s} sem registro</span>`;
+  document.getElementById('alunos-list').innerHTML = alunos.map((a, i) => {
+    const v = PRESENCAS[key][a.id] || '';
+    return `<div class="aluno-row">
+      <div class="aluno-num">${i + 1}</div>
+      <div class="aluno-nome">${a.nome}</div>
+      <div class="pbtns">
+        <button class="pbtn pbtn-p ${v === 'P' ? 'on' : ''}" onclick="marcar(${a.id},'P')">✓ Presente</button>
+        <button class="pbtn pbtn-f ${v === 'F' ? 'on' : ''}" onclick="marcar(${a.id},'F')">✗ Falta</button>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">Nenhum aluno nesta turma.</div>';
+}
+
+function marcar(alunoId, val) {
+  const aula = document.getElementById('aula-sel').value;
+  const key = `${turmaAtual.id}_${aula}`;
+  if (!PRESENCAS[key]) PRESENCAS[key] = {};
+  const atual = PRESENCAS[key][alunoId];
+  PRESENCAS[key][alunoId] = atual === val ? null : val;
+  chamadaAlterada[`${alunoId}_${aula}`] = PRESENCAS[key][alunoId];
+  renderChamada();
+}
+
+async function salvarChamada() {
+  const btn = document.getElementById('btn-salvar-chamada');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const aula = document.getElementById('aula-sel').value;
+  const key = `${turmaAtual.id}_${aula}`;
+  const registros = [];
+  Object.keys(PRESENCAS[key] || {}).forEach(alunoId => {
+    const status = PRESENCAS[key][alunoId];
+    if (status) registros.push({ turma_id: turmaAtual.id, aluno_id: parseInt(alunoId), aula, status });
+  });
+  await sb.from('presencas').delete().eq('turma_id', turmaAtual.id).eq('aula', aula);
+  if (registros.length) await sb.from('presencas').insert(registros);
+  chamadaAlterada = {};
+  btn.disabled = false; btn.textContent = 'Salvar chamada';
+  showToast('Chamada salva com sucesso!');
+  renderDash();
+}
+
+// =============================================
+// TABELA DE ALUNOS
+// =============================================
+function renderTabelaAlunos() {
+  const busca = (document.getElementById('busca-alunos') || {}).value?.toLowerCase() || '';
+  const fCurso = document.getElementById('f-curso-alunos')?.value || '';
+  const fStatus = document.getElementById('f-status-alunos')?.value || '';
+
+  let lista = ALUNOS.map(a => ({ ...a, ...calcAluno(a), turma: TURMAS.find(t => t.id === a.turma_id) }));
+  if (busca) lista = lista.filter(a => a.nome.toLowerCase().includes(busca));
+  if (fCurso) lista = lista.filter(a => a.turma?.curso === fCurso);
+  if (fStatus === 'ativo') lista = lista.filter(a => a.ativo);
+  else if (fStatus === 'inativo') lista = lista.filter(a => !a.ativo);
+  else if (fStatus === 'alerta') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
+  else if (fStatus === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 75);
+
+  document.getElementById('tbody-alunos').innerHTML = lista.map(a => `
+    <tr class="clickable ${a.maxConsec >= 3 && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''}" onclick="abrirModalAluno(${a.id})">
+      <td>${a.nome}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
+      <td><span class="badge ${corBadge(a.turma?.curso)}" style="font-size:10px;">${a.turma?.curso || '—'}</span></td>
+      <td style="color:#666;">${a.turma?.turma || '—'}</td>
+      <td style="text-align:center;color:#059669;font-weight:600;">${a.p}</td>
+      <td style="text-align:center;color:#dc2626;font-weight:600;">${a.f}</td>
+      <td style="text-align:center;">${a.maxConsec > 0 ? `<span class="badge ${a.maxConsec >= 3 ? 'badge-red' : 'badge-gray'}">${a.maxConsec}</span>` : '—'}</td>
+      <td>${freqBar(a.freq)}</td>
+    </tr>`).join('') || '<tr><td colspan="7" class="empty">Nenhum aluno encontrado.</td></tr>';
+  document.getElementById('alunos-count').textContent = `${lista.length} aluno${lista.length !== 1 ? 's' : ''} · Clique para ver detalhes, editar ou transferir`;
+}
+
+// =============================================
+// MODAL ALUNO
+// =============================================
+function abrirModalAluno(id) {
+  alunoSelecionadoId = id;
+  const a = ALUNOS.find(x => x.id === id);
+  const t = TURMAS.find(x => x.id === a.turma_id);
+  const c = calcAluno(a);
+  document.getElementById('ma-nome').textContent = a.nome;
+  document.getElementById('ma-status').innerHTML = statusBadge(c.freq, c.maxConsec, a.ativo);
+  document.getElementById('ma-info').innerHTML = `
+    <div class="info-item"><div class="info-label">Curso</div><div class="info-val">${t?.curso || '—'}</div></div>
+    <div class="info-item"><div class="info-label">Turma</div><div class="info-val">${t?.turma || '—'}</div></div>
+    <div class="info-item"><div class="info-label">Professor(a)</div><div class="info-val">${t?.professor || '—'}</div></div>
+    <div class="info-item"><div class="info-label">Frequência</div><div class="info-val">${c.freq !== null ? c.freq + '%' : '—'}</div></div>
+    <div class="info-item"><div class="info-label">Presenças</div><div class="info-val" style="color:#059669;">${c.p}</div></div>
+    <div class="info-item"><div class="info-label">Faltas</div><div class="info-val" style="color:#dc2626;">${c.f}</div></div>`;
+  document.getElementById('ma-aulas').innerHTML = AULAS.slice(0, 8).map((au, i) => {
+    const v = c.seq[i];
+    const bg = v === 'P' ? '#d1fae5' : v === 'F' ? '#fee2e2' : '#f9fafb';
+    const tc = v === 'P' ? '#065f46' : v === 'F' ? '#991b1b' : '#aaa';
+    return `<div class="aula-item" style="background:${bg};"><div class="aula-item-label">${au}</div><div class="aula-item-val" style="color:${tc};">${v === 'P' ? 'Presente' : v === 'F' ? 'Falta' : '—'}</div></div>`;
+  }).join('');
+  const hist = HISTORICO.filter(h => h.aluno_id === id);
+  document.getElementById('ma-hist').innerHTML = hist.length ? `
+    <div style="font-size:12px;color:#666;margin-bottom:.5rem;font-weight:500;">Histórico de movimentações</div>
+    ${hist.map(h => `<div class="hist-item"><span style="font-size:10px;color:#aaa;width:80px;flex-shrink:0;">${new Date(h.created_at).toLocaleDateString('pt-BR')}</span><span>${h.descricao}</span></div>`).join('')}` : '';
+  const btnIn = document.getElementById('ma-btn-inativar');
+  btnIn.textContent = a.ativo ? 'Inativar aluno' : 'Reativar aluno';
+  btnIn.className = a.ativo ? 'btn-danger' : 'btn-warning';
+  document.getElementById('modal-aluno').classList.add('open');
+}
+
+function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function toggleInativo() {
+  const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
+  const novoStatus = !a.ativo;
+  await sb.from('alunos').update({ ativo: novoStatus }).eq('id', a.id);
+  await sb.from('historico').insert({ aluno_id: a.id, descricao: novoStatus ? 'Aluno reativado' : 'Aluno inativado' });
+  a.ativo = novoStatus;
+  fecharModal('modal-aluno');
+  showToast(novoStatus ? 'Aluno reativado.' : 'Aluno inativado.');
+  renderTabelaAlunos(); renderDash();
+}
+
+function abrirModalEditar() {
+  const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
+  document.getElementById('edit-nome').value = a.nome;
+  fecharModal('modal-aluno');
+  document.getElementById('modal-editar').classList.add('open');
+}
+
+async function salvarEdicao() {
+  const novoNome = document.getElementById('edit-nome').value.trim();
+  if (!novoNome) return;
+  const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
+  await sb.from('alunos').update({ nome: novoNome }).eq('id', a.id);
+  await sb.from('historico').insert({ aluno_id: a.id, descricao: `Nome alterado para "${novoNome}"` });
+  a.nome = novoNome;
+  fecharModal('modal-editar');
+  showToast('Nome atualizado!');
+  renderTabelaAlunos(); renderDash();
+}
+
+function abrirModalTransferir() {
+  const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
+  const t = TURMAS.find(x => x.id === a.turma_id);
+  document.getElementById('transf-info').innerHTML = `<strong>${a.nome}</strong><br><span style="color:#666;">Turma atual: ${t?.turma} · ${t?.curso} · Prof. ${t?.professor}</span>`;
+  const outras = TURMAS.filter(x => x.id !== a.turma_id);
+  document.getElementById('transf-sel').innerHTML = outras.map(x => `<option value="${x.id}">${x.turma} — ${x.curso} (Prof. ${x.professor})</option>`).join('');
+  fecharModal('modal-aluno');
+  document.getElementById('modal-transferir').classList.add('open');
+}
+
+async function confirmarTransferencia() {
+  const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
+  const tAntiga = TURMAS.find(x => x.id === a.turma_id);
+  const novoTId = parseInt(document.getElementById('transf-sel').value);
+  const tNova = TURMAS.find(x => x.id === novoTId);
+  await sb.from('alunos').update({ turma_id: novoTId }).eq('id', a.id);
+  await sb.from('historico').insert({ aluno_id: a.id, descricao: `Transferido de "${tAntiga?.turma} (${tAntiga?.curso})" para "${tNova?.turma} (${tNova?.curso})"` });
+  a.turma_id = novoTId;
+  fecharModal('modal-transferir');
+  showToast(`${a.nome} transferido para ${tNova?.turma}!`, 'blue');
+  renderTabelaAlunos(); renderDash();
+}
+
+function abrirModalNovoAluno() {
+  document.getElementById('novo-nome').value = '';
+  document.getElementById('novo-turma').innerHTML = TURMAS.map(t => `<option value="${t.id}">${t.turma} — ${t.curso} (Prof. ${t.professor})</option>`).join('');
+  document.getElementById('modal-novo').classList.add('open');
+}
+
+async function salvarNovoAluno() {
+  const nome = document.getElementById('novo-nome').value.trim();
+  if (!nome) { showToast('Digite o nome do aluno.', 'red'); return; }
+  const turmaId = parseInt(document.getElementById('novo-turma').value);
+  const { data, error } = await sb.from('alunos').insert({ nome, turma_id: turmaId, ativo: true }).select().single();
+  if (error) { showToast('Erro ao adicionar aluno.', 'red'); return; }
+  await sb.from('historico').insert({ aluno_id: data.id, descricao: 'Aluno adicionado ao sistema' });
+  ALUNOS.push(data);
+  fecharModal('modal-novo');
+  showToast(`${nome} adicionado com sucesso!`);
+  renderTabelaAlunos(); renderDash();
+}
+
+// =============================================
+// RELATÓRIOS
+// =============================================
+function renderRel() {
+  const fCurso = document.getElementById('f-curso-rel')?.value || '';
+  const fProf = document.getElementById('f-prof-rel')?.value || '';
+  const fTipo = document.getElementById('f-tipo-rel')?.value || '';
+  let turmas = TURMAS;
+  if (fCurso) turmas = turmas.filter(t => t.curso === fCurso);
+  if (fProf) turmas = turmas.filter(t => t.professor === fProf);
+  let html = '';
+  turmas.forEach(t => {
+    let lista = ALUNOS.filter(a => a.turma_id === t.id).map(a => ({ ...a, ...calcAluno(a) }));
+    if (fTipo === 'alerta') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
+    else if (fTipo === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 75);
+    if (!lista.length) return;
+    const ativos = lista.filter(a => a.ativo);
+    const totalP = ativos.reduce((s, a) => s + a.p, 0), totalF = ativos.reduce((s, a) => s + a.f, 0);
+    const fMedia = totalP + totalF > 0 ? Math.round((totalP / (totalP + totalF)) * 100) : null;
+    const at = ativos.filter(a => a.maxConsec >= 3).length;
+    html += `<div style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
+        <div style="width:9px;height:9px;border-radius:50%;background:${t.cor || '#3b82f6'};flex-shrink:0;"></div>
+        <span style="font-size:14px;font-weight:600;">${t.turma}</span>
+        <span style="font-size:12px;color:#666;">· ${t.curso} · Prof. ${t.professor} · ${ativos.length} ativos · freq. média ${fMedia !== null ? fMedia + '%' : '—'}${at > 0 ? ` · <span style="color:#dc2626;font-weight:600;">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th style="width:35%;">Aluno</th>
+          <th style="width:12%;">Histórico</th>
+          <th style="width:8%;text-align:center;">P</th>
+          <th style="width:8%;text-align:center;">F</th>
+          <th style="width:11%;text-align:center;">Consec.</th>
+          <th style="width:13%;">Freq.</th>
+          <th style="width:13%;">Status</th>
+        </tr></thead>
+        <tbody>${lista.map(a => `<tr class="clickable ${a.maxConsec >= 3 && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''}" onclick="abrirModalAluno(${a.id})">
+          <td>${a.nome}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
+          <td>${dotsHtml(a.seq)}</td>
+          <td style="text-align:center;color:#059669;font-weight:600;">${a.p}</td>
+          <td style="text-align:center;color:#dc2626;font-weight:600;">${a.f}</td>
+          <td style="text-align:center;">${a.maxConsec > 0 ? `<span class="badge ${a.maxConsec >= 3 ? 'badge-red' : 'badge-gray'}">${a.maxConsec}</span>` : '—'}</td>
+          <td>${freqBar(a.freq)}</td>
+          <td>${statusBadge(a.freq, a.maxConsec, a.ativo)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
+  });
+  document.getElementById('rel-area').innerHTML = html || '<div class="empty">Nenhuma turma encontrada com os filtros selecionados.</div>';
+}
+
+// =============================================
+// AUTO-LOGIN (sessão ativa)
+// =============================================
+sb.auth.getSession().then(async ({ data }) => {
+  if (data.session) {
+    usuarioLogado = data.session.user;
+    await carregarPerfil();
+    await inicializarApp();
+  }
+});
+</script>
+</body>
+</html>
