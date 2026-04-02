@@ -436,16 +436,22 @@ async function inicializarApp() {
 
 async function carregarTurmas() {
   let q = sb.from('turmas').select('*').order('turma');
-  if (perfilLogado?.papel !== 'admin') q = q.eq('professor_id', perfilLogado?.id);
-  const { data } = await q;
+  if (perfilLogado?.papel !== 'admin') {
+    q = q.eq('professor_id', perfilLogado?.id);
+  }
+  const { data, error } = await q;
+  if (error) { console.error('Erro turmas:', error); }
   TURMAS = data || [];
+  console.log('Turmas carregadas:', TURMAS.length);
 }
 
 async function carregarAlunos() {
   const turmaIds = TURMAS.map(t => t.id);
   if (!turmaIds.length) { ALUNOS = []; return; }
-  const { data } = await sb.from('alunos').select('*').in('turma_id', turmaIds).order('nome');
+  const { data, error } = await sb.from('alunos').select('*').in('turma_id', turmaIds).order('nome');
+  if (error) { console.error('Erro alunos:', error); }
   ALUNOS = data || [];
+  console.log('Alunos carregados:', ALUNOS.length);
 }
 
 async function carregarPresencas() {
