@@ -442,16 +442,10 @@ async function carregarTurmas() {
 }
 
 async function carregarAlunos() {
-  const turmaIds = TURMAS.map(t => t.id);
-  if (!turmaIds.length) { ALUNOS = []; return; }
-  let allData = [];
-  // Load in batches of 10 turmas to avoid URL length limits
-  for (let i = 0; i < turmaIds.length; i += 10) {
-    const batch = turmaIds.slice(i, i + 10);
-    const { data, error } = await sb.from('alunos').select('*').in('turma_id', batch).order('nome');
-    if (data) allData = allData.concat(data);
-  }
-  ALUNOS = allData;
+  const { data, error } = await sb.from('alunos').select('*').order('nome').limit(1000);
+  if (error) console.error('Erro alunos:', error);
+  const turmaIds = new Set(TURMAS.map(t => t.id));
+  ALUNOS = (data || []).filter(a => turmaIds.has(a.turma_id));
 }
 
 async function carregarPresencas() {
