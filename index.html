@@ -235,7 +235,7 @@
           <label>Buscar:</label>
           <input type="text" id="busca-alunos" placeholder="Nome do aluno..." oninput="renderTabelaAlunos()">
           <label>Curso:</label>
-          <select id="f-curso-alunos" onchange="atualizarFiltroTurmaAlunos();renderTabelaAlunos()">
+          <select id="f-curso-alunos" onchange="atualizarTurmasAlunos();renderTabelaAlunos()">
             <option value="">Todos</option>
           </select>
           <label>Turma:</label>
@@ -275,17 +275,11 @@
         <select id="f-curso-rel" onchange="renderRel()"><option value="">Todos</option></select>
         <label>Professor:</label>
         <select id="f-prof-rel" onchange="renderRel()"><option value="">Todos</option></select>
-        <label>Turma:</label>
-        <select id="f-turma-rel" onchange="renderRel()"><option value="">Todas</option></select>
-        <label>Aula:</label>
-        <select id="f-aula-rel" onchange="renderRel()"><option value="">Todas</option></select>
         <label>Mostrar:</label>
         <select id="f-tipo-rel" onchange="renderRel()">
           <option value="">Todos</option>
           <option value="alerta">Só alertas (3+ faltas seguidas)</option>
           <option value="irregular">Só irregulares (&lt;75%)</option>
-          <option value="faltou">Faltou na aula selecionada</option>
-          <option value="presente">Presente na aula selecionada</option>
         </select>
         <button onclick="exportarExcel()" style="margin-left:auto;padding:7px 16px;background:#059669;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
       </div>
@@ -307,19 +301,15 @@
     <div style="font-size:12px;color:#666;margin-bottom:.5rem;">Histórico por aula</div>
     <div class="aulas-grid" id="ma-aulas"></div>
     <div id="ma-hist" style="margin-top:1rem;"></div>
-    
     <div style="margin-top:1rem;border-top:1px solid #e5e5e5;padding-top:1rem;">
-      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:.75rem;">Observações</div>
-      <div id="ma-obs-lista" style="margin-bottom:.75rem;max-height:150px;overflow-y:auto;"></div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="display:flex;gap:6px;">
-          <input type="date" id="obs-data" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:12px;width:140px;" />
-          <input type="text" id="obs-texto" placeholder="Digite uma observação..." style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:12px;" />
-          <button onclick="salvarObservacao()" style="padding:6px 14px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Add</button>
-        </div>
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:.5rem;">Observações</div>
+      <div id="ma-obs-lista" style="margin-bottom:.75rem;max-height:140px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:6px;">
+        <input type="date" id="obs-data" style="padding:6px 8px;border:1px solid #d1d5db;border-radius:7px;font-size:12px;width:130px;" />
+        <input type="text" id="obs-texto" placeholder="Digite uma observação..." style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:12px;" />
+        <button onclick="salvarObservacao()" style="padding:6px 12px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
       </div>
     </div>
-    
     <div class="modal-footer">
       <button class="btn-warning" id="ma-btn-inativar" onclick="toggleInativo()"></button>
       <button class="btn-sec" onclick="abrirModalEditar()">Editar nome</button>
@@ -540,14 +530,7 @@ function corBadge(curso) {
 }
 
 function popularFiltros() {
-  atualizarFiltroTurmaAlunos();
-  // Popular filtro turma rel
-  const ft = document.getElementById('f-turma-rel');
-  if (ft) ft.innerHTML = '<option value="">Todas</option>' + TURMAS.map(t => '<option value="'+t.id+'">'+t.turma+' ('+t.curso+')</option>').join('');
-  // Popular filtro aula rel
-  const fa = document.getElementById('f-aula-rel');
-  if (fa) fa.innerHTML = '<option value="">Todas</option>' + AULAS.map(a => '<option>'+a+'</option>').join('');
-
+  atualizarTurmasAlunos();
   const cursos = [...new Set(TURMAS.map(t => t.curso))].sort();
   const profs = [...new Set(TURMAS.map(t => t.professor))].sort();
   ['f-curso-alunos','f-curso-rel'].forEach(id => {
@@ -740,57 +723,13 @@ function abrirModalAluno(id) {
   const btnIn = document.getElementById('ma-btn-inativar');
   btnIn.textContent = a.ativo ? 'Inativar aluno' : 'Reativar aluno';
   btnIn.className = a.ativo ? 'btn-danger' : 'btn-warning';
-  // Set today's date as default for observation
   const today = new Date().toISOString().split('T')[0];
-  document.getElementById('obs-data').value = today;
-  document.getElementById('obs-texto').value = '';
-  
-  // Load observations
+  const obsData = document.getElementById('obs-data');
+  if (obsData) obsData.value = today;
+  const obsTexto = document.getElementById('obs-texto');
+  if (obsTexto) obsTexto.value = '';
   carregarObservacoes(id);
-  
   document.getElementById('modal-aluno').classList.add('open');
-}
-
-async function carregarObservacoes(alunoId) {
-  const { data } = await sb.from('historico')
-    .select('*')
-    .eq('aluno_id', alunoId)
-    .order('created_at', { ascending: false });
-  
-  const lista = document.getElementById('ma-obs-lista');
-  if (!lista) return;
-  
-  const obs = (data || []).filter(h => h.tipo === 'observacao');
-  if (!obs.length) {
-    lista.innerHTML = '<div style="font-size:12px;color:#aaa;padding:4px 0;">Nenhuma observação registrada.</div>';
-    return;
-  }
-  
-  lista.innerHTML = obs.map(h => {
-    const data_fmt = h.data_obs ? new Date(h.data_obs + 'T00:00:00').toLocaleDateString('pt-BR') : new Date(h.created_at).toLocaleDateString('pt-BR');
-    return '<div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:12px;">' +
-      '<span style="color:#aaa;margin-right:8px;font-size:11px;">'+data_fmt+'</span>' +
-      '<span style="color:#333;">'+h.descricao+'</span>' +
-      '</div>';
-  }).join('');
-}
-
-async function salvarObservacao() {
-  const texto = document.getElementById('obs-texto').value.trim();
-  const data_obs = document.getElementById('obs-data').value;
-  if (!texto) { showToast('Digite uma observação!', 'red'); return; }
-  
-  await sb.from('historico').insert({
-    aluno_id: alunoSelecionadoId,
-    descricao: texto,
-    tipo: 'observacao',
-    data_obs: data_obs || null
-  });
-  
-  document.getElementById('obs-texto').value = '';
-  showToast('Observação salva!');
-  carregarObservacoes(alunoSelecionadoId);
-}
 }
 
 function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -874,19 +813,14 @@ function renderRel() {
   const fCurso = document.getElementById('f-curso-rel')?.value || '';
   const fProf = document.getElementById('f-prof-rel')?.value || '';
   const fTipo = document.getElementById('f-tipo-rel')?.value || '';
-  const fTurmaId = document.getElementById('f-turma-rel')?.value || '';
-  const fAula = document.getElementById('f-aula-rel')?.value || '';
   let turmas = TURMAS;
   if (fCurso) turmas = turmas.filter(t => t.curso === fCurso);
   if (fProf) turmas = turmas.filter(t => t.professor === fProf);
-  if (fTurmaId) turmas = turmas.filter(t => String(t.id) === fTurmaId);
   let html = '';
   turmas.forEach(t => {
     let lista = ALUNOS.filter(a => a.turma_id === t.id).map(a => ({ ...a, ...calcAluno(a) }));
     if (fTipo === 'alerta') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
     else if (fTipo === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 75);
-    else if (fTipo === 'faltou' && fAula) lista = lista.filter(a => { const k = t.id+'_'+fAula; return PRESENCAS[k] && PRESENCAS[k][a.id] === 'F'; });
-    else if (fTipo === 'presente' && fAula) lista = lista.filter(a => { const k = t.id+'_'+fAula; return PRESENCAS[k] && PRESENCAS[k][a.id] === 'P'; });
     if (!lista.length) return;
     const ativos = lista.filter(a => a.ativo);
     const totalP = ativos.reduce((s, a) => s + a.p, 0), totalF = ativos.reduce((s, a) => s + a.f, 0);
@@ -921,6 +855,39 @@ function renderRel() {
     </div>`;
   });
   document.getElementById('rel-area').innerHTML = html || '<div class="empty">Nenhuma turma encontrada com os filtros selecionados.</div>';
+}
+
+
+function atualizarTurmasAlunos() {
+  const fCurso = document.getElementById('f-curso-alunos')?.value || '';
+  let turmasFilt = TURMAS;
+  if (fCurso) turmasFilt = turmasFilt.filter(t => t.curso === fCurso);
+  const ft = document.getElementById('f-turma-alunos');
+  if (ft) ft.innerHTML = '<option value="">Todas</option>' + turmasFilt.map(t => '<option value="'+t.id+'">'+t.turma+' - '+t.curso+'</option>').join('');
+}
+
+async function carregarObservacoes(alunoId) {
+  const lista = document.getElementById('ma-obs-lista');
+  if (!lista) return;
+  const { data } = await sb.from('historico').select('*').eq('aluno_id', alunoId).eq('tipo', 'observacao').order('data_obs', { ascending: false });
+  if (!data || !data.length) {
+    lista.innerHTML = '<div style="font-size:12px;color:#aaa;padding:4px 0;">Nenhuma observação registrada.</div>';
+    return;
+  }
+  lista.innerHTML = data.map(h => {
+    const d = h.data_obs ? new Date(h.data_obs + 'T00:00:00').toLocaleDateString('pt-BR') : new Date(h.created_at).toLocaleDateString('pt-BR');
+    return '<div style="padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:12px;"><span style="color:#aaa;font-size:11px;margin-right:8px;">'+d+'</span><span>'+h.descricao+'</span></div>';
+  }).join('');
+}
+
+async function salvarObservacao() {
+  const texto = document.getElementById('obs-texto').value.trim();
+  const data_obs = document.getElementById('obs-data').value;
+  if (!texto) { showToast('Digite uma observação!', 'red'); return; }
+  await sb.from('historico').insert({ aluno_id: alunoSelecionadoId, descricao: texto, tipo: 'observacao', data_obs: data_obs || null });
+  document.getElementById('obs-texto').value = '';
+  showToast('Observação salva!');
+  carregarObservacoes(alunoSelecionadoId);
 }
 
 // =============================================
