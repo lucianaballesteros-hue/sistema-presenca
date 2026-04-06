@@ -271,11 +271,17 @@
         <select id="f-curso-rel" onchange="renderRel()"><option value="">Todos</option></select>
         <label>Professor:</label>
         <select id="f-prof-rel" onchange="renderRel()"><option value="">Todos</option></select>
+        <label>Turma:</label>
+        <select id="f-turma-rel" onchange="renderRel()"><option value="">Todas</option></select>
+        <label>Aula:</label>
+        <select id="f-aula-rel" onchange="renderRel()"><option value="">Todas</option></select>
         <label>Mostrar:</label>
         <select id="f-tipo-rel" onchange="renderRel()">
           <option value="">Todos</option>
           <option value="alerta">Só alertas (3+ faltas seguidas)</option>
           <option value="irregular">Só irregulares (&lt;75%)</option>
+          <option value="faltou">Faltou na aula selecionada</option>
+          <option value="presente">Presente na aula selecionada</option>
         </select>
         <button onclick="exportarExcel()" style="margin-left:auto;padding:7px 16px;background:#059669;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
       </div>
@@ -517,6 +523,13 @@ function corBadge(curso) {
 }
 
 function popularFiltros() {
+  // Popular filtro turma rel
+  const ft = document.getElementById('f-turma-rel');
+  if (ft) ft.innerHTML = '<option value="">Todas</option>' + TURMAS.map(t => '<option value="'+t.id+'">'+t.turma+' ('+t.curso+')</option>').join('');
+  // Popular filtro aula rel
+  const fa = document.getElementById('f-aula-rel');
+  if (fa) fa.innerHTML = '<option value="">Todas</option>' + AULAS.map(a => '<option>'+a+'</option>').join('');
+
   const cursos = [...new Set(TURMAS.map(t => t.curso))].sort();
   const profs = [...new Set(TURMAS.map(t => t.professor))].sort();
   ['f-curso-alunos','f-curso-rel'].forEach(id => {
@@ -791,14 +804,19 @@ function renderRel() {
   const fCurso = document.getElementById('f-curso-rel')?.value || '';
   const fProf = document.getElementById('f-prof-rel')?.value || '';
   const fTipo = document.getElementById('f-tipo-rel')?.value || '';
+  const fTurmaId = document.getElementById('f-turma-rel')?.value || '';
+  const fAula = document.getElementById('f-aula-rel')?.value || '';
   let turmas = TURMAS;
   if (fCurso) turmas = turmas.filter(t => t.curso === fCurso);
   if (fProf) turmas = turmas.filter(t => t.professor === fProf);
+  if (fTurmaId) turmas = turmas.filter(t => String(t.id) === fTurmaId);
   let html = '';
   turmas.forEach(t => {
     let lista = ALUNOS.filter(a => a.turma_id === t.id).map(a => ({ ...a, ...calcAluno(a) }));
     if (fTipo === 'alerta') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
     else if (fTipo === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 75);
+    else if (fTipo === 'faltou' && fAula) lista = lista.filter(a => { const k = t.id+'_'+fAula; return PRESENCAS[k] && PRESENCAS[k][a.id] === 'F'; });
+    else if (fTipo === 'presente' && fAula) lista = lista.filter(a => { const k = t.id+'_'+fAula; return PRESENCAS[k] && PRESENCAS[k][a.id] === 'P'; });
     if (!lista.length) return;
     const ativos = lista.filter(a => a.ativo);
     const totalP = ativos.reduce((s, a) => s + a.p, 0), totalF = ativos.reduce((s, a) => s + a.f, 0);
