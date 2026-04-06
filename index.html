@@ -436,22 +436,22 @@ async function inicializarApp() {
 
 async function carregarTurmas() {
   let q = sb.from('turmas').select('*').order('turma');
-  if (perfilLogado?.papel !== 'admin') {
-    q = q.eq('professor_id', perfilLogado?.id);
-  }
-  const { data, error } = await q;
-  if (error) { console.error('Erro turmas:', error); }
+  if (perfilLogado?.papel !== 'admin') q = q.eq('professor_id', perfilLogado?.id);
+  const { data } = await q;
   TURMAS = data || [];
-  console.log('Turmas carregadas:', TURMAS.length);
 }
 
 async function carregarAlunos() {
   const turmaIds = TURMAS.map(t => t.id);
   if (!turmaIds.length) { ALUNOS = []; return; }
-  const { data, error } = await sb.from('alunos').select('*').in('turma_id', turmaIds).order('nome');
-  if (error) { console.error('Erro alunos:', error); }
-  ALUNOS = data || [];
-  console.log('Alunos carregados:', ALUNOS.length);
+  let allData = [];
+  // Load in batches of 10 turmas to avoid URL length limits
+  for (let i = 0; i < turmaIds.length; i += 10) {
+    const batch = turmaIds.slice(i, i + 10);
+    const { data, error } = await sb.from('alunos').select('*').in('turma_id', batch).order('nome');
+    if (data) allData = allData.concat(data);
+  }
+  ALUNOS = allData;
 }
 
 async function carregarPresencas() {
