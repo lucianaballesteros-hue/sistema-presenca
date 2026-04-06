@@ -451,11 +451,11 @@ async function carregarAlunos() {
 }
 
 async function carregarPresencas() {
-  const turmaIds = TURMAS.map(t => t.id);
-  if (!turmaIds.length) { PRESENCAS = {}; return; }
-  const { data } = await sb.from('presencas').select('*').in('turma_id', turmaIds);
+  const { data, error } = await sb.from('presencas').select('*').limit(10000);
+  if (error) console.error('Erro presencas:', error);
   PRESENCAS = {};
-  (data || []).forEach(p => {
+  const turmaIds = new Set(TURMAS.map(t => t.id));
+  (data || []).filter(p => turmaIds.has(p.turma_id)).forEach(p => {
     const key = `${p.turma_id}_${p.aula}`;
     if (!PRESENCAS[key]) PRESENCAS[key] = {};
     PRESENCAS[key][p.aluno_id] = p.status;
@@ -836,59 +836,6 @@ function renderRel() {
 }
 
 // =============================================
-
-function exportarExcel() {
-  const fCurso = document.getElementById('f-curso-rel')?.value || '';
-  const fProf = document.getElementById('f-prof-rel')?.value || '';
-  const fTipo = document.getElementById('f-tipo-rel')?.value || '';
-  
-  let turmas = TURMAS;
-  if (fCurso) turmas = turmas.filter(t => t.curso === fCurso);
-  if (fProf) turmas = turmas.filter(t => t.professor === fProf);
-  
-  const rows = [];
-  rows.push(['Curso', 'Turma', 'Professor', 'Aluno', 'Presenças', 'Faltas', 'Faltas Consecutivas', 'Frequência (%)', 'Status']);
-  
-  turmas.forEach(t => {
-    let lista = ALUNOS.filter(a => a.turma_id === t.id).map(a => ({...a, ...calcAluno(a)}));
-    if (fTipo === 'alerta') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
-    else if (fTipo === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 75);
-    
-    lista.forEach(a => {
-      let status = '';
-      if (!a.ativo) status = 'Inativo';
-      else if (a.maxConsec >= 3) status = 'Alerta';
-      else if (a.freq === null) status = 'Sem registro';
-      else if (a.freq >= 75) status = 'Regular';
-      else status = 'Atenção';
-      
-      rows.push([
-        t.curso,
-        t.turma,
-        t.professor,
-        a.nome,
-        a.p,
-        a.f,
-        a.maxConsec,
-        a.freq !== null ? a.freq + '%' : '—',
-        status
-      ]);
-    });
-  });
-  
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [
-    {wch: 15}, {wch: 25}, {wch: 12}, {wch: 35},
-    {wch: 10}, {wch: 8}, {wch: 18}, {wch: 14}, {wch: 12}
-  ];
-  
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Frequência');
-  
-  const hoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-  XLSX.writeFile(wb, 'Relatorio_Frequencia_' + hoje + '.xlsx');
-}
-
 // AUTO-LOGIN (sessão ativa)
 // =============================================
 sb.auth.getSession().then(async ({ data }) => {
