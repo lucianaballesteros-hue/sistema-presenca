@@ -281,7 +281,7 @@
           <option value="alerta">Só alertas (3+ faltas seguidas)</option>
           <option value="irregular">Só irregulares (&lt;75%)</option>
         </select>
-        <button onclick="exportarExcel()" style="margin-left:auto;padding:7px 16px;background:#059669;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
+        <button onclick="exportarExcel()" id="btn-exportar" style="margin-left:auto;padding:7px 16px;background:#059669;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
       </div>
       <div id="rel-area"></div>
     </div>
@@ -857,7 +857,6 @@ function renderRel() {
   document.getElementById('rel-area').innerHTML = html || '<div class="empty">Nenhuma turma encontrada com os filtros selecionados.</div>';
 }
 
-
 function atualizarTurmasAlunos() {
   const fCurso = document.getElementById('f-curso-alunos')?.value || '';
   let turmasFilt = TURMAS;
@@ -888,6 +887,162 @@ async function salvarObservacao() {
   document.getElementById('obs-texto').value = '';
   showToast('Observação salva!');
   carregarObservacoes(alunoSelecionadoId);
+}
+
+// =============================================
+// EXPORTAR EXCEL
+// =============================================
+async function exportarExcel() {
+  const btn = document.getElementById('btn-exportar');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Gerando...'; }
+
+  try {
+    const wb = XLSX.utils.book_new();
+    const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+    // ── ABA 1: Resumo Geral ──────────────────────────────────
+    const resumoRows = [
+      ['Relatório de Frequência — Todas as Turmas'],
+      ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
+      [],
+      ['Turma', 'Curso', 'Professor', 'Aluno', 'Status', 'Presenças', 'Faltas', '% Frequência', 'Faltas Consecutivas', 'Situação']
+    ];
+
+    TURMAS.forEach(t => {
+      const alunosDaTurma = ALUNOS.filter(a => a.turma_id === t.id);
+      alunosDaTurma.forEach(a => {
+        const c = calcAluno(a);
+        const pct = c.freq !== null ? c.freq / 100 : null;
+        const situacao = !a.ativo ? 'Inativo' : c.maxConsec >= 3 ? '⚠ Alerta' : c.freq === null ? 'Sem registro' : c.freq >= 75 ? 'Regular' : 'Atenção';
+        resumoRows.push([
+          t.turma,
+          t.curso,
+          t.professor,
+          a.nome,
+          a.ativo ? 'Ativo' : 'Inativo',
+          c.p,
+          c.f,
+          pct,
+          c.maxConsec,
+          situacao
+        ]);
+      });
+    });
+
+    const wsResumo = XLSX.utils.aoa_to_sheet(resumoRows);
+    // Formata coluna % (índice 7, coluna H) a partir da linha 5 (índice 4)
+    for (let r = 4; r < resumoRows.length; r++) {
+      const cell = XLSX.utils.encode_cell({ r, c: 7 });
+      if (wsResumo[cell] && typeof wsResumo[cell].v === 'number') {
+        wsResumo[cell].z = '0%';
+      }
+    }
+    wsResumo['!cols'] = [
+      {wch:20},{wch:16},{wch:18},{wch:35},{wch:8},{wch:10},{wch:8},{wch:13},{wch:18},{wch:12}
+    ];
+    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Geral');
+
+    // ── ABA por turma: grade de aulas ────────────────────────
+    TURMAS.forEach(t => {
+      const alunosDaTurma = ALUNOS.filter(a => a.turma_id === t.id);
+      if (!alunosDaTurma.length) return;
+
+      // Descobre quais aulas têm algum registro nesta turma
+      const aulasComDados = AULAS.filter(aula => {
+        const key = `${t.id}_${aula}`;
+        return PRESENCAS[key] && Object.keys(PRESENCAS[key]).length > 0;
+      });
+      // Se não tiver nenhuma, usa todas as 20
+      const aulasCols = aulasComDados.length > 0 ? aulasComDados : AULAS;
+
+      const header = ['Aluno', 'Status', ...aulasCols, 'Presenças', 'Faltas', '% Freq.', 'Faltas Consec.'];
+      const rows = [
+        [t.turma + ' — ' + t.curso + ' — Prof. ' + t.professor],
+        ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
+        [],
+        header
+      ];
+
+      alunosDaTurma.forEach(a => {
+        const row = [a.nome, a.ativo ? 'Ativo' : 'Inativo'];
+        let totalP = 0;
+        aulasCols.forEach(aula => {
+          const key = `${t.id}_${aula}`;
+          const v = (PRESENCAS[key] && PRESENCAS[key][a.id]) || '';
+          if (v === 'P') { row.push('P'); totalP++; }
+          else if (v === 'F') { row.push('F'); }
+          else { row.push(''); }
+        });
+        const c = calcAluno(a);
+        const pct = c.freq !== null ? c.freq / 100 : null;
+        row.push(c.p, c.f, pct, c.maxConsec);
+        rows.push(row);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+
+      // Formata coluna % (2 fixas + N aulas + P + F + %)
+      const pctColIdx = 2 + aulasCols.length + 2;
+      for (let r = 4; r < rows.length; r++) {
+        const cell = XLSX.utils.encode_cell({ r, c: pctColIdx });
+        if (ws[cell] && typeof ws[cell].v === 'number') {
+          ws[cell].z = '0%';
+        }
+      }
+
+      ws['!cols'] = [
+        {wch:35}, {wch:8},
+        ...aulasCols.map(() => ({wch:7})),
+        {wch:10}, {wch:8}, {wch:10}, {wch:14}
+      ];
+
+      // Nome da aba: máx 31 chars (limite Excel)
+      const nomeAba = (t.turma || t.curso || 'Turma').substring(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, nomeAba);
+    });
+
+    // ── ABA 3: Alertas ───────────────────────────────────────
+    const alertaRows = [
+      ['Alunos em Alerta — 3 ou mais faltas consecutivas'],
+      ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
+      [],
+      ['Turma', 'Curso', 'Professor', 'Aluno', 'Faltas Consecutivas', 'Total Faltas', '% Frequência']
+    ];
+
+    TURMAS.forEach(t => {
+      ALUNOS.filter(a => a.ativo && a.turma_id === t.id).forEach(a => {
+        const c = calcAluno(a);
+        if (c.maxConsec >= 3) {
+          alertaRows.push([
+            t.turma, t.curso, t.professor, a.nome,
+            c.maxConsec, c.f,
+            c.freq !== null ? c.freq / 100 : null
+          ]);
+        }
+      });
+    });
+
+    const wsAlerta = XLSX.utils.aoa_to_sheet(alertaRows);
+    for (let r = 4; r < alertaRows.length; r++) {
+      const cell = XLSX.utils.encode_cell({ r, c: 6 });
+      if (wsAlerta[cell] && typeof wsAlerta[cell].v === 'number') {
+        wsAlerta[cell].z = '0%';
+      }
+    }
+    wsAlerta['!cols'] = [{wch:20},{wch:16},{wch:18},{wch:35},{wch:18},{wch:12},{wch:13}];
+    XLSX.utils.book_append_sheet(wb, wsAlerta, 'Alertas');
+
+    // ── Download ─────────────────────────────────────────────
+    const nomArq = 'frequencia_' + new Date().toISOString().slice(0,10) + '.xlsx';
+    XLSX.writeFile(wb, nomArq);
+    showToast('Excel gerado com sucesso!', 'green');
+
+  } catch(err) {
+    console.error('Erro ao exportar Excel:', err);
+    showToast('Erro ao gerar Excel. Veja o console.', 'red');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Exportar Excel'; }
+  }
 }
 
 // =============================================
