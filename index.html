@@ -281,6 +281,13 @@
           <option value="alerta">Só alertas (3+ faltas seguidas)</option>
           <option value="irregular">Só irregulares (&lt;75%)</option>
         </select>
+        <label>Status:</label>
+        <select id="f-status-rel" onchange="renderRel()">
+          <option value="">Todos</option>
+          <option value="regular">Regular</option>
+          <option value="atencao">Atenção</option>
+          <option value="alerta-status">⚠ Alerta</option>
+        </select>
         <button onclick="exportarExcel()" id="btn-exportar" style="margin-left:auto;padding:7px 16px;background:#059669;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
       </div>
       <div id="rel-area"></div>
@@ -813,6 +820,7 @@ function renderRel() {
   const fCurso = document.getElementById('f-curso-rel')?.value || '';
   const fProf = document.getElementById('f-prof-rel')?.value || '';
   const fTipo = document.getElementById('f-tipo-rel')?.value || '';
+  const fStatus = document.getElementById('f-status-rel')?.value || '';
   let turmas = TURMAS;
   if (fCurso) turmas = turmas.filter(t => t.curso === fCurso);
   if (fProf) turmas = turmas.filter(t => t.professor === fProf);
@@ -821,6 +829,9 @@ function renderRel() {
     let lista = ALUNOS.filter(a => a.turma_id === t.id).map(a => ({ ...a, ...calcAluno(a) }));
     if (fTipo === 'alerta') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
     else if (fTipo === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 75);
+    if (fStatus === 'regular') lista = lista.filter(a => a.ativo && a.maxConsec < 3 && a.freq !== null && a.freq >= 75);
+    else if (fStatus === 'atencao') lista = lista.filter(a => a.ativo && a.maxConsec < 3 && a.freq !== null && a.freq < 75);
+    else if (fStatus === 'alerta-status') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
     if (!lista.length) return;
     const ativos = lista.filter(a => a.ativo);
     const totalP = ativos.reduce((s, a) => s + a.p, 0), totalF = ativos.reduce((s, a) => s + a.f, 0);
