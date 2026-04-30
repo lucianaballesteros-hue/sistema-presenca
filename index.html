@@ -502,12 +502,18 @@ function popularFiltros() {
   if (fp) fp.innerHTML = '<option value="">Todos</option>' + profs.map(p => `<option>${p}</option>`).join('');
 }
 
-function goTab(tab) {
+async function goTab(tab) {
   document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', ['turmas','alunos','relatorio'][i] === tab));
   document.querySelectorAll('#app .screen').forEach(s => s.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'turmas') { document.getElementById('dash-view').style.display = 'block'; document.getElementById('chamada-view').style.display = 'none'; }
-  if (tab === 'relatorio') renderRel();
+  if (tab === 'relatorio' || tab === 'alunos') {
+    // Recarrega presenças e alunos do banco ao trocar de aba
+    await carregarPresencas();
+    renderRel();
+    renderTabelaAlunos();
+    renderDash();
+  }
 }
 
 function renderDash() {
