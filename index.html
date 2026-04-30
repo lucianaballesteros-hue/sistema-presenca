@@ -506,13 +506,20 @@ async function goTab(tab) {
   document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', ['turmas','alunos','relatorio'][i] === tab));
   document.querySelectorAll('#app .screen').forEach(s => s.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-  if (tab === 'turmas') { document.getElementById('dash-view').style.display = 'block'; document.getElementById('chamada-view').style.display = 'none'; }
-  if (tab === 'relatorio' || tab === 'alunos') {
-    // Recarrega presenças e alunos do banco ao trocar de aba
+  if (tab === 'turmas') {
+    document.getElementById('dash-view').style.display = 'block';
+    document.getElementById('chamada-view').style.display = 'none';
+    await carregarPresencas();
+    renderDash();
+  }
+  if (tab === 'relatorio') {
+    document.getElementById('rel-area').innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
     await carregarPresencas();
     renderRel();
+  }
+  if (tab === 'alunos') {
+    await carregarPresencas();
     renderTabelaAlunos();
-    renderDash();
   }
 }
 
