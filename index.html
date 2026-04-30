@@ -746,11 +746,48 @@ function abrirModalTransferir() {
 
 async function confirmarTransferencia() {
   const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
-  const tAntiga = TURMAS.find(x => x.id === a.turma_id);
+  const tAntigaId = a.turma_id;
+  const tAntiga = TURMAS.find(x => x.id === tAntigaId);
   const novoTId = parseInt(document.getElementById('transf-sel').value);
   const tNova = TURMAS.find(x => x.id === novoTId);
+
+  // 1. Busca presenças antigas do aluno na turma de origem
+  const { data: presencasAntigas } = await sb.from('presencas')
+    .select('*')
+    .eq('aluno_id', a.id)
+    .eq('turma_id', tAntigaId);
+
+  // 2. Atualiza turma do aluno
   await sb.from('alunos').update({ turma_id: novoTId }).eq('id', a.id);
-  await sb.from('historico').insert({ aluno_id: a.id, descricao: `Transferido de "${tAntiga?.turma} (${tAntiga?.curso})" para "${tNova?.turma} (${tNova?.curso})"` });
+
+  // 3. Migra presenças para a nova turma (sem duplicar)
+  if (presencasAntigas && presencasAntigas.length > 0) {
+    // Remove presenças antigas da turma antiga
+    await sb.from('presencas').delete().eq('aluno_id', a.id).eq('turma_id', tAntigaId);
+    // Insere na nova turma
+    const novasPresencas = presencasAntigas.map(p => ({
+      turma_id: novoTId,
+      aluno_id: a.id,
+      aula: p.aula,
+      status: p.status
+    }));
+    await sb.from('presencas').insert(novasPresencas);
+    // Atualiza PRESENCAS em memória
+    presencasAntigas.forEach(p => {
+      const keyAntiga = `${tAntigaId}_${p.aula}`;
+      if (PRESENCAS[keyAntiga]) delete PRESENCAS[keyAntiga][a.id];
+      const keyNova = `${novoTId}_${p.aula}`;
+      if (!PRESENCAS[keyNova]) PRESENCAS[keyNova] = {};
+      PRESENCAS[keyNova][a.id] = p.status;
+    });
+  }
+
+  // 4. Registra histórico
+  await sb.from('historico').insert({
+    aluno_id: a.id,
+    descricao: `Transferido de "${tAntiga?.turma} (${tAntiga?.curso})" para "${tNova?.turma} (${tNova?.curso})" — histórico de presenças migrado`
+  });
+
   a.turma_id = novoTId;
   fecharModal('modal-transferir');
   showToast(`${a.nome} transferido para ${tNova?.turma}!`, 'blue');
