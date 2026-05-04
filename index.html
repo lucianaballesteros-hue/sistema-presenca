@@ -10,17 +10,25 @@
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#111;}
     a{color:inherit;text-decoration:none;}
+
+    /* HEADER */
     .header{background:#fff;border-bottom:1px solid #e5e5e5;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
     .header-logo{font-size:15px;font-weight:600;color:#111;}
     .hright{display:flex;align-items:center;gap:8px;}
     .avatar{width:30px;height:30px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#1e40af;}
     .logout-btn{font-size:12px;color:#666;background:none;border:1px solid #e5e5e5;border-radius:6px;padding:4px 10px;cursor:pointer;}
     .logout-btn:hover{background:#f5f5f5;}
+
+    /* NAV */
     .nav{background:#fff;border-bottom:1px solid #e5e5e5;display:flex;padding:0 1.5rem;gap:2px;}
     .nav-btn{padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;}
     .nav-btn.active{color:#1d4ed8;border-bottom-color:#1d4ed8;font-weight:500;}
+
+    /* CONTENT */
     .content{padding:1.25rem;max-width:1200px;margin:0 auto;}
     .screen{display:none;}.screen.active{display:block;}
+
+    /* LOGIN */
     #login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f5;}
     .login-card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:2rem;width:320px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
     .logo-box{text-align:center;margin-bottom:1.5rem;}
@@ -34,6 +42,8 @@
     .btn-primary{width:100%;padding:9px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;}
     .btn-primary:hover{background:#1e40af;}
     .err{font-size:11px;color:#dc2626;margin-top:5px;display:none;}
+
+    /* BADGES */
     .badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500;white-space:nowrap;display:inline-block;}
     .badge-blue{background:#dbeafe;color:#1e40af;}
     .badge-green{background:#d1fae5;color:#065f46;}
@@ -42,23 +52,33 @@
     .badge-gray{background:#f3f4f6;color:#4b5563;}
     .badge-purple{background:#ede9fe;color:#4c1d95;}
     .badge-pink{background:#fce7f3;color:#831843;}
+
+    /* STATS */
     .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem;}
     @media(max-width:640px){.stats-row{grid-template-columns:repeat(2,1fr);}}
     .stat-card{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:.875rem 1rem;}
     .stat-label{font-size:11px;color:#666;margin-bottom:4px;}
     .stat-val{font-size:22px;font-weight:600;color:#111;}
     .stat-val.red{color:#dc2626;}.stat-val.green{color:#059669;}.stat-val.amber{color:#d97706;}
+
+    /* FILTER BAR */
     .filter-bar{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:.75rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
     .filter-bar label{font-size:12px;color:#555;white-space:nowrap;font-weight:500;}
     .filter-bar select,.filter-bar input{font-size:13px;padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#111;outline:none;}
     .filter-bar input{width:180px;}
+
+    /* CURSO PILLS */
     .curso-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
     .cpill{padding:5px 14px;border-radius:99px;font-size:12px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#555;font-weight:500;}
     .cpill.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8;}
+
+    /* TURMA CARDS */
     .turmas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
     .turma-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:1rem 1.25rem;cursor:default;}
     .btn-chamada{margin-top:10px;width:100%;padding:7px;font-size:12px;background:none;border:1px solid #d1d5db;border-radius:7px;cursor:pointer;color:#111;font-weight:500;}
     .btn-chamada:hover{background:#f5f5f5;}
+
+    /* CHAMADA */
     .back-btn{display:flex;align-items:center;gap:5px;font-size:12px;color:#666;background:none;border:none;cursor:pointer;margin-bottom:1rem;padding:0;}
     .chamada-top{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:.875rem 1.25rem;margin-bottom:.875rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
     .chamada-counters{background:#fff;border:1px solid #e5e5e5;border-radius:7px;padding:.625rem 1.25rem;margin-bottom:.875rem;display:flex;gap:1.5rem;font-size:12px;color:#666;}
@@ -77,6 +97,8 @@
     .btn-save{padding:7px 16px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;}
     .btn-save:hover{background:#1e40af;}
     .btn-save:disabled{background:#93c5fd;cursor:not-allowed;}
+
+    /* TABLE */
     .table-wrap{background:#fff;border:1px solid #e5e5e5;border-radius:10px;overflow:auto;margin-bottom:1rem;}
     table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px;}
     th{text-align:left;padding:9px 1rem;font-weight:600;font-size:11px;color:#666;border-bottom:1px solid #e5e5e5;background:#fafafa;}
@@ -86,12 +108,16 @@
     tr.row-inativo{opacity:.45;}
     tr.clickable{cursor:pointer;}
     tr.clickable:hover td{background:#fafafa;}
+
+    /* FREQ BAR */
     .freq-wrap{display:flex;align-items:center;gap:5px;}
     .fbar{height:5px;border-radius:99px;background:#e5e7eb;width:48px;overflow:hidden;}
     .fbar-fill{height:100%;border-radius:99px;}
     .dots{display:flex;gap:2px;}
     .dot{width:11px;height:11px;border-radius:2px;}
     .dot-p{background:#10b981;}.dot-f{background:#ef4444;}.dot-n{background:#e5e7eb;}
+
+    /* MODAL */
     .modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);align-items:flex-start;justify-content:center;padding:60px 1rem 1rem;}
     .modal-bg.open{display:flex;}
     .modal{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:1.5rem;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.12);}
@@ -116,10 +142,14 @@
     .hist-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:12px;}
     .hist-item:last-child{border-bottom:none;}
     .info-box{background:#eff6ff;border-radius:7px;padding:.75rem 1rem;font-size:12px;color:#1e40af;margin-bottom:1rem;}
+
+    /* TOAST */
     .toast{position:fixed;bottom:1.5rem;right:1.5rem;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;display:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.15);}
     .toast.green{background:#059669;color:#fff;}
     .toast.blue{background:#1d4ed8;color:#fff;}
     .toast.red{background:#dc2626;color:#fff;}
+
+    /* LOADING */
     .loading{text-align:center;padding:3rem;color:#666;font-size:13px;}
     .spinner{display:inline-block;width:20px;height:20px;border:2px solid #e5e5e5;border-top-color:#1d4ed8;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;}
     @keyframes spin{to{transform:rotate(360deg);}}
@@ -350,15 +380,20 @@
 <div class="toast green" id="toast"></div>
 
 <script>
+// =============================================
+// CONFIGURAÇÃO SUPABASE
+// =============================================
 const SUPABASE_URL = 'https://wrdguclwncirgzlpfgjq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZGd1Y2x3bmNpcmd6bHBmZ2pxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDYzNDMsImV4cCI6MjA5MDYyMjM0M30.gfWIeTfRZdNk7eZpb4kTTcrOt-Bpy1c7B5fEgh5LrCA';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const AULAS = ['Aula 1','Aula 2','Aula 3','Aula 4','Aula 5','Aula 6','Aula 7','Aula 8',
                'Aula 9','Aula 10','Aula 11','Aula 12','Aula 13','Aula 14','Aula 15','Aula 16',
-               'Aula 17','Aula 18','Aula 19','Aula 20','Aula 21','Aula 22','Aula 23','Aula 24',
-               'Aula 25','Aula 26','Aula 27','Aula 28','Aula 29','Aula 30','Aula 31','Aula 32'];
+               'Aula 17','Aula 18','Aula 19','Aula 20'];
 
+// =============================================
+// ESTADO DA APLICAÇÃO
+// =============================================
 let TURMAS = [];
 let ALUNOS = [];
 let PRESENCAS = {};
@@ -370,12 +405,16 @@ let filtroCurso = '';
 let alunoSelecionadoId = null;
 let chamadaAlterada = {};
 
+// =============================================
+// AUTH
+// =============================================
 async function doLogin() {
   const email = document.getElementById('inp-email').value.trim();
   const senha = document.getElementById('inp-senha').value;
   const btn = document.getElementById('btn-login');
   btn.disabled = true; btn.textContent = 'Entrando...';
   document.getElementById('login-err').style.display = 'none';
+
   const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
   if (error) {
     document.getElementById('login-err').style.display = 'block';
@@ -400,12 +439,16 @@ async function doLogout() {
   document.getElementById('inp-senha').value = '';
 }
 
+// =============================================
+// INICIALIZAÇÃO
+// =============================================
 async function inicializarApp() {
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   const ini = perfilLogado?.nome ? perfilLogado.nome.substring(0,2).toUpperCase() : '--';
   document.getElementById('av').textContent = ini;
   document.getElementById('hname').textContent = perfilLogado?.nome || usuarioLogado.email;
+
   await Promise.all([carregarTurmas(), carregarAlunos(), carregarPresencas(), carregarHistorico()]);
   popularFiltros();
   renderDash();
@@ -427,16 +470,41 @@ async function carregarAlunos() {
   ALUNOS = (data || []).filter(a => turmaIds.has(a.turma_id));
 }
 
+// =============================================
+// CORREÇÃO: carregarPresencas com paginação
+// Busca todos os registros em páginas de 1000
+// para não perder dados quando passa de 1000 linhas
+// =============================================
 async function carregarPresencas() {
-  const { data, error } = await sb.from('presencas').select('*').limit(10000);
-  if (error) console.error('Erro presencas:', error);
   PRESENCAS = {};
   const turmaIds = new Set(TURMAS.map(t => t.id));
-  (data || []).filter(p => turmaIds.has(p.turma_id)).forEach(p => {
-    const key = `${p.turma_id}_${p.aula}`;
-    if (!PRESENCAS[key]) PRESENCAS[key] = {};
-    PRESENCAS[key][p.aluno_id] = p.status;
-  });
+  const PAGE_SIZE = 1000;
+  let from = 0;
+  let totalCarregado = 0;
+
+  while (true) {
+    const { data, error } = await sb
+      .from('presencas')
+      .select('*')
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) { console.error('Erro presencas:', error); break; }
+    if (!data || data.length === 0) break;
+
+    data.filter(p => turmaIds.has(p.turma_id)).forEach(p => {
+      const key = `${p.turma_id}_${p.aula}`;
+      if (!PRESENCAS[key]) PRESENCAS[key] = {};
+      PRESENCAS[key][p.aluno_id] = p.status;
+    });
+
+    totalCarregado += data.length;
+    console.log(`Presenças carregadas: ${totalCarregado} (página ${from/PAGE_SIZE + 1})`);
+
+    if (data.length < PAGE_SIZE) break; // última página
+    from += PAGE_SIZE;
+  }
+
+  console.log(`Total presenças carregadas: ${totalCarregado}, chaves: ${Object.keys(PRESENCAS).length}`);
 }
 
 async function carregarHistorico() {
@@ -446,6 +514,9 @@ async function carregarHistorico() {
   HISTORICO = data || [];
 }
 
+// =============================================
+// HELPERS
+// =============================================
 function calcAluno(aluno) {
   const seq = AULAS.map(aula => {
     const k = `${aluno.turma_id}_${aula}`;
@@ -502,41 +573,37 @@ function popularFiltros() {
   if (fp) fp.innerHTML = '<option value="">Todos</option>' + profs.map(p => `<option>${p}</option>`).join('');
 }
 
-async function goTab(tab) {
+// =============================================
+// NAVEGAÇÃO
+// =============================================
+function goTab(tab) {
   document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', ['turmas','alunos','relatorio'][i] === tab));
   document.querySelectorAll('#app .screen').forEach(s => s.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-  if (tab === 'turmas') {
-    document.getElementById('dash-view').style.display = 'block';
-    document.getElementById('chamada-view').style.display = 'none';
-    await carregarPresencas();
-    renderDash();
-  }
-  if (tab === 'relatorio') {
-    document.getElementById('rel-area').innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
-    await carregarPresencas();
-    renderRel();
-  }
-  if (tab === 'alunos') {
-    await carregarPresencas();
-    renderTabelaAlunos();
-  }
+  if (tab === 'turmas') { document.getElementById('dash-view').style.display = 'block'; document.getElementById('chamada-view').style.display = 'none'; }
+  if (tab === 'relatorio') renderRel();
 }
 
+// =============================================
+// DASHBOARD / TURMAS
+// =============================================
 function renderDash() {
   const ativos = ALUNOS.filter(a => a.ativo);
   const dados = ativos.map(a => calcAluno(a));
   const alertas = dados.filter(d => d.maxConsec >= 3).length;
   const irregulares = dados.filter(d => d.freq !== null && d.freq < 75).length;
+
   document.getElementById('stats-area').innerHTML = `
     <div class="stat-card"><div class="stat-label">Turmas</div><div class="stat-val">${TURMAS.length}</div></div>
     <div class="stat-card"><div class="stat-label">Alunos ativos</div><div class="stat-val">${ativos.length}</div></div>
     <div class="stat-card"><div class="stat-label">Irregulares (&lt;75%)</div><div class="stat-val amber">${irregulares}</div></div>
     <div class="stat-card"><div class="stat-label">Alertas (3+ seguidas)</div><div class="stat-val red">${alertas}</div></div>`;
+
   const cursos = [...new Set(TURMAS.map(t => t.curso))];
   document.getElementById('curso-pills').innerHTML =
     `<button class="cpill ${filtroCurso === '' ? 'active' : ''}" onclick="setCurso('')">Todos</button>` +
     cursos.map(c => `<button class="cpill ${filtroCurso === c ? 'active' : ''}" onclick="setCurso('${c}')">${c}</button>`).join('');
+
   const filtradas = filtroCurso ? TURMAS.filter(t => t.curso === filtroCurso) : TURMAS;
   document.getElementById('turmas-grid').innerHTML = filtradas.map(t => {
     const al = ALUNOS.filter(a => a.ativo && a.turma_id === t.id);
@@ -558,9 +625,9 @@ function renderDash() {
 function setCurso(c) { filtroCurso = c; renderDash(); }
 
 // =============================================
-// CHAMADA — CORRIGIDA: recarrega do banco ao abrir
+// CHAMADA
 // =============================================
-async function abrirChamada(tId) {
+function abrirChamada(tId) {
   turmaAtual = TURMAS.find(t => t.id === tId);
   chamadaAlterada = {};
   document.getElementById('dash-view').style.display = 'none';
@@ -569,13 +636,6 @@ async function abrirChamada(tId) {
   document.getElementById('ch-sub').textContent = 'Prof. ' + turmaAtual.professor;
   const sel = document.getElementById('aula-sel');
   sel.innerHTML = AULAS.map(a => `<option>${a}</option>`).join('');
-  // Recarrega presenças desta turma direto do banco
-  const { data } = await sb.from('presencas').select('*').eq('turma_id', tId);
-  (data || []).forEach(p => {
-    const key = `${p.turma_id}_${p.aula}`;
-    if (!PRESENCAS[key]) PRESENCAS[key] = {};
-    PRESENCAS[key][p.aluno_id] = p.status;
-  });
   renderChamada();
 }
 
@@ -616,9 +676,6 @@ function marcar(alunoId, val) {
   renderChamada();
 }
 
-// =============================================
-// SALVAR CHAMADA — CORRIGIDA: com tratamento de erro
-// =============================================
 async function salvarChamada() {
   const btn = document.getElementById('btn-salvar-chamada');
   btn.disabled = true; btn.textContent = 'Salvando...';
@@ -629,24 +686,23 @@ async function salvarChamada() {
     const status = PRESENCAS[key][alunoId];
     if (status) registros.push({ turma_id: turmaAtual.id, aluno_id: parseInt(alunoId), aula, status });
   });
-  try {
-    const { error: delErr } = await sb.from('presencas').delete().eq('turma_id', turmaAtual.id).eq('aula', aula);
-    if (delErr) throw delErr;
-    if (registros.length) {
-      const { error: insErr } = await sb.from('presencas').insert(registros);
-      if (insErr) throw insErr;
-    }
-    chamadaAlterada = {};
-    btn.disabled = false; btn.textContent = 'Salvar chamada';
-    showToast('Chamada salva com sucesso!');
-    renderDash();
-  } catch(e) {
-    console.error('Erro ao salvar chamada:', e);
-    btn.disabled = false; btn.textContent = 'Salvar chamada';
-    showToast('Erro ao salvar! Tente novamente.', 'red');
-  }
+  await sb.from('presencas').delete().eq('turma_id', turmaAtual.id).eq('aula', aula);
+  if (registros.length) await sb.from('presencas').insert(registros);
+  chamadaAlterada = {};
+
+  // Recarrega presenças do banco para garantir dados atualizados
+  await carregarPresencas();
+
+  btn.disabled = false; btn.textContent = 'Salvar chamada';
+  showToast('Chamada salva com sucesso!');
+  renderDash();
+  renderTabelaAlunos();
+  renderRel();
 }
 
+// =============================================
+// TABELA DE ALUNOS
+// =============================================
 function renderTabelaAlunos() {
   const busca = (document.getElementById('busca-alunos') || {}).value?.toLowerCase() || '';
   const fCurso = document.getElementById('f-curso-alunos')?.value || '';
@@ -660,6 +716,7 @@ function renderTabelaAlunos() {
   else if (fStatus === 'inativo') lista = lista.filter(a => !a.ativo);
   else if (fStatus === 'alerta') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
   else if (fStatus === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 75);
+
   document.getElementById('tbody-alunos').innerHTML = lista.map(a => `
     <tr class="clickable ${a.maxConsec >= 3 && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''}" onclick="abrirModalAluno(${a.id})">
       <td>${a.nome}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
@@ -673,6 +730,9 @@ function renderTabelaAlunos() {
   document.getElementById('alunos-count').textContent = `${lista.length} aluno${lista.length !== 1 ? 's' : ''} · Clique para ver detalhes, editar ou transferir`;
 }
 
+// =============================================
+// MODAL ALUNO
+// =============================================
 function abrirModalAluno(id) {
   alunoSelecionadoId = id;
   const a = ALUNOS.find(x => x.id === id);
@@ -693,7 +753,7 @@ function abrirModalAluno(id) {
     const tc = v === 'P' ? '#065f46' : v === 'F' ? '#991b1b' : '#aaa';
     return `<div class="aula-item" style="background:${bg};"><div class="aula-item-label">${au}</div><div class="aula-item-val" style="color:${tc};">${v === 'P' ? 'Presente' : v === 'F' ? 'Falta' : '—'}</div></div>`;
   }).join('');
-  const hist = HISTORICO.filter(h => h.aluno_id === id && h.tipo !== 'observacao');
+  const hist = HISTORICO.filter(h => h.aluno_id === id);
   document.getElementById('ma-hist').innerHTML = hist.length ? `
     <div style="font-size:12px;color:#666;margin-bottom:.5rem;font-weight:500;">Histórico de movimentações</div>
     ${hist.map(h => `<div class="hist-item"><span style="font-size:10px;color:#aaa;width:80px;flex-shrink:0;">${new Date(h.created_at).toLocaleDateString('pt-BR')}</span><span>${h.descricao}</span></div>`).join('')}` : '';
@@ -753,48 +813,11 @@ function abrirModalTransferir() {
 
 async function confirmarTransferencia() {
   const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
-  const tAntigaId = a.turma_id;
-  const tAntiga = TURMAS.find(x => x.id === tAntigaId);
+  const tAntiga = TURMAS.find(x => x.id === a.turma_id);
   const novoTId = parseInt(document.getElementById('transf-sel').value);
   const tNova = TURMAS.find(x => x.id === novoTId);
-
-  // 1. Busca presenças antigas do aluno na turma de origem
-  const { data: presencasAntigas } = await sb.from('presencas')
-    .select('*')
-    .eq('aluno_id', a.id)
-    .eq('turma_id', tAntigaId);
-
-  // 2. Atualiza turma do aluno
   await sb.from('alunos').update({ turma_id: novoTId }).eq('id', a.id);
-
-  // 3. Migra presenças para a nova turma (sem duplicar)
-  if (presencasAntigas && presencasAntigas.length > 0) {
-    // Remove presenças antigas da turma antiga
-    await sb.from('presencas').delete().eq('aluno_id', a.id).eq('turma_id', tAntigaId);
-    // Insere na nova turma
-    const novasPresencas = presencasAntigas.map(p => ({
-      turma_id: novoTId,
-      aluno_id: a.id,
-      aula: p.aula,
-      status: p.status
-    }));
-    await sb.from('presencas').insert(novasPresencas);
-    // Atualiza PRESENCAS em memória
-    presencasAntigas.forEach(p => {
-      const keyAntiga = `${tAntigaId}_${p.aula}`;
-      if (PRESENCAS[keyAntiga]) delete PRESENCAS[keyAntiga][a.id];
-      const keyNova = `${novoTId}_${p.aula}`;
-      if (!PRESENCAS[keyNova]) PRESENCAS[keyNova] = {};
-      PRESENCAS[keyNova][a.id] = p.status;
-    });
-  }
-
-  // 4. Registra histórico
-  await sb.from('historico').insert({
-    aluno_id: a.id,
-    descricao: `Transferido de "${tAntiga?.turma} (${tAntiga?.curso})" para "${tNova?.turma} (${tNova?.curso})" — histórico de presenças migrado`
-  });
-
+  await sb.from('historico').insert({ aluno_id: a.id, descricao: `Transferido de "${tAntiga?.turma} (${tAntiga?.curso})" para "${tNova?.turma} (${tNova?.curso})"` });
   a.turma_id = novoTId;
   fecharModal('modal-transferir');
   showToast(`${a.nome} transferido para ${tNova?.turma}!`, 'blue');
@@ -820,6 +843,9 @@ async function salvarNovoAluno() {
   renderTabelaAlunos(); renderDash();
 }
 
+// =============================================
+// RELATÓRIOS
+// =============================================
 function renderRel() {
   const fCurso = document.getElementById('f-curso-rel')?.value || '';
   const fProf = document.getElementById('f-prof-rel')?.value || '';
@@ -904,24 +930,34 @@ async function salvarObservacao() {
   carregarObservacoes(alunoSelecionadoId);
 }
 
+// =============================================
+// EXPORTAR EXCEL
+// =============================================
 async function exportarExcel() {
   const btn = document.getElementById('btn-exportar');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Gerando...'; }
+
   try {
     const wb = XLSX.utils.book_new();
+
+    // ── ABA 1: Resumo Geral ──────────────────────────────────
     const resumoRows = [
       ['Relatório de Frequência — Todas as Turmas'],
       ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
       [],
       ['Turma', 'Curso', 'Professor', 'Aluno', 'Status', 'Presenças', 'Faltas', '% Frequência', 'Faltas Consecutivas', 'Situação']
     ];
+
     TURMAS.forEach(t => {
-      ALUNOS.filter(a => a.turma_id === t.id).forEach(a => {
+      const alunosDaTurma = ALUNOS.filter(a => a.turma_id === t.id);
+      alunosDaTurma.forEach(a => {
         const c = calcAluno(a);
+        const pct = c.freq !== null ? c.freq / 100 : null;
         const situacao = !a.ativo ? 'Inativo' : c.maxConsec >= 3 ? '⚠ Alerta' : c.freq === null ? 'Sem registro' : c.freq >= 75 ? 'Regular' : 'Atenção';
-        resumoRows.push([t.turma, t.curso, t.professor, a.nome, a.ativo ? 'Ativo' : 'Inativo', c.p, c.f, c.freq !== null ? c.freq / 100 : null, c.maxConsec, situacao]);
+        resumoRows.push([t.turma, t.curso, t.professor, a.nome, a.ativo ? 'Ativo' : 'Inativo', c.p, c.f, pct, c.maxConsec, situacao]);
       });
     });
+
     const wsResumo = XLSX.utils.aoa_to_sheet(resumoRows);
     for (let r = 4; r < resumoRows.length; r++) {
       const cell = XLSX.utils.encode_cell({ r, c: 7 });
@@ -930,6 +966,7 @@ async function exportarExcel() {
     wsResumo['!cols'] = [{wch:20},{wch:16},{wch:18},{wch:35},{wch:8},{wch:10},{wch:8},{wch:13},{wch:18},{wch:12}];
     XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Geral');
 
+    // ── ABA por turma ────────────────────────────────────────
     TURMAS.forEach(t => {
       const alunosDaTurma = ALUNOS.filter(a => a.turma_id === t.id);
       if (!alunosDaTurma.length) return;
@@ -937,19 +974,20 @@ async function exportarExcel() {
         const key = `${t.id}_${aula}`;
         return PRESENCAS[key] && Object.keys(PRESENCAS[key]).length > 0;
       });
-      const aulasCols = aulasComDados.length > 0 ? aulasComDados : AULAS.slice(0, 10);
+      const aulasCols = aulasComDados.length > 0 ? aulasComDados : AULAS;
+      const header = ['Aluno', 'Status', ...aulasCols, 'Presenças', 'Faltas', '% Freq.', 'Faltas Consec.'];
       const rows = [
         [t.turma + ' — ' + t.curso + ' — Prof. ' + t.professor],
         ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
         [],
-        ['Aluno', 'Status', ...aulasCols, 'Presenças', 'Faltas', '% Freq.', 'Faltas Consec.']
+        header
       ];
       alunosDaTurma.forEach(a => {
         const row = [a.nome, a.ativo ? 'Ativo' : 'Inativo'];
         aulasCols.forEach(aula => {
           const key = `${t.id}_${aula}`;
           const v = (PRESENCAS[key] && PRESENCAS[key][a.id]) || '';
-          row.push(v || '');
+          row.push(v === 'P' ? 'P' : v === 'F' ? 'F' : '');
         });
         const c = calcAluno(a);
         row.push(c.p, c.f, c.freq !== null ? c.freq / 100 : null, c.maxConsec);
@@ -962,9 +1000,10 @@ async function exportarExcel() {
         if (ws[cell] && typeof ws[cell].v === 'number') ws[cell].z = '0%';
       }
       ws['!cols'] = [{wch:35},{wch:8},...aulasCols.map(() => ({wch:7})),{wch:10},{wch:8},{wch:10},{wch:14}];
-      XLSX.utils.book_append_sheet(wb, ws, (t.turma || 'Turma').substring(0, 31));
+      XLSX.utils.book_append_sheet(wb, ws, (t.turma || t.curso || 'Turma').substring(0, 31));
     });
 
+    // ── ABA 3: Alertas ───────────────────────────────────────
     const alertaRows = [
       ['Alunos em Alerta — 3 ou mais faltas consecutivas'],
       ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
@@ -987,6 +1026,7 @@ async function exportarExcel() {
 
     XLSX.writeFile(wb, 'frequencia_' + new Date().toISOString().slice(0,10) + '.xlsx');
     showToast('Excel gerado com sucesso!', 'green');
+
   } catch(err) {
     console.error('Erro ao exportar Excel:', err);
     showToast('Erro ao gerar Excel. Veja o console.', 'red');
@@ -995,6 +1035,9 @@ async function exportarExcel() {
   }
 }
 
+// =============================================
+// AUTO-LOGIN (sessão ativa)
+// =============================================
 sb.auth.getSession().then(async ({ data }) => {
   if (data.session) {
     usuarioLogado = data.session.user;
