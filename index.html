@@ -449,7 +449,12 @@ async function inicializarApp() {
   document.getElementById('av').textContent = ini;
   document.getElementById('hname').textContent = perfilLogado?.nome || usuarioLogado.email;
 
-  await Promise.all([carregarTurmas(), carregarAlunos(), carregarPresencas(), carregarHistorico()]);
+  // CORREÇÃO: carregar turmas e alunos ANTES das presenças,
+  // pois carregarPresencas depende de TURMAS estar populado.
+  await carregarTurmas();
+  await carregarAlunos();
+  await Promise.all([carregarPresencas(), carregarHistorico()]);
+
   popularFiltros();
   renderDash();
   renderTabelaAlunos();
@@ -464,16 +469,29 @@ async function carregarTurmas() {
 }
 
 async function carregarAlunos() {
-  const { data, error } = await sb.from('alunos').select('*').order('nome').limit(1000);
-  if (error) console.error('Erro alunos:', error);
+  // CORREÇÃO: removido o .limit(1000) para garantir que todos os alunos são carregados.
+  // Paginação para suportar mais de 1000 alunos no futuro.
+  ALUNOS = [];
   const turmaIds = new Set(TURMAS.map(t => t.id));
-  ALUNOS = (data || []).filter(a => turmaIds.has(a.turma_id));
+  const PAGE_SIZE = 1000;
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await sb.from('alunos').select('*').order('nome').range(from, from + PAGE_SIZE - 1);
+    if (error) { console.error('Erro alunos:', error); break; }
+    if (!data || data.length === 0) break;
+
+    // filtra apenas alunos das turmas visíveis
+    data.filter(a => turmaIds.has(a.turma_id)).forEach(a => ALUNOS.push(a));
+
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  console.log(`Alunos carregados: ${ALUNOS.length}`);
 }
 
 // =============================================
-// CORREÇÃO: carregarPresencas com paginação
-// Busca todos os registros em páginas de 1000
-// para não perder dados quando passa de 1000 linhas
+// carregarPresencas com paginação
 // =============================================
 async function carregarPresencas() {
   PRESENCAS = {};
@@ -500,7 +518,7 @@ async function carregarPresencas() {
     totalCarregado += data.length;
     console.log(`Presenças carregadas: ${totalCarregado} (página ${from/PAGE_SIZE + 1})`);
 
-    if (data.length < PAGE_SIZE) break; // última página
+    if (data.length < PAGE_SIZE) break;
     from += PAGE_SIZE;
   }
 
@@ -690,7 +708,6 @@ async function salvarChamada() {
   if (registros.length) await sb.from('presencas').insert(registros);
   chamadaAlterada = {};
 
-  // Recarrega presenças do banco para garantir dados atualizados
   await carregarPresencas();
 
   btn.disabled = false; btn.textContent = 'Salvar chamada';
