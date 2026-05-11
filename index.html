@@ -220,7 +220,7 @@
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <label style="font-size:12px;color:#555;font-weight:500;">Aula:</label>
             <select id="aula-sel" onchange="renderChamada()" style="font-size:13px;padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;"></select>
-            <button class="btn-save" id="btn-salvar-chamada" onclick="salvarChamada()">Salvar chamada</button>
+            <span id="autosave-status" style="font-size:11px;color:#666;min-width:80px;text-align:right;"></span>
           </div>
         </div>
         <div class="chamada-counters" id="ch-counters"></div>
@@ -684,7 +684,9 @@ function renderChamada() {
   }).join('') || '<div class="empty">Nenhum aluno nesta turma.</div>';
 }
 
-function marcar(alunoId, val) {
+let _autosaveTimer = null;
+
+async function marcar(alunoId, val) {
   const aula = document.getElementById('aula-sel').value;
   const key = `${turmaAtual.id}_${aula}`;
   if (!PRESENCAS[key]) PRESENCAS[key] = {};
@@ -692,29 +694,36 @@ function marcar(alunoId, val) {
   PRESENCAS[key][alunoId] = atual === val ? null : val;
   chamadaAlterada[`${alunoId}_${aula}`] = PRESENCAS[key][alunoId];
   renderChamada();
-}
 
-async function salvarChamada() {
-  const btn = document.getElementById('btn-salvar-chamada');
-  btn.disabled = true; btn.textContent = 'Salvando...';
-  const aula = document.getElementById('aula-sel').value;
-  const key = `${turmaAtual.id}_${aula}`;
-  const registros = [];
-  Object.keys(PRESENCAS[key] || {}).forEach(alunoId => {
-    const status = PRESENCAS[key][alunoId];
-    if (status) registros.push({ turma_id: turmaAtual.id, aluno_id: parseInt(alunoId), aula, status });
-  });
-  await sb.from('presencas').delete().eq('turma_id', turmaAtual.id).eq('aula', aula);
-  if (registros.length) await sb.from('presencas').insert(registros);
-  chamadaAlterada = {};
+  const status = PRESENCAS[key][alunoId];
+  const statusEl = document.getElementById('autosave-status');
+  if (statusEl) { statusEl.textContent = 'Salvando...'; statusEl.style.color = '#666'; }
 
-  await carregarPresencas();
-
-  btn.disabled = false; btn.textContent = 'Salvar chamada';
-  showToast('Chamada salva com sucesso!');
-  renderDash();
-  renderTabelaAlunos();
-  renderRel();
+  try {
+    if (status) {
+      await sb.from('presencas').upsert(
+        { turma_id: turmaAtual.id, aluno_id: alunoId, aula, status },
+        { onConflict: 'turma_id,aluno_id,aula' }
+      );
+    } else {
+      await sb.from('presencas').delete()
+        .eq('turma_id', turmaAtual.id)
+        .eq('aluno_id', alunoId)
+        .eq('aula', aula);
+    }
+    if (statusEl) {
+      statusEl.textContent = '✓ Salvo';
+      statusEl.style.color = '#16a34a';
+      clearTimeout(_autosaveTimer);
+      _autosaveTimer = setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+    }
+    renderDash();
+    renderTabelaAlunos();
+    renderRel();
+  } catch(err) {
+    console.error('Erro autosave:', err);
+    if (statusEl) { statusEl.textContent = '✗ Erro ao salvar'; statusEl.style.color = '#dc2626'; }
+  }
 }
 
 // =============================================
