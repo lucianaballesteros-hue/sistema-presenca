@@ -1083,6 +1083,7 @@ async function exportarExcel() {
     wsResumo['!cols'] = [{wch:20},{wch:16},{wch:18},{wch:35},{wch:8},{wch:10},{wch:8},{wch:13},{wch:18},{wch:12}];
     XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Geral');
 
+    const nomesUsados = new Set();
     TURMAS.forEach(t => {
       const alunosDaTurma = ALUNOS.filter(a => a.turma_id === t.id);
       if (!alunosDaTurma.length) return;
@@ -1116,7 +1117,16 @@ async function exportarExcel() {
         if (ws[cell] && typeof ws[cell].v === 'number') ws[cell].z = '0%';
       }
       ws['!cols'] = [{wch:35},{wch:8},...aulasCols.map(() => ({wch:7})),{wch:10},{wch:8},{wch:10},{wch:14}];
-      XLSX.utils.book_append_sheet(wb, ws, (t.turma || t.curso || 'Turma').substring(0, 31));
+
+      // FIX: garantir nome de aba único mesmo com turmas de mesmo nome
+      let nomeAba = (t.turma || t.curso || 'Turma').substring(0, 31);
+      if (nomesUsados.has(nomeAba)) {
+        let contador = 2;
+        while (nomesUsados.has(nomeAba.substring(0, 28) + ' ' + contador)) contador++;
+        nomeAba = nomeAba.substring(0, 28) + ' ' + contador;
+      }
+      nomesUsados.add(nomeAba);
+      XLSX.utils.book_append_sheet(wb, ws, nomeAba);
     });
 
     const alertaRows = [
