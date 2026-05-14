@@ -231,7 +231,7 @@
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <label style="font-size:12px;color:#555;font-weight:500;">Aula:</label>
             <select id="aula-sel" onchange="renderChamada()" style="font-size:13px;padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;"></select>
-            <button class="btn-save" id="btn-salvar-chamada" onclick="salvarChamada()">Salvar chamada</button>
+            <span id="chamada-status" style="font-size:12px;color:#059669;font-weight:500;"></span>
           </div>
         </div>
         <div class="chamada-counters" id="ch-counters"></div>
@@ -703,38 +703,40 @@ function renderChamada() {
   }).join('') || '<div class="empty">Nenhum aluno nesta turma.</div>';
 }
 
-function marcar(alunoId, val) {
+async function marcar(alunoId, val) {
   const aula = document.getElementById('aula-sel').value;
   const key = `${turmaAtual.id}_${aula}`;
   if (!PRESENCAS[key]) PRESENCAS[key] = {};
   const atual = PRESENCAS[key][alunoId];
-  PRESENCAS[key][alunoId] = atual === val ? null : val;
-  chamadaAlterada[`${alunoId}_${aula}`] = PRESENCAS[key][alunoId];
+  const novoVal = atual === val ? null : val;
+  PRESENCAS[key][alunoId] = novoVal;
   renderChamada();
+
+  const statusEl = document.getElementById('chamada-status');
+  if (statusEl) statusEl.textContent = 'Salvando...';
+
+  try {
+    if (novoVal) {
+      await sb.from('presencas').upsert(
+        { turma_id: turmaAtual.id, aluno_id: alunoId, aula, status: novoVal },
+        { onConflict: 'turma_id,aluno_id,aula' }
+      );
+    } else {
+      await sb.from('presencas').delete()
+        .eq('turma_id', turmaAtual.id)
+        .eq('aluno_id', alunoId)
+        .eq('aula', aula);
+    }
+    if (statusEl) { statusEl.textContent = '✓ Salvo'; setTimeout(() => { statusEl.textContent = ''; }, 1500); }
+    renderDash();
+    renderTabelaAlunos();
+  } catch(err) {
+    console.error('Erro ao salvar presença:', err);
+    if (statusEl) statusEl.textContent = '';
+    showToast('Erro ao salvar. Tente novamente.', 'red');
+  }
 }
 
-async function salvarChamada() {
-  const btn = document.getElementById('btn-salvar-chamada');
-  btn.disabled = true; btn.textContent = 'Salvando...';
-  const aula = document.getElementById('aula-sel').value;
-  const key = `${turmaAtual.id}_${aula}`;
-  const registros = [];
-  Object.keys(PRESENCAS[key] || {}).forEach(alunoId => {
-    const status = PRESENCAS[key][alunoId];
-    if (status) registros.push({ turma_id: turmaAtual.id, aluno_id: parseInt(alunoId), aula, status });
-  });
-  await sb.from('presencas').delete().eq('turma_id', turmaAtual.id).eq('aula', aula);
-  if (registros.length) await sb.from('presencas').insert(registros);
-  chamadaAlterada = {};
-
-  await carregarPresencas();
-
-  btn.disabled = false; btn.textContent = 'Salvar chamada';
-  showToast('Chamada salva com sucesso!');
-  renderDash();
-  renderTabelaAlunos();
-  renderRel();
-}
 
 // =============================================
 // TABELA DE ALUNOS
