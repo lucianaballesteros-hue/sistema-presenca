@@ -143,7 +143,6 @@
     .hist-item:last-child{border-bottom:none;}
     .info-box{background:#eff6ff;border-radius:7px;padding:.75rem 1rem;font-size:12px;color:#1e40af;margin-bottom:1rem;}
 
-
     /* INLINE EDIT */
     .inline-edit-wrap{display:flex;align-items:center;gap:4px;}
     .inline-edit-btn{background:none;border:none;cursor:pointer;color:#aaa;font-size:12px;padding:2px 4px;border-radius:4px;opacity:0;}
@@ -461,8 +460,6 @@ async function inicializarApp() {
   document.getElementById('av').textContent = ini;
   document.getElementById('hname').textContent = perfilLogado?.nome || usuarioLogado.email;
 
-  // CORREÇÃO: carregar turmas e alunos ANTES das presenças,
-  // pois carregarPresencas depende de TURMAS estar populado.
   await carregarTurmas();
   await carregarAlunos();
   await Promise.all([carregarPresencas(), carregarHistorico()]);
@@ -481,10 +478,9 @@ async function carregarTurmas() {
 }
 
 async function carregarAlunos() {
-  // CORREÇÃO: removido o .limit(1000) para garantir que todos os alunos são carregados.
-  // Paginação para suportar mais de 1000 alunos no futuro.
   ALUNOS = [];
   const turmaIds = new Set(TURMAS.map(t => t.id));
+  const idsVistos = new Set();
   const PAGE_SIZE = 1000;
   let from = 0;
 
@@ -493,8 +489,10 @@ async function carregarAlunos() {
     if (error) { console.error('Erro alunos:', error); break; }
     if (!data || data.length === 0) break;
 
-    // filtra apenas alunos das turmas visíveis
-    data.filter(a => turmaIds.has(a.turma_id)).forEach(a => ALUNOS.push(a));
+    data.filter(a => turmaIds.has(a.turma_id) && !idsVistos.has(a.id)).forEach(a => {
+      idsVistos.add(a.id);
+      ALUNOS.push(a);
+    });
 
     if (data.length < PAGE_SIZE) break;
     from += PAGE_SIZE;
@@ -528,13 +526,10 @@ async function carregarPresencas() {
     });
 
     totalCarregado += data.length;
-    console.log(`Presenças carregadas: ${totalCarregado} (página ${from/PAGE_SIZE + 1})`);
-
     if (data.length < PAGE_SIZE) break;
     from += PAGE_SIZE;
   }
-
-  console.log(`Total presenças carregadas: ${totalCarregado}, chaves: ${Object.keys(PRESENCAS).length}`);
+  console.log(`Total presenças carregadas: ${totalCarregado}`);
 }
 
 async function carregarHistorico() {
@@ -588,6 +583,7 @@ function corBadge(curso) {
   if (curso?.includes('Elas')) return 'badge-blue';
   if (curso?.includes('Master')) return 'badge-amber';
   if (curso?.includes('Evolution')) return 'badge-green';
+  if (curso?.includes('Clube')) return 'badge-purple';
   return 'badge-gray';
 }
 
@@ -630,9 +626,11 @@ function renderDash() {
     <div class="stat-card"><div class="stat-label">Alertas (3+ seguidas)</div><div class="stat-val red">${alertas}</div></div>`;
 
   const cursos = [...new Set(TURMAS.map(t => t.curso))];
+
+  // FIX: escapar apóstrofo no nome do curso para não quebrar o onclick
   document.getElementById('curso-pills').innerHTML =
     `<button class="cpill ${filtroCurso === '' ? 'active' : ''}" onclick="setCurso('')">Todos</button>` +
-    cursos.map(c => `<button class="cpill ${filtroCurso === c ? 'active' : ''}" onclick="setCurso('${c}')">${c}</button>`).join('');
+    cursos.map(c => `<button class="cpill ${filtroCurso === c ? 'active' : ''}" onclick="setCurso('${c.replace(/'/g, "\\'")}')">${c}</button>`).join('');
 
   const buscaTurma = (document.getElementById('busca-turmas')?.value || '').toLowerCase();
   let filtradas = filtroCurso ? TURMAS.filter(t => t.curso === filtroCurso) : TURMAS;
@@ -968,7 +966,6 @@ async function salvarObservacao() {
   carregarObservacoes(alunoSelecionadoId);
 }
 
-
 // =============================================
 // EDIÇÃO INLINE DE TURMA
 // =============================================
@@ -1061,7 +1058,6 @@ async function exportarExcel() {
   try {
     const wb = XLSX.utils.book_new();
 
-    // ── ABA 1: Resumo Geral ──────────────────────────────────
     const resumoRows = [
       ['Relatório de Frequência — Todas as Turmas'],
       ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
@@ -1087,7 +1083,6 @@ async function exportarExcel() {
     wsResumo['!cols'] = [{wch:20},{wch:16},{wch:18},{wch:35},{wch:8},{wch:10},{wch:8},{wch:13},{wch:18},{wch:12}];
     XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Geral');
 
-    // ── ABA por turma ────────────────────────────────────────
     TURMAS.forEach(t => {
       const alunosDaTurma = ALUNOS.filter(a => a.turma_id === t.id);
       if (!alunosDaTurma.length) return;
@@ -1124,7 +1119,6 @@ async function exportarExcel() {
       XLSX.utils.book_append_sheet(wb, ws, (t.turma || t.curso || 'Turma').substring(0, 31));
     });
 
-    // ── ABA 3: Alertas ───────────────────────────────────────
     const alertaRows = [
       ['Alunos em Alerta — 3 ou mais faltas consecutivas'],
       ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
