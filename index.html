@@ -191,6 +191,29 @@
     .multi-check:hover{background:#f5f5f5;}
     .multi-check input[type=checkbox]{width:14px;height:14px;accent-color:#1d4ed8;cursor:pointer;flex-shrink:0;}
 
+    /* MÉTRICAS / DASHBOARD */
+    .metr-section{margin-bottom:2rem;}
+    .metr-section-header{display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:.625rem;border-bottom:2px solid #f0f0f0;}
+    .metr-section-icon{font-size:14px;}
+    .metr-section-title{font-size:10px;font-weight:700;letter-spacing:.1em;color:#888;text-transform:uppercase;}
+    .metr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+    .metr-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:1rem 1.25rem;transition:border-color .15s;}
+    .metr-card:hover{border-color:#c7d2fe;}
+    .metr-card-icon{font-size:17px;margin-bottom:.5rem;}
+    .metr-card-title{font-size:12px;font-weight:600;color:#555;margin-bottom:.625rem;}
+    .metr-card-divider{width:24px;height:2px;background:#e5e5e5;border-radius:2px;margin-bottom:.625rem;}
+    .metr-card-val{font-size:26px;font-weight:700;color:#111;margin-bottom:.25rem;line-height:1;}
+    .metr-card-desc{font-size:11px;color:#888;margin-top:.375rem;line-height:1.4;}
+    .metr-card-formula{font-size:10px;color:#bbb;margin-top:.375rem;font-family:monospace;}
+    .metr-table-wrap{background:#fff;border:1px solid #e5e5e5;border-radius:10px;overflow:auto;}
+    .metr-table{width:100%;border-collapse:collapse;font-size:12px;}
+    .metr-table th{text-align:left;padding:9px 1rem;font-weight:600;font-size:11px;color:#666;border-bottom:1px solid #e5e5e5;background:#fafafa;white-space:nowrap;}
+    .metr-table td{padding:9px 1rem;border-bottom:1px solid #f0f0f0;color:#111;vertical-align:middle;}
+    .metr-table tr:last-child td{border-bottom:none;}
+    .metr-bar-wrap{display:flex;align-items:center;gap:6px;}
+    .metr-bar{height:6px;border-radius:99px;background:#e5e7eb;width:60px;overflow:hidden;flex-shrink:0;}
+    .metr-bar-fill{height:100%;border-radius:99px;}
+
     /* SENHA SHOW/HIDE */
     .senha-wrap{position:relative;}
     .senha-wrap input{padding-right:36px;}
@@ -242,6 +265,7 @@
     <button class="nav-btn active" onclick="goTab('turmas')">Turmas</button>
     <button class="nav-btn" onclick="goTab('alunos')">Alunos</button>
     <button class="nav-btn" onclick="goTab('relatorio')">Relatórios</button>
+    <button class="nav-btn" onclick="goTab('metricas')">Métricas</button>
     <button class="nav-btn" id="nav-prof" onclick="goTab('professores')" style="display:none;">Professores</button>
   </div>
   <div class="content">
@@ -362,6 +386,49 @@
         <button onclick="exportarExcel()" id="btn-exportar" style="margin-left:auto;padding:7px 16px;background:#059669;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
       </div>
       <div id="rel-area"></div>
+    </div>
+
+    <!-- TAB MÉTRICAS -->
+    <div id="tab-metricas" class="screen">
+
+      <!-- VISÃO GERAL -->
+      <div class="metr-section">
+        <div class="metr-section-header">
+          <span class="metr-section-icon">📊</span>
+          <span class="metr-section-title">Visão Geral</span>
+        </div>
+        <div class="metr-grid" id="metr-visao-geral"></div>
+      </div>
+
+      <!-- DIMENSIONAMENTO POR CURSO -->
+      <div class="metr-section">
+        <div class="metr-section-header">
+          <span class="metr-section-icon">≡</span>
+          <span class="metr-section-title">Dimensionamento por Curso</span>
+        </div>
+        <div class="metr-table-wrap">
+          <table class="metr-table" id="metr-tabela-curso"></table>
+        </div>
+      </div>
+
+      <!-- FREQUÊNCIA E DESEMPENHO -->
+      <div class="metr-section">
+        <div class="metr-section-header">
+          <span class="metr-section-icon">📈</span>
+          <span class="metr-section-title">Frequência e Desempenho</span>
+        </div>
+        <div class="metr-grid" id="metr-frequencia"></div>
+      </div>
+
+      <!-- MOVIMENTAÇÃO -->
+      <div class="metr-section">
+        <div class="metr-section-header">
+          <span class="metr-section-icon">↔</span>
+          <span class="metr-section-title">Evasão e Movimentação</span>
+        </div>
+        <div class="metr-grid" id="metr-movimentacao"></div>
+      </div>
+
     </div>
 
     <!-- TAB PROFESSORES -->
@@ -774,12 +841,13 @@ function toggleSenha(inputId, btn) {
 // NAVEGAÇÃO
 // =============================================
 function goTab(tab) {
-  const tabs = ['turmas','alunos','relatorio','professores'];
+  const tabs = ['turmas','alunos','relatorio','metricas','professores'];
   document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('#app .screen').forEach(s => s.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'turmas') { document.getElementById('dash-view').style.display = 'block'; document.getElementById('chamada-view').style.display = 'none'; }
   if (tab === 'relatorio') renderRel();
+  if (tab === 'metricas') renderMetricas();
   if (tab === 'professores') renderProfessores();
 }
 
@@ -807,6 +875,11 @@ function renderDash() {
   const buscaTurma = (document.getElementById('busca-turmas')?.value || '').toLowerCase();
   let filtradas = filtroCurso ? TURMAS.filter(t => t.curso === filtroCurso) : TURMAS;
   if (buscaTurma) filtradas = filtradas.filter(t => t.turma.toLowerCase().includes(buscaTurma) || t.professor.toLowerCase().includes(buscaTurma));
+  filtradas = filtradas.slice().sort((a, b) => {
+    const da = ordemDia(a.turma), db = ordemDia(b.turma);
+    if (da !== db) return da - db;
+    return a.turma.localeCompare(b.turma, 'pt-BR');
+  });
   document.getElementById('turmas-grid').innerHTML = filtradas.map(t => {
     const al = ALUNOS.filter(a => a.ativo && a.turma_id === t.id);
     const at = al.filter(a => calcAluno(a).maxConsec >= 3).length;
@@ -829,6 +902,12 @@ function renderDash() {
       <button class="btn-chamada" onclick="abrirChamada(${t.id})">Fazer chamada →</button>
     </div>`;
   }).join('') || '<div class="empty">Nenhuma turma encontrada.</div>';
+}
+
+function ordemDia(nomeTurma) {
+  const dias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  const idx = dias.findIndex(d => (nomeTurma || '').includes(d));
+  return idx === -1 ? 99 : idx;
 }
 
 function setCurso(c) { filtroCurso = c; renderDash(); }
@@ -1267,6 +1346,124 @@ function toggleMultiDropdown(e, panelId) {
 document.addEventListener('click', function() {
   document.querySelectorAll('.multi-select-panel.open').forEach(p => p.classList.remove('open'));
 });
+
+// =============================================
+// MÉTRICAS / DASHBOARD PEDAGÓGICO
+// =============================================
+function metricCard({ icon, title, val, desc, formula, color }) {
+  const c = color || '#111';
+  return `<div class="metr-card">
+    <div class="metr-card-icon">${icon}</div>
+    <div class="metr-card-title">${title}</div>
+    <div class="metr-card-divider"></div>
+    <div class="metr-card-val" style="color:${c};">${val}</div>
+    <div class="metr-card-desc">${desc}</div>
+    ${formula ? `<div class="metr-card-formula">${formula}</div>` : ''}
+  </div>`;
+}
+
+function renderMetricas() {
+  const ativos = ALUNOS.filter(a => a.ativo);
+  const inativos = ALUNOS.filter(a => !a.ativo);
+  const cursos = [...new Set(TURMAS.map(t => t.curso))].sort();
+
+  // Frequência de todos os alunos ativos
+  const dadosAtivos = ativos.map(a => calcAluno(a));
+  const comFreq = dadosAtivos.filter(d => d.freq !== null);
+  const freqMedia = comFreq.length > 0 ? Math.round(comFreq.reduce((s, d) => s + d.freq, 0) / comFreq.length) : null;
+  const regulares = dadosAtivos.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq >= 75).length;
+  const atencao   = dadosAtivos.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq < 75).length;
+  const alertas   = dadosAtivos.filter(d => d.maxConsec >= 3).length;
+  const semReg    = dadosAtivos.filter(d => d.freq === null).length;
+
+  // Movimentação via histórico
+  const transferidos   = HISTORICO.filter(h => h.descricao?.includes('Transferido')).length;
+  const novos          = HISTORICO.filter(h => h.descricao?.includes('adicionado ao sistema')).length;
+  const cancelamentos  = HISTORICO.filter(h => h.descricao?.includes('inativado')).length;
+  const reativacoes    = HISTORICO.filter(h => h.descricao?.includes('reativado')).length;
+
+  const pctReg = ativos.length > 0 ? Math.round((regulares / ativos.length) * 100) : 0;
+  const pctAt  = ativos.length > 0 ? Math.round((atencao  / ativos.length) * 100) : 0;
+  const pctAl  = ativos.length > 0 ? Math.round((alertas  / ativos.length) * 100) : 0;
+  const pctSem = ativos.length > 0 ? Math.round((semReg   / ativos.length) * 100) : 0;
+
+  // ── VISÃO GERAL ──────────────────────────────────────────────
+  document.getElementById('metr-visao-geral').innerHTML = [
+    { icon: '🏫', title: 'Total de turmas',    val: TURMAS.length,  desc: 'Turmas cadastradas no sistema',        formula: 'Σ turmas' },
+    { icon: '👥', title: 'Alunos ativos',       val: ativos.length,  desc: 'Matrículas ativas no momento',        formula: 'Σ alunos ativos' },
+    { icon: '📉', title: 'Alunos inativos',     val: inativos.length,desc: 'Matrículas canceladas/inativas',     formula: 'Σ alunos inativos', color: inativos.length > 0 ? '#dc2626' : '#111' },
+    { icon: '📊', title: 'Frequência média',    val: freqMedia !== null ? freqMedia + '%' : '—', desc: 'Média geral de presença (ativos c/ registro)', formula: 'Σ freq ÷ nº alunos c/ aulas', color: freqMedia !== null ? (freqMedia >= 75 ? '#059669' : '#d97706') : '#111' },
+    { icon: '⚠️', title: 'Em alerta',           val: alertas,        desc: '3 ou mais faltas consecutivas',      formula: 'maxConsec ≥ 3', color: alertas > 0 ? '#dc2626' : '#059669' },
+    { icon: '🔄', title: 'Transferências',      val: transferidos,   desc: 'Movimentações internas entre turmas', formula: 'Σ registros de transferência' },
+  ].map(m => metricCard(m)).join('');
+
+  // ── DIMENSIONAMENTO POR CURSO ────────────────────────────────
+  document.getElementById('metr-tabela-curso').innerHTML = `
+    <thead>
+      <tr>
+        <th>Curso</th>
+        <th style="text-align:center;">Turmas</th>
+        <th style="text-align:center;">Alunos ativos</th>
+        <th style="text-align:center;">Média / turma</th>
+        <th style="text-align:center;">Freq. média</th>
+        <th style="text-align:center;">Regulares</th>
+        <th style="text-align:center;">Atenção</th>
+        <th style="text-align:center;">Alerta</th>
+        <th style="text-align:center;">Inativos</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${cursos.map(c => {
+        const tCurso  = TURMAS.filter(t => t.curso === c);
+        const aCurso  = ALUNOS.filter(a => a.ativo && tCurso.some(t => t.id === a.turma_id));
+        const iCurso  = ALUNOS.filter(a => !a.ativo && tCurso.some(t => t.id === a.turma_id));
+        const media   = tCurso.length > 0 ? (aCurso.length / tCurso.length).toFixed(1) : '—';
+        const dc      = aCurso.map(a => calcAluno(a));
+        const comF    = dc.filter(d => d.freq !== null);
+        const fM      = comF.length > 0 ? Math.round(comF.reduce((s,d) => s+d.freq,0) / comF.length) : null;
+        const reg     = dc.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq >= 75).length;
+        const at      = dc.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq < 75).length;
+        const al      = dc.filter(d => d.maxConsec >= 3).length;
+        const fColor  = fM !== null ? (fM >= 75 ? '#059669' : '#d97706') : '#aaa';
+        return `<tr>
+          <td><span class="badge ${corBadge(c)}">${c}</span></td>
+          <td style="text-align:center;font-weight:600;">${tCurso.length}</td>
+          <td style="text-align:center;font-weight:600;">${aCurso.length}</td>
+          <td style="text-align:center;">${media}</td>
+          <td style="text-align:center;">
+            <div class="metr-bar-wrap" style="justify-content:center;">
+              <div class="metr-bar"><div class="metr-bar-fill" style="width:${fM||0}%;background:${fColor};"></div></div>
+              <span style="font-weight:600;color:${fColor};font-size:11px;">${fM !== null ? fM+'%' : '—'}</span>
+            </div>
+          </td>
+          <td style="text-align:center;">${reg > 0 ? `<span class="badge badge-green">${reg}</span>` : '<span style="color:#aaa;">—</span>'}</td>
+          <td style="text-align:center;">${at  > 0 ? `<span class="badge badge-amber">${at}</span>`  : '<span style="color:#aaa;">—</span>'}</td>
+          <td style="text-align:center;">${al  > 0 ? `<span class="badge badge-red">${al}</span>`    : '<span style="color:#aaa;">—</span>'}</td>
+          <td style="text-align:center;">${iCurso.length > 0 ? `<span class="badge badge-gray">${iCurso.length}</span>` : '<span style="color:#aaa;">—</span>'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>`;
+
+  // ── FREQUÊNCIA E DESEMPENHO ──────────────────────────────────
+  document.getElementById('metr-frequencia').innerHTML = [
+    { icon: '✅', title: 'Regulares (≥75%)',   val: regulares,   desc: `${pctReg}% dos alunos ativos — presença dentro da meta`,    formula: 'freq ≥ 75% e sem alerta consecutivo', color: '#059669' },
+    { icon: '🟡', title: 'Atenção (<75%)',      val: atencao,    desc: `${pctAt}% dos alunos ativos — presença abaixo da meta`,    formula: 'freq < 75% e maxConsec < 3',           color: '#d97706' },
+    { icon: '🔴', title: 'Em alerta',           val: alertas,    desc: `${pctAl}% dos alunos ativos — 3+ faltas seguidas`,         formula: 'maxConsec ≥ 3 faltas consecutivas',    color: alertas > 0 ? '#dc2626' : '#059669' },
+    { icon: '⬜', title: 'Sem registro',         val: semReg,     desc: `${pctSem}% dos alunos ativos — nenhuma aula lançada ainda`, formula: 'Σ presenças + faltas = 0' },
+  ].map(m => metricCard(m)).join('');
+
+  // ── EVASÃO E MOVIMENTAÇÃO ────────────────────────────────────
+  const txEvasao = (ativos.length + inativos.length) > 0
+    ? ((inativos.length / (ativos.length + inativos.length)) * 100).toFixed(1)
+    : '0';
+  document.getElementById('metr-movimentacao').innerHTML = [
+    { icon: '➕', title: 'Novos alunos',        val: novos,         desc: 'Total de alunos adicionados ao sistema',     formula: 'Σ "adicionado ao sistema"' },
+    { icon: '🔄', title: 'Transferências',       val: transferidos,  desc: 'Movimentações internas entre turmas ou cursos', formula: 'Σ registros "Transferido de..."' },
+    { icon: '❌', title: 'Cancelamentos',        val: cancelamentos, desc: 'Alunos inativados ao longo do tempo',        formula: 'Σ registros "Aluno inativado"', color: cancelamentos > 0 ? '#dc2626' : '#111' },
+    { icon: '↩️', title: 'Reativações',          val: reativacoes,  desc: 'Alunos que retornaram após inativação',       formula: 'Σ registros "Aluno reativado"', color: reativacoes > 0 ? '#059669' : '#111' },
+    { icon: '📋', title: 'Inativos atualmente',  val: inativos.length, desc: `Taxa de evasão acumulada: ${txEvasao}%`, formula: '(inativos ÷ total) × 100', color: inativos.length > 0 ? '#dc2626' : '#111' },
+  ].map(m => metricCard(m)).join('');
+}
 
 // =============================================
 // RELATÓRIOS
