@@ -316,27 +316,47 @@
 
     <!-- TAB RELATORIO -->
     <div id="tab-relatorio" class="screen">
-      <div class="filter-bar">
+      <div class="filter-bar" style="gap:10px;flex-wrap:wrap;">
         <label>Curso:</label>
-        <select id="f-curso-rel" onchange="renderRel()"><option value="">Todos</option></select>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="curso-multi-btn" onclick="toggleMultiDropdown(event,'curso-multi-panel')">
+            <span id="curso-multi-label">Todos</span><span style="font-size:10px;color:#aaa;">▾</span>
+          </button>
+          <div class="multi-select-panel" id="curso-multi-panel"></div>
+        </div>
         <label>Professor:</label>
-        <select id="f-prof-rel" onchange="renderRel()"><option value="">Todos</option></select>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="prof-multi-btn" onclick="toggleMultiDropdown(event,'prof-multi-panel')">
+            <span id="prof-multi-label">Todos</span><span style="font-size:10px;color:#aaa;">▾</span>
+          </button>
+          <div class="multi-select-panel" id="prof-multi-panel"></div>
+        </div>
+        <label>Turma:</label>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="turma-rel-multi-btn" onclick="toggleMultiDropdown(event,'turma-rel-multi-panel')">
+            <span id="turma-rel-multi-label">Todas</span><span style="font-size:10px;color:#aaa;">▾</span>
+          </button>
+          <div class="multi-select-panel" id="turma-rel-multi-panel" style="max-height:220px;overflow-y:auto;"></div>
+        </div>
         <label>Mostrar:</label>
-        <select id="f-tipo-rel" onchange="renderRel()">
-          <option value="">Todos</option>
-          <option value="alerta">Só alertas (3+ faltas seguidas)</option>
-          <option value="irregular">Só irregulares (&lt;75%)</option>
-        </select>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="tipo-multi-btn" onclick="toggleMultiDropdown(event,'tipo-multi-panel')">
+            <span id="tipo-multi-label">Todos</span><span style="font-size:10px;color:#aaa;">▾</span>
+          </button>
+          <div class="multi-select-panel" id="tipo-multi-panel">
+            <label class="multi-check"><input type="checkbox" value="alerta" onchange="onMultiCheck('tipo-multi-panel','tipo-multi-btn','tipo-multi-label')"> Alertas (3+ faltas)</label>
+            <label class="multi-check"><input type="checkbox" value="irregular" onchange="onMultiCheck('tipo-multi-panel','tipo-multi-btn','tipo-multi-label')"> Irregulares (&lt;75%)</label>
+          </div>
+        </div>
         <label>Status:</label>
-        <div class="multi-select-wrap" id="status-multi-wrap">
-          <button type="button" class="multi-select-btn" id="status-multi-btn" onclick="toggleStatusDropdown(event)">
-            <span id="status-multi-label">Todos</span>
-            <span style="font-size:10px;color:#aaa;">▾</span>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="status-multi-btn" onclick="toggleMultiDropdown(event,'status-multi-panel')">
+            <span id="status-multi-label">Todos</span><span style="font-size:10px;color:#aaa;">▾</span>
           </button>
           <div class="multi-select-panel" id="status-multi-panel">
-            <label class="multi-check"><input type="checkbox" value="regular" onchange="onStatusCheck()"> Regular</label>
-            <label class="multi-check"><input type="checkbox" value="atencao" onchange="onStatusCheck()"> Atenção</label>
-            <label class="multi-check"><input type="checkbox" value="alerta-status" onchange="onStatusCheck()"> ⚠ Alerta</label>
+            <label class="multi-check"><input type="checkbox" value="regular" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Regular</label>
+            <label class="multi-check"><input type="checkbox" value="atencao" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Atenção</label>
+            <label class="multi-check"><input type="checkbox" value="alerta-status" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> ⚠ Alerta</label>
           </div>
         </div>
         <button onclick="exportarExcel()" id="btn-exportar" style="margin-left:auto;padding:7px 16px;background:#059669;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
@@ -721,12 +741,27 @@ function popularFiltros() {
   atualizarTurmasAlunos();
   const cursos = [...new Set(TURMAS.map(t => t.curso))].sort();
   const profs = [...new Set(TURMAS.map(t => t.professor))].sort();
-  ['f-curso-alunos','f-curso-rel'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.innerHTML = '<option value="">Todos</option>' + cursos.map(c => `<option>${c}</option>`).join(''); }
-  });
-  const fp = document.getElementById('f-prof-rel');
-  if (fp) fp.innerHTML = '<option value="">Todos</option>' + profs.map(p => `<option>${p}</option>`).join('');
+
+  // Select simples na aba Alunos
+  const elCursoAlunos = document.getElementById('f-curso-alunos');
+  if (elCursoAlunos) {
+    elCursoAlunos.innerHTML = '<option value="">Todos</option>' + cursos.map(c => `<option>${c}</option>`).join('');
+  }
+
+  // Multi-selects do relatório
+  popularMultiPanel('curso-multi-panel', 'curso-multi-btn', 'curso-multi-label', cursos.map(c => ({ value: c, label: c })));
+  popularMultiPanel('prof-multi-panel', 'prof-multi-btn', 'prof-multi-label', profs.map(p => ({ value: p, label: p })));
+  popularMultiPanel('turma-rel-multi-panel', 'turma-rel-multi-btn', 'turma-rel-multi-label',
+    TURMAS.map(t => ({ value: String(t.id), label: `${t.turma} (${t.curso})` }))
+  );
+}
+
+function popularMultiPanel(panelId, btnId, labelId, options) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  panel.innerHTML = options.map(o =>
+    `<label class="multi-check"><input type="checkbox" value="${String(o.value).replace(/"/g,'&quot;')}" onchange="onMultiCheck('${panelId}','${btnId}','${labelId}')">${o.label}</label>`
+  ).join('');
 }
 
 function toggleSenha(inputId, btn) {
@@ -1198,57 +1233,63 @@ async function salvarEdicaoProf() {
 }
 
 // =============================================
-// MULTI-SELECT STATUS (RELATÓRIO)
+// MULTI-SELECT GENÉRICO (RELATÓRIO)
 // =============================================
-function getStatusSelecionados() {
-  return [...document.querySelectorAll('#status-multi-panel input:checked')].map(i => i.value);
+function getMultiSelecionados(panelId) {
+  return [...document.querySelectorAll(`#${panelId} input:checked`)].map(i => i.value);
 }
 
-function onStatusCheck() {
-  const selecionados = getStatusSelecionados();
-  const labelMap = { regular: 'Regular', atencao: 'Atenção', 'alerta-status': '⚠ Alerta' };
-  const label = document.getElementById('status-multi-label');
-  const btn = document.getElementById('status-multi-btn');
+function onMultiCheck(panelId, btnId, labelId) {
+  const selecionados = getMultiSelecionados(panelId);
+  const label = document.getElementById(labelId);
+  const btn = document.getElementById(btnId);
+  if (!label || !btn) return;
   if (selecionados.length === 0) {
-    label.textContent = 'Todos';
+    label.textContent = labelId.includes('turma') ? 'Todas' : 'Todos';
     btn.classList.remove('active');
   } else {
-    label.textContent = selecionados.map(v => labelMap[v]).join(', ');
+    const texts = [...document.querySelectorAll(`#${panelId} input:checked`)].map(i => i.closest('label')?.textContent?.trim() || i.value);
+    label.textContent = texts.join(', ');
     btn.classList.add('active');
   }
   renderRel();
 }
 
-function toggleStatusDropdown(e) {
+function toggleMultiDropdown(e, panelId) {
   e.stopPropagation();
-  const panel = document.getElementById('status-multi-panel');
-  panel.classList.toggle('open');
+  document.querySelectorAll('.multi-select-panel.open').forEach(p => {
+    if (p.id !== panelId) p.classList.remove('open');
+  });
+  document.getElementById(panelId)?.classList.toggle('open');
 }
 
 // Fechar ao clicar fora
-document.addEventListener('click', function(e) {
-  const wrap = document.getElementById('status-multi-wrap');
-  if (wrap && !wrap.contains(e.target)) {
-    document.getElementById('status-multi-panel')?.classList.remove('open');
-  }
+document.addEventListener('click', function() {
+  document.querySelectorAll('.multi-select-panel.open').forEach(p => p.classList.remove('open'));
 });
 
 // =============================================
 // RELATÓRIOS
 // =============================================
 function renderRel() {
-  const fCurso = document.getElementById('f-curso-rel')?.value || '';
-  const fProf = document.getElementById('f-prof-rel')?.value || '';
-  const fTipo = document.getElementById('f-tipo-rel')?.value || '';
-  const fStatus = getStatusSelecionados();
+  const fCursos = getMultiSelecionados('curso-multi-panel');
+  const fProfs = getMultiSelecionados('prof-multi-panel');
+  const fTipos = getMultiSelecionados('tipo-multi-panel');
+  const fTurmasRel = getMultiSelecionados('turma-rel-multi-panel');
+  const fStatus = getMultiSelecionados('status-multi-panel');
   let turmas = TURMAS;
-  if (fCurso) turmas = turmas.filter(t => t.curso === fCurso);
-  if (fProf) turmas = turmas.filter(t => t.professor === fProf);
+  if (fCursos.length > 0) turmas = turmas.filter(t => fCursos.includes(t.curso));
+  if (fProfs.length > 0) turmas = turmas.filter(t => fProfs.includes(t.professor));
+  if (fTurmasRel.length > 0) turmas = turmas.filter(t => fTurmasRel.includes(String(t.id)));
   let html = '';
   turmas.forEach(t => {
     let lista = ALUNOS.filter(a => a.turma_id === t.id).map(a => ({ ...a, ...calcAluno(a) }));
-    if (fTipo === 'alerta') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
-    else if (fTipo === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 75);
+    if (fTipos.length > 0) {
+      lista = lista.filter(a =>
+        (fTipos.includes('alerta') && a.ativo && a.maxConsec >= 3) ||
+        (fTipos.includes('irregular') && a.ativo && a.freq !== null && a.freq < 75)
+      );
+    }
     if (fStatus.length > 0) {
       lista = lista.filter(a => {
         const isRegular = a.ativo && a.maxConsec < 3 && a.freq !== null && a.freq >= 75;
