@@ -95,6 +95,8 @@
     .pbtn{padding:5px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid;transition:all .1s;}
     .pbtn-p{background:#fff;border-color:#10b981;color:#065f46;}
     .pbtn-p.on{background:#d1fae5;}
+    .pbtn-r{background:#fff;border-color:#f59e0b;color:#92400e;}
+    .pbtn-r.on{background:#fef3c7;}
     .pbtn-f{background:#fff;border-color:#ef4444;color:#991b1b;}
     .pbtn-f.on{background:#fee2e2;}
     .btn-save{padding:7px 16px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;}
@@ -118,7 +120,7 @@
     .fbar-fill{height:100%;border-radius:99px;}
     .dots{display:flex;gap:2px;}
     .dot{width:11px;height:11px;border-radius:2px;}
-    .dot-p{background:#10b981;}.dot-f{background:#ef4444;}.dot-n{background:#e5e7eb;}
+    .dot-p{background:#10b981;}.dot-f{background:#ef4444;}.dot-r{background:#f59e0b;}.dot-n{background:#e5e7eb;}
 
     /* MODAL */
     .modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);align-items:flex-start;justify-content:center;padding:60px 1rem 1rem;}
@@ -775,12 +777,13 @@ function calcAluno(aluno) {
     const k = `${aluno.turma_id}_${aula}`;
     return (PRESENCAS[k] && PRESENCAS[k][aluno.id]) || 'N';
   });
-  const p = seq.filter(v => v === 'P').length;
+  const p = seq.filter(v => v === 'P' || v === 'R').length; // R conta como presença
+  const r = seq.filter(v => v === 'R').length;               // reposições separadas
   const f = seq.filter(v => v === 'F').length;
   const freq = p + f > 0 ? Math.round((p / (p + f)) * 100) : null;
   let maxC = 0, cur = 0;
   seq.forEach(v => { if (v === 'F') { cur++; maxC = Math.max(maxC, cur); } else cur = 0; });
-  return { seq, p, f, freq, maxConsec: maxC };
+  return { seq, p, r, f, freq, maxConsec: maxC };
 }
 
 function freqBar(freq) {
@@ -944,10 +947,10 @@ function renderChamada() {
   const key = `${turmaAtual.id}_${aula}`;
   if (!PRESENCAS[key]) PRESENCAS[key] = {};
   const alunos = ALUNOS.filter(a => a.ativo && a.turma_id === turmaAtual.id);
-  let p = 0, f = 0, s = 0;
-  alunos.forEach(a => { const v = PRESENCAS[key][a.id]; if (v === 'P') p++; else if (v === 'F') f++; else s++; });
+  let p = 0, r = 0, f = 0, s = 0;
+  alunos.forEach(a => { const v = PRESENCAS[key][a.id]; if (v === 'P') p++; else if (v === 'R') r++; else if (v === 'F') f++; else s++; });
   document.getElementById('ch-counters').innerHTML =
-    `<span style="color:#059669;">✓ ${p} presentes</span><span style="color:#dc2626;">✗ ${f} faltas</span><span>○ ${s} sem registro</span>`;
+    `<span style="color:#059669;">✓ ${p} presentes</span><span style="color:#d97706;">↺ ${r} reposições</span><span style="color:#dc2626;">✗ ${f} faltas</span><span>○ ${s} sem registro</span>`;
   document.getElementById('alunos-list').innerHTML = alunos.map((a, i) => {
     const v = PRESENCAS[key][a.id] || '';
     return `<div class="aluno-row">
@@ -955,6 +958,7 @@ function renderChamada() {
       <div class="aluno-nome">${a.nome}</div>
       <div class="pbtns">
         <button class="pbtn pbtn-p ${v === 'P' ? 'on' : ''}" onclick="marcar(${a.id},'P')">✓ Presente</button>
+        <button class="pbtn pbtn-r ${v === 'R' ? 'on' : ''}" onclick="marcar(${a.id},'R')">↺ Reposição</button>
         <button class="pbtn pbtn-f ${v === 'F' ? 'on' : ''}" onclick="marcar(${a.id},'F')">✗ Falta</button>
       </div>
     </div>`;
@@ -1042,9 +1046,9 @@ function abrirModalAluno(id) {
     <div class="info-item"><div class="info-label">Faltas</div><div class="info-val" style="color:#dc2626;">${c.f}</div></div>`;
   document.getElementById('ma-aulas').innerHTML = AULAS.slice(0, 8).map((au, i) => {
     const v = c.seq[i];
-    const bg = v === 'P' ? '#d1fae5' : v === 'F' ? '#fee2e2' : '#f9fafb';
-    const tc = v === 'P' ? '#065f46' : v === 'F' ? '#991b1b' : '#aaa';
-    return `<div class="aula-item" style="background:${bg};"><div class="aula-item-label">${au}</div><div class="aula-item-val" style="color:${tc};">${v === 'P' ? 'Presente' : v === 'F' ? 'Falta' : '—'}</div></div>`;
+    const bg = v === 'P' ? '#d1fae5' : v === 'R' ? '#fef3c7' : v === 'F' ? '#fee2e2' : '#f9fafb';
+    const tc = v === 'P' ? '#065f46' : v === 'R' ? '#92400e' : v === 'F' ? '#991b1b' : '#aaa';
+    return `<div class="aula-item" style="background:${bg};"><div class="aula-item-label">${au}</div><div class="aula-item-val" style="color:${tc};">${v === 'P' ? 'Presente' : v === 'R' ? 'Reposição' : v === 'F' ? 'Falta' : '—'}</div></div>`;
   }).join('');
   const hist = HISTORICO.filter(h => h.aluno_id === id);
   document.getElementById('ma-hist').innerHTML = hist.length ? `
@@ -1394,6 +1398,8 @@ function renderMetricas() {
   const atencao   = dadosAtivos.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq < 75).length;
   const alertas   = dadosAtivos.filter(d => d.maxConsec >= 3).length;
   const semReg    = dadosAtivos.filter(d => d.freq === null).length;
+  const totalRep  = dadosAtivos.reduce((s, d) => s + d.r, 0);
+  const alunosRep = dadosAtivos.filter(d => d.r > 0).length;
 
   const transferidos = HISTORICO.filter(h => h.descricao?.includes('Transferido')).length;
   const novos        = HISTORICO.filter(h => h.descricao?.includes('adicionado ao sistema')).length;
@@ -1461,8 +1467,10 @@ function renderMetricas() {
   document.getElementById('metr-frequencia').innerHTML = `
     <thead><tr><th>Status</th><th style="text-align:center;">Alunos</th><th style="text-align:center;">% dos ativos</th><th>Critério</th></tr></thead>
     <tbody>
-      <tr><td style="font-weight:500;">✅ Regulares (≥75%)</td><td style="text-align:center;">${numBadge(regulares,'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares),'#059669')}</td><td style="color:#666;font-size:11px;">freq ≥ 75% e sem alerta consecutivo</td></tr>
-      <tr><td style="font-weight:500;">🟡 Atenção (&lt;75%)</td><td style="text-align:center;">${numBadge(atencao,'badge-amber')}</td><td style="text-align:center;">${fbar(pct(atencao),'#d97706')}</td><td style="color:#666;font-size:11px;">freq &lt; 75% e sem 3 faltas consecutivas</td></tr>
+      <tr><td style="font-weight:500;">✅ Presença física (P)</td><td style="text-align:center;">${numBadge(dadosAtivos.filter(d=>d.p-d.r>0||d.r===0&&d.p>0).length,'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares),'#059669')}</td><td style="color:#666;font-size:11px;">Presença registrada normalmente na aula</td></tr>
+      <tr><td style="font-weight:500;">🟡 Reposições (R)</td><td style="text-align:center;">${alunosRep > 0 ? `<span class="badge badge-amber">${alunosRep}</span>` : dash}</td><td style="text-align:center;">${fbar(pct(alunosRep),'#f59e0b')}</td><td style="color:#666;font-size:11px;">Assistiram via plataforma · conta como presença · ${totalRep} registros no total</td></tr>
+      <tr><td style="font-weight:500;">✅ Regulares (≥75%)</td><td style="text-align:center;">${numBadge(regulares,'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares),'#059669')}</td><td style="color:#666;font-size:11px;">freq ≥ 75% (P+R) e sem alerta consecutivo</td></tr>
+      <tr><td style="font-weight:500;">🟠 Atenção (&lt;75%)</td><td style="text-align:center;">${numBadge(atencao,'badge-amber')}</td><td style="text-align:center;">${fbar(pct(atencao),'#d97706')}</td><td style="color:#666;font-size:11px;">freq &lt; 75% e sem 3 faltas consecutivas</td></tr>
       <tr><td style="font-weight:500;">🔴 Em alerta</td><td style="text-align:center;">${numBadge(alertas,'badge-red')}</td><td style="text-align:center;">${fbar(pct(alertas),'#dc2626')}</td><td style="color:#666;font-size:11px;">3 ou mais faltas consecutivas</td></tr>
       <tr><td style="font-weight:500;">⬜ Sem registro</td><td style="text-align:center;">${semReg > 0 ? `<span class="badge badge-gray">${semReg}</span>` : dash}</td><td style="text-align:center;">${fbar(pct(semReg),'#9ca3af')}</td><td style="color:#666;font-size:11px;">Nenhuma aula lançada ainda</td></tr>
     </tbody>`;
@@ -1534,7 +1542,7 @@ function renderRel() {
         </tr></thead>
         <tbody>${lista.map(a => `<tr class="clickable ${a.maxConsec >= 3 && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''}" onclick="abrirModalAluno(${a.id})">
           <td>${a.nome}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
-          <td><div class="dots" style="cursor:pointer;">${a.seq.slice(0,8).map((v,i) => `<div class="dot ${v==='P'?'dot-p':v==='F'?'dot-f':'dot-n'}" style="cursor:pointer;transition:transform .1s;" onmouseenter="this.style.transform='scale(1.3)'" onmouseleave="this.style.transform='scale(1)'" onclick="event.stopPropagation();toggleDotRel(${a.id},${t.id},${i})" title="Aula ${i+1}: ${v==='P'?'Presente':v==='F'?'Falta':'Sem registro'}"></div>`).join('')}</div></td>
+          <td><div class="dots" style="cursor:pointer;">${a.seq.slice(0,8).map((v,i) => `<div class="dot ${v==='P'?'dot-p':v==='R'?'dot-r':v==='F'?'dot-f':'dot-n'}" style="cursor:pointer;transition:transform .1s;" onmouseenter="this.style.transform='scale(1.3)'" onmouseleave="this.style.transform='scale(1)'" onclick="event.stopPropagation();toggleDotRel(${a.id},${t.id},${i})" title="Aula ${i+1}: ${v==='P'?'Presente':v==='R'?'Reposição':v==='F'?'Falta':'Sem registro'}"></div>`).join('')}</div></td>
           <td style="text-align:center;color:#059669;font-weight:600;">${a.p}</td>
           <td style="text-align:center;color:#dc2626;font-weight:600;">${a.f}</td>
           <td style="text-align:center;">${a.maxConsec > 0 ? `<span class="badge ${a.maxConsec >= 3 ? 'badge-red' : 'badge-gray'}">${a.maxConsec}</span>` : '—'}</td>
@@ -1635,7 +1643,7 @@ async function toggleDotRel(alunoId, turmaId, aulaIdx) {
   const key = `${turmaId}_${aula}`;
   if (!PRESENCAS[key]) PRESENCAS[key] = {};
   const atual = PRESENCAS[key][alunoId];
-  const proximo = atual === 'P' ? 'F' : atual === 'F' ? null : 'P';
+  const proximo = atual === 'P' ? 'F' : atual === 'F' ? 'R' : atual === 'R' ? null : 'P';
   PRESENCAS[key][alunoId] = proximo;
   try {
     if (proximo) {
