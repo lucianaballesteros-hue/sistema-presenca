@@ -1063,7 +1063,7 @@ function abrirModalAluno(id) {
   btnIn.textContent = a.ativo ? 'Inativar aluno' : 'Reativar aluno';
   btnIn.className = a.ativo ? 'btn-warning' : 'btn-warning';
   btnIn.style.background = a.ativo ? '' : '';
-  btnCancelar.style.display = a.ativo ? '' : 'none';
+  btnCancelar.style.display = '';
   const today = new Date().toISOString().split('T')[0];
   const obsData = document.getElementById('obs-data');
   if (obsData) obsData.value = today;
@@ -1088,7 +1088,10 @@ async function toggleInativo() {
 
 async function cancelarMatricula() {
   const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
-  if (!confirm(`Cancelar a matrícula de "${a.nome}"?\n\nO aluno será marcado como inativo e o cancelamento ficará registrado no histórico.`)) return;
+  const msg = a.ativo
+    ? `Cancelar a matrícula de "${a.nome}"?\n\nO aluno será marcado como inativo com status de cancelamento.`
+    : `Registrar cancelamento de matrícula para "${a.nome}"?\n\nO aluno já está inativo e será marcado como cancelado.`;
+  if (!confirm(msg)) return;
   await sb.from('alunos').update({ ativo: false }).eq('id', a.id);
   await sb.from('historico').insert({ aluno_id: a.id, descricao: 'Matrícula cancelada' });
   a.ativo = false;
