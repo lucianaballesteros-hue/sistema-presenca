@@ -327,12 +327,13 @@
       </div>
       <div class="table-wrap"><table>
         <thead><tr>
-          <th style="width:32%;">Aluno</th>
+          <th style="width:30%;">Aluno</th>
           <th style="width:14%;">Curso</th>
-          <th style="width:16%;">Turma</th>
-          <th style="width:8%;text-align:center;">P</th>
-          <th style="width:8%;text-align:center;">F</th>
-          <th style="width:10%;text-align:center;">Consec.</th>
+          <th style="width:14%;">Turma</th>
+          <th style="width:7%;text-align:center;">P</th>
+          <th style="width:7%;text-align:center;">R</th>
+          <th style="width:7%;text-align:center;">F</th>
+          <th style="width:9%;text-align:center;">Consec.</th>
           <th style="width:12%;">Freq.</th>
         </tr></thead>
         <tbody id="tbody-alunos"></tbody>
@@ -1019,7 +1020,8 @@ function renderTabelaAlunos() {
       <td>${a.nome}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
       <td><span class="badge ${corBadge(a.turma?.curso)}" style="font-size:10px;">${a.turma?.curso || '—'}</span></td>
       <td style="color:#666;">${a.turma?.turma || '—'}</td>
-      <td style="text-align:center;color:#059669;font-weight:600;">${a.p}</td>
+      <td style="text-align:center;color:#059669;font-weight:600;">${a.p - a.r}</td>
+      <td style="text-align:center;color:#d97706;font-weight:600;">${a.r > 0 ? a.r : '—'}</td>
       <td style="text-align:center;color:#dc2626;font-weight:600;">${a.f}</td>
       <td style="text-align:center;">${a.maxConsec > 0 ? `<span class="badge ${a.maxConsec >= 3 ? 'badge-red' : 'badge-gray'}">${a.maxConsec}</span>` : '—'}</td>
       <td>${freqBar(a.freq)}</td>
@@ -1532,18 +1534,20 @@ function renderRel() {
       </div>
       <div class="table-wrap"><table>
         <thead><tr>
-          <th style="width:35%;">Aluno</th>
-          <th style="width:12%;">Histórico</th>
-          <th style="width:8%;text-align:center;">P</th>
-          <th style="width:8%;text-align:center;">F</th>
-          <th style="width:11%;text-align:center;">Consec.</th>
-          <th style="width:13%;">Freq.</th>
-          <th style="width:13%;">Status</th>
+          <th style="width:32%;">Aluno</th>
+          <th style="width:11%;">Histórico</th>
+          <th style="width:6%;text-align:center;">P</th>
+          <th style="width:6%;text-align:center;">R</th>
+          <th style="width:6%;text-align:center;">F</th>
+          <th style="width:10%;text-align:center;">Consec.</th>
+          <th style="width:12%;">Freq.</th>
+          <th style="width:12%;">Status</th>
         </tr></thead>
         <tbody>${lista.map(a => `<tr class="clickable ${a.maxConsec >= 3 && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''}" onclick="abrirModalAluno(${a.id})">
           <td>${a.nome}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
           <td><div class="dots" style="cursor:pointer;">${a.seq.slice(0,8).map((v,i) => `<div class="dot ${v==='P'?'dot-p':v==='R'?'dot-r':v==='F'?'dot-f':'dot-n'}" style="cursor:pointer;transition:transform .1s;" onmouseenter="this.style.transform='scale(1.3)'" onmouseleave="this.style.transform='scale(1)'" onclick="event.stopPropagation();toggleDotRel(${a.id},${t.id},${i})" title="Aula ${i+1}: ${v==='P'?'Presente':v==='R'?'Reposição':v==='F'?'Falta':'Sem registro'}"></div>`).join('')}</div></td>
-          <td style="text-align:center;color:#059669;font-weight:600;">${a.p}</td>
+          <td style="text-align:center;color:#059669;font-weight:600;">${a.p - a.r}</td>
+          <td style="text-align:center;color:#d97706;font-weight:600;">${a.r > 0 ? a.r : '—'}</td>
           <td style="text-align:center;color:#dc2626;font-weight:600;">${a.f}</td>
           <td style="text-align:center;">${a.maxConsec > 0 ? `<span class="badge ${a.maxConsec >= 3 ? 'badge-red' : 'badge-gray'}">${a.maxConsec}</span>` : '—'}</td>
           <td>${freqBar(a.freq)}</td>
