@@ -397,7 +397,9 @@
           <span class="metr-section-icon">📊</span>
           <span class="metr-section-title">Visão Geral</span>
         </div>
-        <div class="metr-grid" id="metr-visao-geral"></div>
+        <div class="metr-table-wrap">
+          <table class="metr-table" id="metr-visao-geral"></table>
+        </div>
       </div>
 
       <!-- DIMENSIONAMENTO POR CURSO -->
@@ -417,16 +419,20 @@
           <span class="metr-section-icon">📈</span>
           <span class="metr-section-title">Frequência e Desempenho</span>
         </div>
-        <div class="metr-grid" id="metr-frequencia"></div>
+        <div class="metr-table-wrap">
+          <table class="metr-table" id="metr-frequencia"></table>
+        </div>
       </div>
 
-      <!-- MOVIMENTAÇÃO -->
+      <!-- EVASÃO E MOVIMENTAÇÃO -->
       <div class="metr-section">
         <div class="metr-section-header">
           <span class="metr-section-icon">↔</span>
           <span class="metr-section-title">Evasão e Movimentação</span>
         </div>
-        <div class="metr-grid" id="metr-movimentacao"></div>
+        <div class="metr-table-wrap">
+          <table class="metr-table" id="metr-movimentacao"></table>
+        </div>
       </div>
 
     </div>
@@ -1372,124 +1378,105 @@ document.addEventListener('click', function() {
 // =============================================
 // MÉTRICAS / DASHBOARD PEDAGÓGICO
 // =============================================
-function metricCard({ icon, title, val, desc, formula, color }) {
-  const c = color || '#111';
-  return `<div class="metr-card">
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:.625rem;">
-      <span style="font-size:15px;">${icon}</span>
-      <span class="metr-card-title" style="margin:0;">${title}</span>
-    </div>
-    <div class="metr-card-divider"></div>
-    <div class="metr-card-val" style="color:${c};">${val}</div>
-    <div class="metr-card-desc">${desc}</div>
-    ${formula ? `<div class="metr-card-formula">${formula}</div>` : ''}
-  </div>`;
-}
-
 function renderMetricas() {
   const ativos   = ALUNOS.filter(a => a.ativo);
   const inativos = ALUNOS.filter(a => !a.ativo);
   const cursos   = [...new Set(TURMAS.map(t => t.curso))].sort();
+  const dash     = '<span style="color:#ccc;">—</span>';
 
-  // Distinguir cancelados de inativos via historico
-  const cancelados  = inativos.filter(a => statusInativo(a.id) === 'cancelado');
-  const soInativos  = inativos.filter(a => statusInativo(a.id) === 'inativo');
+  const cancelados = inativos.filter(a => statusInativo(a.id) === 'cancelado');
+  const soInativos = inativos.filter(a => statusInativo(a.id) === 'inativo');
 
-  // Frequência
   const dadosAtivos = ativos.map(a => calcAluno(a));
-  const comFreq  = dadosAtivos.filter(d => d.freq !== null);
-  const freqMedia = comFreq.length > 0 ? Math.round(comFreq.reduce((s,d) => s+d.freq,0) / comFreq.length) : null;
+  const comFreq   = dadosAtivos.filter(d => d.freq !== null);
+  const freqMedia = comFreq.length > 0 ? Math.round(comFreq.reduce((s,d)=>s+d.freq,0)/comFreq.length) : null;
   const regulares = dadosAtivos.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq >= 75).length;
   const atencao   = dadosAtivos.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq < 75).length;
   const alertas   = dadosAtivos.filter(d => d.maxConsec >= 3).length;
   const semReg    = dadosAtivos.filter(d => d.freq === null).length;
 
-  // Movimentação
   const transferidos = HISTORICO.filter(h => h.descricao?.includes('Transferido')).length;
   const novos        = HISTORICO.filter(h => h.descricao?.includes('adicionado ao sistema')).length;
   const reativacoes  = HISTORICO.filter(h => h.descricao?.includes('reativado')).length;
 
-  const pctReg = ativos.length > 0 ? Math.round((regulares/ativos.length)*100) : 0;
-  const pctAt  = ativos.length > 0 ? Math.round((atencao /ativos.length)*100) : 0;
-  const pctAl  = ativos.length > 0 ? Math.round((alertas /ativos.length)*100) : 0;
-  const pctSem = ativos.length > 0 ? Math.round((semReg  /ativos.length)*100) : 0;
-  const total  = ativos.length + inativos.length;
+  const total    = ativos.length + inativos.length;
   const txEvasao = total > 0 ? ((inativos.length/total)*100).toFixed(1) : '0';
 
+  function pct(n) { return ativos.length > 0 ? Math.round((n/ativos.length)*100) : 0; }
+  function fbar(val, color) {
+    return `<div class="metr-bar-wrap"><div class="metr-bar"><div class="metr-bar-fill" style="width:${val||0}%;background:${color};"></div></div><span style="font-weight:600;color:${color};font-size:11px;">${val !== null ? val+'%' : '—'}</span></div>`;
+  }
+  function numBadge(n, cls) { return n > 0 ? `<span class="badge ${cls}">${n}</span>` : dash; }
+
   // ── VISÃO GERAL ──────────────────────────────────────────────
-  document.getElementById('metr-visao-geral').innerHTML = [
-    { icon: '🏫', title: 'Total de turmas',       val: TURMAS.length,   desc: 'Turmas cadastradas no sistema',           formula: 'Σ turmas' },
-    { icon: '👥', title: 'Alunos ativos',          val: ativos.length,   desc: 'Matrículas ativas no momento',           formula: 'Σ alunos ativos' },
-    { icon: '📊', title: 'Frequência média',       val: freqMedia !== null ? freqMedia+'%' : '—', desc: 'Média geral de presença dos ativos', formula: 'Σ freq ÷ nº alunos c/ registro', color: freqMedia !== null ? (freqMedia >= 75 ? '#059669' : '#d97706') : '#111' },
-    { icon: '⚠️', title: 'Em alerta',              val: alertas,         desc: '3 ou mais faltas consecutivas',          formula: 'maxConsec ≥ 3', color: alertas > 0 ? '#dc2626' : '#059669' },
-    { icon: '❌', title: 'Matrículas canceladas',  val: cancelados.length, desc: 'Alunos que encerraram o curso',        formula: 'Σ "Matrícula cancelada"', color: cancelados.length > 0 ? '#dc2626' : '#111' },
-    { icon: '⏸',  title: 'Inativos (temporários)', val: soInativos.length, desc: 'Afastados, podem retornar',           formula: 'Σ "Aluno inativado"', color: soInativos.length > 0 ? '#d97706' : '#111' },
-  ].map(m => metricCard(m)).join('');
+  const fColor = freqMedia !== null ? (freqMedia >= 75 ? '#059669' : '#d97706') : '#aaa';
+  document.getElementById('metr-visao-geral').innerHTML = `
+    <thead><tr><th>Métrica</th><th style="text-align:center;">Valor</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:500;">🏫 Total de turmas</td><td style="text-align:center;font-weight:700;font-size:15px;">${TURMAS.length}</td><td style="color:#666;font-size:11px;">Turmas cadastradas no sistema</td></tr>
+      <tr><td style="font-weight:500;">👥 Alunos ativos</td><td style="text-align:center;font-weight:700;font-size:15px;">${ativos.length}</td><td style="color:#666;font-size:11px;">Matrículas ativas no momento</td></tr>
+      <tr><td style="font-weight:500;">📊 Frequência média</td><td style="text-align:center;">${fbar(freqMedia, fColor)}</td><td style="color:#666;font-size:11px;">Média geral de presença dos alunos ativos com registro</td></tr>
+      <tr><td style="font-weight:500;">⚠️ Em alerta</td><td style="text-align:center;">${numBadge(alertas,'badge-red')}</td><td style="color:#666;font-size:11px;">3 ou mais faltas consecutivas (${pct(alertas)}% dos ativos)</td></tr>
+      <tr><td style="font-weight:500;">❌ Matrículas canceladas</td><td style="text-align:center;">${numBadge(cancelados.length,'badge-red')}</td><td style="color:#666;font-size:11px;">Alunos que encerraram o curso definitivamente</td></tr>
+      <tr><td style="font-weight:500;">⏸ Inativos (temporários)</td><td style="text-align:center;">${numBadge(soInativos.length,'badge-amber')}</td><td style="color:#666;font-size:11px;">Alunos afastados temporariamente, podem retornar</td></tr>
+    </tbody>`;
 
   // ── DIMENSIONAMENTO POR CURSO ────────────────────────────────
-  const dash = '<span style="color:#ccc;">—</span>';
   document.getElementById('metr-tabela-curso').innerHTML = `
     <thead><tr>
-      <th>Curso</th>
-      <th style="text-align:center;">Turmas</th>
-      <th style="text-align:center;">Alunos ativos</th>
-      <th style="text-align:center;">Média / turma</th>
-      <th style="text-align:center;">Freq. média</th>
-      <th style="text-align:center;">Regulares</th>
-      <th style="text-align:center;">Atenção</th>
-      <th style="text-align:center;">Alerta</th>
-      <th style="text-align:center;">Cancelados</th>
-      <th style="text-align:center;">Inativos</th>
+      <th>Curso</th><th style="text-align:center;">Turmas</th><th style="text-align:center;">Alunos ativos</th>
+      <th style="text-align:center;">Média / turma</th><th style="text-align:center;">Freq. média</th>
+      <th style="text-align:center;">Regulares</th><th style="text-align:center;">Atenção</th>
+      <th style="text-align:center;">Alerta</th><th style="text-align:center;">Cancelados</th><th style="text-align:center;">Inativos</th>
     </tr></thead>
     <tbody>${cursos.map(c => {
-      const tC  = TURMAS.filter(t => t.curso === c);
-      const aC  = ALUNOS.filter(a =>  a.ativo && tC.some(t => t.id === a.turma_id));
-      const iC  = inativos.filter(a => tC.some(t => t.id === a.turma_id));
+      const tC   = TURMAS.filter(t => t.curso === c);
+      const aC   = ALUNOS.filter(a => a.ativo && tC.some(t => t.id === a.turma_id));
+      const iC   = inativos.filter(a => tC.some(t => t.id === a.turma_id));
       const canC = iC.filter(a => statusInativo(a.id) === 'cancelado');
       const inaC = iC.filter(a => statusInativo(a.id) === 'inativo');
       const media = tC.length > 0 ? (aC.length/tC.length).toFixed(1) : '—';
-      const dc  = aC.map(a => calcAluno(a));
+      const dc   = aC.map(a => calcAluno(a));
       const comF = dc.filter(d => d.freq !== null);
-      const fM  = comF.length > 0 ? Math.round(comF.reduce((s,d)=>s+d.freq,0)/comF.length) : null;
-      const reg = dc.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq >= 75).length;
-      const at  = dc.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq < 75).length;
-      const al  = dc.filter(d => d.maxConsec >= 3).length;
-      const fColor = fM !== null ? (fM >= 75 ? '#059669' : '#d97706') : '#aaa';
+      const fM   = comF.length > 0 ? Math.round(comF.reduce((s,d)=>s+d.freq,0)/comF.length) : null;
+      const reg  = dc.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq >= 75).length;
+      const at   = dc.filter(d => d.maxConsec < 3 && d.freq !== null && d.freq < 75).length;
+      const al   = dc.filter(d => d.maxConsec >= 3).length;
+      const fc   = fM !== null ? (fM >= 75 ? '#059669' : '#d97706') : '#aaa';
       return `<tr>
         <td><span class="badge ${corBadge(c)}">${c}</span></td>
         <td style="text-align:center;font-weight:600;">${tC.length}</td>
         <td style="text-align:center;font-weight:600;">${aC.length}</td>
         <td style="text-align:center;color:#666;">${media}</td>
-        <td style="text-align:center;">
-          <div class="metr-bar-wrap" style="justify-content:center;">
-            <div class="metr-bar"><div class="metr-bar-fill" style="width:${fM||0}%;background:${fColor};"></div></div>
-            <span style="font-weight:600;color:${fColor};font-size:11px;">${fM !== null ? fM+'%' : '—'}</span>
-          </div>
-        </td>
-        <td style="text-align:center;">${reg  > 0 ? `<span class="badge badge-green">${reg}</span>`  : dash}</td>
-        <td style="text-align:center;">${at   > 0 ? `<span class="badge badge-amber">${at}</span>`   : dash}</td>
-        <td style="text-align:center;">${al   > 0 ? `<span class="badge badge-red">${al}</span>`     : dash}</td>
-        <td style="text-align:center;">${canC.length > 0 ? `<span class="badge badge-red">${canC.length}</span>`   : dash}</td>
-        <td style="text-align:center;">${inaC.length > 0 ? `<span class="badge badge-amber">${inaC.length}</span>` : dash}</td>
+        <td style="text-align:center;">${fbar(fM,fc)}</td>
+        <td style="text-align:center;">${numBadge(reg,'badge-green')}</td>
+        <td style="text-align:center;">${numBadge(at,'badge-amber')}</td>
+        <td style="text-align:center;">${numBadge(al,'badge-red')}</td>
+        <td style="text-align:center;">${numBadge(canC.length,'badge-red')}</td>
+        <td style="text-align:center;">${numBadge(inaC.length,'badge-amber')}</td>
       </tr>`;
     }).join('')}</tbody>`;
 
   // ── FREQUÊNCIA E DESEMPENHO ──────────────────────────────────
-  document.getElementById('metr-frequencia').innerHTML = [
-    { icon: '✅', title: 'Regulares (≥75%)', val: regulares, desc: `${pctReg}% dos alunos ativos · dentro da meta`, formula: 'freq ≥ 75% e sem alerta', color: '#059669' },
-    { icon: '🟡', title: 'Atenção (<75%)',   val: atencao,   desc: `${pctAt}% dos alunos ativos · abaixo da meta`,  formula: 'freq < 75% e maxConsec < 3', color: '#d97706' },
-    { icon: '🔴', title: 'Em alerta',        val: alertas,   desc: `${pctAl}% dos alunos ativos · 3+ faltas seguidas`, formula: 'maxConsec ≥ 3', color: alertas > 0 ? '#dc2626' : '#059669' },
-    { icon: '⬜', title: 'Sem registro',      val: semReg,    desc: `${pctSem}% dos alunos ativos · nenhuma aula lançada`, formula: 'Σ presenças + faltas = 0' },
-  ].map(m => metricCard(m)).join('');
+  document.getElementById('metr-frequencia').innerHTML = `
+    <thead><tr><th>Status</th><th style="text-align:center;">Alunos</th><th style="text-align:center;">% dos ativos</th><th>Critério</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:500;">✅ Regulares (≥75%)</td><td style="text-align:center;">${numBadge(regulares,'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares),'#059669')}</td><td style="color:#666;font-size:11px;">freq ≥ 75% e sem alerta consecutivo</td></tr>
+      <tr><td style="font-weight:500;">🟡 Atenção (&lt;75%)</td><td style="text-align:center;">${numBadge(atencao,'badge-amber')}</td><td style="text-align:center;">${fbar(pct(atencao),'#d97706')}</td><td style="color:#666;font-size:11px;">freq &lt; 75% e sem 3 faltas consecutivas</td></tr>
+      <tr><td style="font-weight:500;">🔴 Em alerta</td><td style="text-align:center;">${numBadge(alertas,'badge-red')}</td><td style="text-align:center;">${fbar(pct(alertas),'#dc2626')}</td><td style="color:#666;font-size:11px;">3 ou mais faltas consecutivas</td></tr>
+      <tr><td style="font-weight:500;">⬜ Sem registro</td><td style="text-align:center;">${semReg > 0 ? `<span class="badge badge-gray">${semReg}</span>` : dash}</td><td style="text-align:center;">${fbar(pct(semReg),'#9ca3af')}</td><td style="color:#666;font-size:11px;">Nenhuma aula lançada ainda</td></tr>
+    </tbody>`;
 
   // ── EVASÃO E MOVIMENTAÇÃO ────────────────────────────────────
-  document.getElementById('metr-movimentacao').innerHTML = [
-    { icon: '➕', title: 'Novos alunos',          val: novos,             desc: 'Total adicionados ao sistema', formula: 'Σ "adicionado ao sistema"' },
-    { icon: '🔄', title: 'Transferências',         val: transferidos,      desc: 'Movimentações entre turmas ou cursos', formula: 'Σ registros "Transferido de..."' },
-    { icon: '❌', title: 'Matrículas canceladas',  val: cancelados.length, desc: `Taxa de evasão: ${txEvasao}% do total matriculado`, formula: 'Σ "Matrícula cancelada"', color: cancelados.length > 0 ? '#dc2626' : '#111' },
-    { icon: '⏸',  title: 'Inativos (temporários)', val: soInativos.length, desc: 'Afastados, podem retornar', formula: 'Σ "Aluno inativado"', color: soInativos.length > 0 ? '#d97706' : '#111' },
-    { icon: '↩️', title: 'Reativações',            val: reativacoes,       desc: 'Alunos que retornaram após afastamento', formula: 'Σ "Aluno reativado"', color: reativacoes > 0 ? '#059669' : '#111' },
-  ].map(m => metricCard(m)).join('');
+  document.getElementById('metr-movimentacao').innerHTML = `
+    <thead><tr><th>Evento</th><th style="text-align:center;">Quantidade</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:500;">➕ Novos alunos</td><td style="text-align:center;font-weight:700;font-size:15px;">${novos}</td><td style="color:#666;font-size:11px;">Total de alunos adicionados ao sistema</td></tr>
+      <tr><td style="font-weight:500;">🔄 Transferências</td><td style="text-align:center;font-weight:700;font-size:15px;">${transferidos}</td><td style="color:#666;font-size:11px;">Movimentações internas entre turmas ou cursos</td></tr>
+      <tr><td style="font-weight:500;">❌ Matrículas canceladas</td><td style="text-align:center;">${numBadge(cancelados.length,'badge-red')}</td><td style="color:#666;font-size:11px;">Alunos que encerraram o curso · taxa de evasão: ${txEvasao}% do total</td></tr>
+      <tr><td style="font-weight:500;">⏸ Inativos (temporários)</td><td style="text-align:center;">${numBadge(soInativos.length,'badge-amber')}</td><td style="color:#666;font-size:11px;">Alunos afastados temporariamente, podem retornar</td></tr>
+      <tr><td style="font-weight:500;">↩️ Reativações</td><td style="text-align:center;">${reativacoes > 0 ? `<span class="badge badge-green">${reativacoes}</span>` : dash}</td><td style="color:#666;font-size:11px;">Alunos que retornaram após afastamento ou cancelamento</td></tr>
+    </tbody>`;
 }
 
 // =============================================
