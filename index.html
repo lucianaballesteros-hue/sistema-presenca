@@ -314,14 +314,16 @@
           <select id="f-turma-alunos" onchange="renderTabelaAlunos()">
             <option value="">Todas</option>
           </select>
-          <label>Status:</label>
-          <select id="f-status-alunos" onchange="renderTabelaAlunos()">
-            <option value="">Todos</option>
-            <option value="ativo">Ativos</option>
-            <option value="inativo">Inativos</option>
-            <option value="alerta">Alerta (3+ faltas seguidas)</option>
-            <option value="irregular">Irregular (&lt;75%)</option>
-          </select>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <label style="margin:0;">Status:</label>
+            <select id="f-status-alunos" onchange="renderTabelaAlunos()">
+              <option value="">Todos</option>
+              <option value="ativo">Ativos</option>
+              <option value="inativo">Inativos</option>
+              <option value="alerta">Alerta (3+ faltas seguidas)</option>
+              <option value="irregular">Irregular (&lt;75%)</option>
+            </select>
+          </div>
         </div>
         <button class="btn-save" onclick="abrirModalNovoAluno()">+ Novo aluno</button>
       </div>
