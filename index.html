@@ -320,6 +320,7 @@
               <option value="">Todos</option>
               <option value="ativo">Ativos</option>
               <option value="inativo">Inativos</option>
+              <option value="cancelado">Cancelados</option>
               <option value="alerta">Alerta (3+ faltas seguidas)</option>
               <option value="irregular">Irregular (&lt;75%)</option>
             </select>
@@ -386,6 +387,7 @@
             <label class="multi-check"><input type="checkbox" value="regular" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Regular</label>
             <label class="multi-check"><input type="checkbox" value="atencao" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Atenção</label>
             <label class="multi-check"><input type="checkbox" value="alerta-status" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> ⚠ Alerta</label>
+            <label class="multi-check"><input type="checkbox" value="cancelado" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Cancelados</label>
           </div>
         </div>
         <button onclick="exportarExcel()" id="btn-exportar" style="margin-left:auto;padding:7px 16px;background:#059669;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
@@ -1014,6 +1016,7 @@ function renderTabelaAlunos() {
   if (fTurmaAlunos) lista = lista.filter(a => String(a.turma_id) === fTurmaAlunos);
   if (fStatus === 'ativo') lista = lista.filter(a => a.ativo);
   else if (fStatus === 'inativo') lista = lista.filter(a => !a.ativo);
+  else if (fStatus === 'cancelado') lista = lista.filter(a => !a.ativo && statusInativo(a.id) === 'cancelado');
   else if (fStatus === 'alerta') lista = lista.filter(a => a.ativo && a.maxConsec >= 3);
   else if (fStatus === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 75);
 
@@ -1518,12 +1521,14 @@ function renderRel() {
     }
     if (fStatus.length > 0) {
       lista = lista.filter(a => {
-        const isRegular = a.ativo && a.maxConsec < 3 && a.freq !== null && a.freq >= 75;
-        const isAtencao = a.ativo && a.maxConsec < 3 && a.freq !== null && a.freq < 75;
-        const isAlerta = a.ativo && a.maxConsec >= 3;
-        return (fStatus.includes('regular') && isRegular) ||
-               (fStatus.includes('atencao') && isAtencao) ||
-               (fStatus.includes('alerta-status') && isAlerta);
+        const isRegular   = a.ativo && a.maxConsec < 3 && a.freq !== null && a.freq >= 75;
+        const isAtencao   = a.ativo && a.maxConsec < 3 && a.freq !== null && a.freq < 75;
+        const isAlerta    = a.ativo && a.maxConsec >= 3;
+        const isCancelado = !a.ativo && statusInativo(a.id) === 'cancelado';
+        return (fStatus.includes('regular')       && isRegular)   ||
+               (fStatus.includes('atencao')       && isAtencao)   ||
+               (fStatus.includes('alerta-status') && isAlerta)    ||
+               (fStatus.includes('cancelado')     && isCancelado);
       });
     }
     if (!lista.length) return;
