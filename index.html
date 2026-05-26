@@ -444,6 +444,12 @@
   .dot-menu-item:hover{background:var(--surface-hover);}
   .dot-menu-item.dot-menu-active{background:var(--surface-hover);}
   .dot-menu-p{color:var(--green);}.dot-menu-r{color:var(--amber);}.dot-menu-f{color:var(--red);}.dot-menu-n{color:var(--text-faded);}
+  /* OBSERVAÇÕES — CATEGORIAS */
+.obs-cat-btn{padding:8px 4px;font-size:10.5px;font-weight:500;border-radius:6px;border:1px solid var(--border-input);cursor:pointer;text-align:center;background:var(--surface);color:var(--text-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:58px;line-height:1.2;transition:all .12s;}
+.obs-cat-btn:hover{border-color:var(--primary-light);color:var(--text);}
+.obs-cat-btn.selected{background:var(--primary-soft);color:var(--primary-soft-text);border-color:var(--primary);}
+.obs-cat-btn .icon{font-size:14px;}
+#obs-confirm-btn:disabled{background:var(--primary-disabled);cursor:not-allowed;}
   </style>
 </head>
 <body>
@@ -717,6 +723,22 @@
     <div class="aulas-grid" id="ma-aulas"></div>
     <div id="ma-hist" style="margin-top:1rem;"></div>
     <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
+  <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:.5rem;">Observações</div>
+  <div id="ma-obs-lista" style="margin-bottom:.75rem;max-height:140px;overflow-y:auto;"></div>
+  <div style="display:flex;gap:6px;">
+    <input type="text" id="obs-texto" placeholder="Digite uma observação..." style="flex:1;padding:6px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);" />
+    <button id="obs-add-btn" onclick="iniciarObservacao()" style="padding:6px 12px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
+  </div>
+  <div id="obs-categoria-panel" style="display:none;margin-top:8px;background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:10px;">
+    <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Selecione uma categoria:</div>
+    <div id="obs-cat-preview" style="font-size:11px;color:var(--text-3);font-style:italic;padding:6px 8px;background:var(--surface);border-radius:6px;border-left:2px solid var(--border-input);margin-bottom:8px;"></div>
+    <div id="obs-cat-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:6px;justify-content:flex-end;">
+      <button onclick="cancelarObservacao()" style="padding:5px 12px;background:none;border:1px solid var(--border-input);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-2);">Cancelar</button>
+      <button id="obs-confirm-btn" onclick="confirmarObservacao()" disabled style="padding:5px 12px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Salvar</button>
+    </div>
+  </div>
+</div>
       <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:.5rem;">Observações</div>
       <div id="ma-obs-lista" style="margin-bottom:.75rem;max-height:140px;overflow-y:auto;"></div>
       <div style="display:flex;gap:6px;">
@@ -879,6 +901,18 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const AULAS = ['Aula 1','Aula 2','Aula 3','Aula 4','Aula 5','Aula 6','Aula 7','Aula 8',
                'Aula 9','Aula 10','Aula 11','Aula 12','Aula 13','Aula 14','Aula 15','Aula 16',
                'Aula 17','Aula 18','Aula 19','Aula 20'];
+
+
+const OBS_CATEGORIAS = [
+  { id: 'transferencia_turma',  label: 'Transferência de turma', icon: '↔', badge: 'badge-blue' },
+  { id: 'reposicao_aula',       label: 'Reposição de aula',      icon: '↺', badge: 'badge-amber' },
+  { id: 'erro_plataforma',      label: 'Erro plataforma',        icon: '⚠', badge: 'badge-red' },
+  { id: 'pedido_cancelamento',  label: 'Pedido cancelamento',    icon: '✕', badge: 'badge-red' },
+  { id: 'reclamacao_geral',     label: 'Reclamação geral',       icon: '!', badge: 'badge-pink' },
+  { id: 'pedido_transferencia', label: 'Pedido transferência',   icon: '→', badge: 'badge-purple' },
+  { id: 'feedback',             label: 'Feedback',               icon: '★', badge: 'badge-green' },
+];
+let obsCategoriaSelecionada = null;
 
 // =============================================
 // ESTADO DA APLICAÇÃO
@@ -1832,23 +1866,67 @@ function atualizarTurmasAlunos() {
 async function carregarObservacoes(alunoId) {
   const lista = document.getElementById('ma-obs-lista');
   if (!lista) return;
-  const { data } = await sb.from('historico').select('*').eq('aluno_id', alunoId).eq('tipo', 'observacao').order('data_obs', { ascending: false });
+  const { data } = await sb.from('historico').select('*').eq('aluno_id', alunoId).eq('tipo', 'observacao').order('created_at', { ascending: false });
   if (!data || !data.length) {
     lista.innerHTML = '<div style="font-size:12px;color:var(--text-faded);padding:4px 0;">Nenhuma observação registrada.</div>';
     return;
   }
   lista.innerHTML = data.map(h => {
     const d = h.data_obs ? new Date(h.data_obs + 'T00:00:00').toLocaleDateString('pt-BR') : new Date(h.created_at).toLocaleDateString('pt-BR');
-    return '<div style="padding:5px 0;border-bottom:1px solid var(--border-2);font-size:12px;color:var(--text);"><span style="color:var(--text-faded);font-size:11px;margin-right:8px;">'+d+'</span><span>'+h.descricao+'</span></div>';
+    const cat = OBS_CATEGORIAS.find(c => c.id === h.categoria);
+    const catBadge = cat ? `<span class="badge ${cat.badge}" style="font-size:10px;margin-left:6px;">${cat.icon} ${cat.label}</span>` : '';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border-2);font-size:12px;color:var(--text);"><div style="display:flex;align-items:center;flex-wrap:wrap;margin-bottom:3px;"><span style="color:var(--text-faded);font-size:11px;">'+d+'</span>'+catBadge+'</div><div>'+h.descricao+'</div></div>';
   }).join('');
 }
 
-async function salvarObservacao() {
+function iniciarObservacao() {
   const texto = document.getElementById('obs-texto').value.trim();
-  const data_obs = document.getElementById('obs-data').value;
   if (!texto) { showToast('Digite uma observação!', 'red'); return; }
-  await sb.from('historico').insert({ aluno_id: alunoSelecionadoId, descricao: texto, tipo: 'observacao', data_obs: data_obs || null });
+  obsCategoriaSelecionada = null;
+  document.getElementById('obs-cat-preview').textContent = '"' + texto + '"';
+  document.getElementById('obs-confirm-btn').disabled = true;
+  renderCategoriasObs();
+  document.getElementById('obs-categoria-panel').style.display = 'block';
+  document.getElementById('obs-add-btn').disabled = true;
+}
+
+function renderCategoriasObs() {
+  document.getElementById('obs-cat-grid').innerHTML = OBS_CATEGORIAS.map(c =>
+    `<button class="obs-cat-btn ${obsCategoriaSelecionada === c.id ? 'selected' : ''}" onclick="selecionarCategoriaObs('${c.id}')">
+      <span class="icon">${c.icon}</span><span>${c.label}</span>
+    </button>`
+  ).join('');
+}
+
+function selecionarCategoriaObs(id) {
+  obsCategoriaSelecionada = id;
+  document.getElementById('obs-confirm-btn').disabled = false;
+  renderCategoriasObs();
+}
+
+function cancelarObservacao() {
+  document.getElementById('obs-categoria-panel').style.display = 'none';
+  document.getElementById('obs-add-btn').disabled = false;
+  obsCategoriaSelecionada = null;
+}
+
+async function confirmarObservacao() {
+  if (!obsCategoriaSelecionada) return;
+  const texto = document.getElementById('obs-texto').value.trim();
+  if (!texto) return;
+  const hoje = new Date().toISOString().split('T')[0];
+  const { error } = await sb.from('historico').insert({
+    aluno_id: alunoSelecionadoId,
+    descricao: texto,
+    tipo: 'observacao',
+    data_obs: hoje,
+    categoria: obsCategoriaSelecionada
+  });
+  if (error) { showToast('Erro ao salvar observação.', 'red'); console.error(error); return; }
   document.getElementById('obs-texto').value = '';
+  document.getElementById('obs-categoria-panel').style.display = 'none';
+  document.getElementById('obs-add-btn').disabled = false;
+  obsCategoriaSelecionada = null;
   showToast('Observação salva!');
   carregarObservacoes(alunoSelecionadoId);
 }
