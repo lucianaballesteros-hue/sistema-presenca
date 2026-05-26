@@ -1926,7 +1926,7 @@ function abrirDotMenu(e, alunoId, turmaId, aulaIdx) {
   menu.id = 'dot-menu';
   menu.className = 'dot-menu';
   menu.innerHTML = opcoes.map(o =>
-    `<div class="dot-menu-item ${o.cls} ${atual === o.val ? 'dot-menu-active' : ''}" onclick="event.stopPropagation();selecionarStatusDot(${JSON.stringify(o.val)})">${o.label}${atual === o.val ? ' ✔' : ''}</div>`
+    `<div class="dot-menu-item ${o.cls} ${atual === o.val ? 'dot-menu-active' : ''}" onclick="event.stopPropagation();selecionarStatusDot(${o.val === null ? 'null' : "'" + o.val + "'"})">${o.label}${atual === o.val ? ' ✔' : ''}</div>`
   ).join('');
   document.body.appendChild(menu);
   const rect = e.target.getBoundingClientRect();
