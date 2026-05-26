@@ -1151,7 +1151,7 @@ function renderDash() {
           <span id="prof-${t.id}">Prof. ${t.professor}</span>
           <button class="inline-edit-btn" title="Editar professor" onclick="editarProfTurma(${t.id})">✏</button>
         </div>
-        <span>${al.length} alunos${at > 0 ? ` · <span style="color:var(--red);font-weight:600;">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
+        <span>${al.length} alunos${at > 0 ? ` · <span style="color:var(--red);font-weight:600;cursor:pointer;text-decoration:underline dotted;" onclick="irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
       </div>
       <button class="btn-chamada" onclick="abrirChamada(${t.id})">Fazer chamada →</button>
     </div>`;
@@ -1912,6 +1912,20 @@ async function toggleDotRel(alunoId, turmaId, aulaIdx) {
     console.error('Erro ao salvar dot:', err);
     showToast('Erro ao salvar. Tente novamente.', 'red');
   }
+}
+
+// =============================================
+// IR PARA ALERTAS DA TURMA
+// =============================================
+function irParaAlertas(turmaId) {
+  goTab('alunos');
+  const fTurma = document.getElementById('f-turma-alunos');
+  if (fTurma) fTurma.value = String(turmaId);
+  const fStatus = document.getElementById('f-status-alunos');
+  if (fStatus) fStatus.value = 'alerta';
+  const busca = document.getElementById('busca-alunos');
+  if (busca) busca.value = '';
+  renderTabelaAlunos();
 }
 
 // =============================================
