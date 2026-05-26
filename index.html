@@ -723,28 +723,20 @@
     <div class="aulas-grid" id="ma-aulas"></div>
     <div id="ma-hist" style="margin-top:1rem;"></div>
     <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
-  <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:.5rem;">Observações</div>
-  <div id="ma-obs-lista" style="margin-bottom:.75rem;max-height:140px;overflow-y:auto;"></div>
-  <div style="display:flex;gap:6px;">
-    <input type="text" id="obs-texto" placeholder="Digite uma observação..." style="flex:1;padding:6px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);" />
-    <button id="obs-add-btn" onclick="iniciarObservacao()" style="padding:6px 12px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
-  </div>
-  <div id="obs-categoria-panel" style="display:none;margin-top:8px;background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:10px;">
-    <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Selecione uma categoria:</div>
-    <div id="obs-cat-preview" style="font-size:11px;color:var(--text-3);font-style:italic;padding:6px 8px;background:var(--surface);border-radius:6px;border-left:2px solid var(--border-input);margin-bottom:8px;"></div>
-    <div id="obs-cat-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px;"></div>
-    <div style="display:flex;gap:6px;justify-content:flex-end;">
-      <button onclick="cancelarObservacao()" style="padding:5px 12px;background:none;border:1px solid var(--border-input);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-2);">Cancelar</button>
-      <button id="obs-confirm-btn" onclick="confirmarObservacao()" disabled style="padding:5px 12px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Salvar</button>
-    </div>
-  </div>
-</div>
       <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:.5rem;">Observações</div>
       <div id="ma-obs-lista" style="margin-bottom:.75rem;max-height:140px;overflow-y:auto;"></div>
       <div style="display:flex;gap:6px;">
-        <input type="date" id="obs-data" style="padding:6px 8px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;width:130px;background:var(--surface);color:var(--text);" />
         <input type="text" id="obs-texto" placeholder="Digite uma observação..." style="flex:1;padding:6px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);" />
-        <button onclick="salvarObservacao()" style="padding:6px 12px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
+        <button id="obs-add-btn" onclick="iniciarObservacao()" style="padding:6px 12px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
+      </div>
+      <div id="obs-categoria-panel" style="display:none;margin-top:8px;background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:10px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Selecione uma categoria:</div>
+        <div id="obs-cat-preview" style="font-size:11px;color:var(--text-3);font-style:italic;padding:6px 8px;background:var(--surface);border-radius:6px;border-left:2px solid var(--border-input);margin-bottom:8px;"></div>
+        <div id="obs-cat-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px;"></div>
+        <div style="display:flex;gap:6px;justify-content:flex-end;">
+          <button onclick="cancelarObservacao()" style="padding:5px 12px;background:none;border:1px solid var(--border-input);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-2);">Cancelar</button>
+          <button id="obs-confirm-btn" onclick="confirmarObservacao()" disabled style="padding:5px 12px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Salvar</button>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
