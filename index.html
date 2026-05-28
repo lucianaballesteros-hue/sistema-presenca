@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="app-version" content="1"/>
   <title>Sistema de Presença</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='8' height='8' rx='2' fill='%231d4ed8'/%3E%3Crect x='13' y='3' width='8' height='8' rx='2' fill='%2393c5fd'/%3E%3Crect x='3' y='13' width='8' height='8' rx='2' fill='%2393c5fd'/%3E%3Crect x='13' y='13' width='8' height='8' rx='2' fill='%231d4ed8'/%3E%3C/svg%3E"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2176,6 +2177,37 @@ sb.auth.getSession().then(async ({ data }) => {
     await inicializarApp();
   }
 });
+</script>
+<!-- NOTIFICADOR DE ATUALIZAÇÃO -->
+<style>
+  #update-banner{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;align-items:center;gap:12px;background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:12px;font-family:-apple-system,sans-serif;font-size:14px;transform:translateY(80px);opacity:0;transition:transform .45s cubic-bezier(.34,1.56,.64,1),opacity .3s ease;pointer-events:none;}
+  #update-banner.visible{transform:translateY(0);opacity:1;pointer-events:all;}
+  #update-banner .spin{display:inline-block;animation:upd-spin 1.5s linear infinite;}
+  @keyframes upd-spin{to{transform:rotate(360deg);}}
+  #upd-btn{background:#fff;color:#1a1a1a;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.05em;}
+  #upd-btn:hover{background:#e2e2e2;}
+  #upd-x{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;line-height:1;padding:0 2px;}
+  #upd-x:hover{color:#fff;}
+</style>
+<div id="update-banner">
+  <span class="spin">↻</span>
+  <span>Atualização disponível</span>
+  <button id="upd-btn" onclick="location.reload()">ATUALIZAR AGORA</button>
+  <button id="upd-x" onclick="this.closest('#update-banner').classList.remove('visible')" title="Ignorar">×</button>
+</div>
+<script>
+(function(){
+  const currentVersion = document.querySelector('meta[name="app-version"]')?.content || '0';
+  function showBanner(){ document.getElementById('update-banner').classList.add('visible'); }
+  async function check(){
+    try{
+      const html = await fetch(location.href + '?_t=' + Date.now(), {cache:'no-store'}).then(r => r.text());
+      const match = html.match(/<meta name="app-version" content="([^"]+)"/);
+      if(match && match[1] !== currentVersion) { showBanner(); clearInterval(timer); }
+    }catch(_){}
+  }
+  const timer = setInterval(check, 30000);
+})();
 </script>
 </body>
 </html>
