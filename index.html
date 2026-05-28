@@ -1685,16 +1685,6 @@ async function enviarResetSenha() {
   }
 }
 
-  // Atualizar nome nas turmas se necessário
-  const turmasDoProf = TURMAS.filter(t => t.professor === p.nome || t.professor === novoNome);
-  fecharModal('modal-editar-prof');
-  showToast('Professor atualizado!');
-  renderProfessores();
-  renderDash();
-  renderTabelaAlunos();
-  renderRel();
-}
-
 // =============================================
 // MULTI-SELECT GENÉRICO (RELATÓRIO)
 // =============================================
