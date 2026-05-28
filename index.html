@@ -845,13 +845,20 @@
       <div class="modal-title">Editar professor</div>
       <button class="close-btn" onclick="fecharModal('modal-editar-prof')">×</button>
     </div>
-    <div style="background:var(--surface-3);border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;font-size:12px;color:var(--text-3);">
-      <div style="font-weight:600;color:var(--text);margin-bottom:2px;" id="ep-email-display"></div>
-      <div>E-mail (não pode ser alterado aqui)</div>
-    </div>
     <div class="field">
       <label>Nome completo</label>
       <input type="text" id="ep-nome"/>
+    </div>
+    <div class="field">
+      <label>E-mail de acesso</label>
+      <input type="email" id="ep-email" placeholder="professor@email.com"/>
+    </div>
+    <div class="field">
+      <label>Nova senha <span style="font-size:10px;color:var(--text-faded);">(deixe em branco para não alterar)</span></label>
+      <div class="senha-wrap">
+        <input type="password" id="ep-senha" placeholder="Nova senha..."/>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('ep-senha',this)">👁</button>
+      </div>
     </div>
     <div class="field">
       <label>Perfil de acesso</label>
@@ -860,7 +867,9 @@
         <option value="professor">Professor (só suas turmas)</option>
       </select>
     </div>
+    <div id="ep-erro" style="font-size:12px;color:var(--red);display:none;margin-bottom:8px;"></div>
     <div class="modal-footer">
+      <button class="btn-warning" onclick="enviarResetSenha()" style="margin-right:auto;" title="Envia e-mail de redefinição de senha para o professor">✉ Enviar reset de senha</button>
       <button class="btn-sec" onclick="fecharModal('modal-editar-prof')">Cancelar</button>
       <button class="btn-save" onclick="salvarEdicaoProf()">Salvar alterações</button>
     </div>
@@ -1600,24 +1609,81 @@ function abrirModalEditarProf(id) {
   const p = PROFESSORES.find(x => x.id === id);
   if (!p) return;
   profSelecionadoId = id;
-  document.getElementById('ep-email-display').textContent = p.email || '—';
   document.getElementById('ep-nome').value = p.nome || '';
+  document.getElementById('ep-email').value = p.email || '';
+  document.getElementById('ep-senha').value = '';
+  document.getElementById('ep-senha').type = 'password';
   document.getElementById('ep-papel').value = p.papel || 'professor';
+  document.getElementById('ep-erro').style.display = 'none';
   document.getElementById('modal-editar-prof').classList.add('open');
 }
 
 async function salvarEdicaoProf() {
   const p = PROFESSORES.find(x => x.id === profSelecionadoId);
   if (!p) return;
-  const novoNome = document.getElementById('ep-nome').value.trim();
+  const novoNome  = document.getElementById('ep-nome').value.trim();
+  const novoEmail = document.getElementById('ep-email').value.trim();
+  const novaSenha = document.getElementById('ep-senha').value;
   const novoPapel = document.getElementById('ep-papel').value;
-  if (!novoNome) { showToast('Digite o nome do professor.', 'red'); return; }
+  const erroEl    = document.getElementById('ep-erro');
+  erroEl.style.display = 'none';
 
-  const { error } = await sb.from('professores').update({ nome: novoNome, papel: novoPapel }).eq('id', p.id);
-  if (error) { showToast('Erro ao salvar alterações.', 'red'); return; }
+  if (!novoNome)  { erroEl.textContent = 'Digite o nome.'; erroEl.style.display = 'block'; return; }
+  if (!novoEmail || !novoEmail.includes('@')) { erroEl.textContent = 'Digite um e-mail válido.'; erroEl.style.display = 'block'; return; }
+  if (novaSenha && novaSenha.length < 6) { erroEl.textContent = 'A senha deve ter pelo menos 6 caracteres.'; erroEl.style.display = 'block'; return; }
 
-  p.nome = novoNome;
+  const { error } = await sb.from('professores').update({ nome: novoNome, papel: novoPapel, email: novoEmail }).eq('id', p.id);
+  if (error) { erroEl.textContent = 'Erro ao salvar: ' + error.message; erroEl.style.display = 'block'; return; }
+
+  let senhaOk = true;
+  if (novaSenha && p.user_id) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${p.user_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({ password: novaSenha })
+      });
+      if (!res.ok) {
+        senhaOk = false;
+        erroEl.textContent = 'Dados salvos! Mas a senha requer a chave de serviço (service_role) do Supabase para ser alterada diretamente. Use "✉ Enviar reset de senha" como alternativa.';
+        erroEl.style.display = 'block';
+      }
+    } catch(err) {
+      senhaOk = false;
+      erroEl.textContent = 'Dados salvos, mas erro ao alterar senha. Tente o botão "✉ Enviar reset de senha".';
+      erroEl.style.display = 'block';
+    }
+  }
+
+  p.nome  = novoNome;
+  p.email = novoEmail;
   p.papel = novoPapel;
+
+  if (senhaOk || !novaSenha) {
+    fecharModal('modal-editar-prof');
+    showToast('Professor atualizado!');
+  } else {
+    showToast('Dados salvos com aviso — veja o modal.', 'blue');
+  }
+  renderProfessores(); renderDash(); renderTabelaAlunos(); renderRel();
+}
+
+async function enviarResetSenha() {
+  const p = PROFESSORES.find(x => x.id === profSelecionadoId);
+  if (!p?.email) { showToast('E-mail do professor não encontrado.', 'red'); return; }
+  const { error } = await sb.auth.resetPasswordForEmail(p.email, {
+    redirectTo: location.origin + location.pathname
+  });
+  if (error) {
+    showToast('Erro ao enviar e-mail de reset.', 'red');
+  } else {
+    showToast(`E-mail de redefinição enviado para ${p.email}!`, 'blue');
+  }
+}
 
   // Atualizar nome nas turmas se necessário
   const turmasDoProf = TURMAS.filter(t => t.professor === p.nome || t.professor === novoNome);
