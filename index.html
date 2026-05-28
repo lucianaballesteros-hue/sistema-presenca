@@ -1470,6 +1470,12 @@ function profIniciais(nome) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+function toggleSenhaMask(id, senha) {
+  const el = document.getElementById('senha-mask-' + id);
+  if (!el) return;
+  el.textContent = el.textContent.includes('•') ? senha : '•'.repeat(senha.length || 8);
+}
+
 function renderProfessores() {
   const busca = (document.getElementById('busca-prof')?.value || '').toLowerCase();
   let lista = PROFESSORES;
@@ -1504,6 +1510,11 @@ function renderProfessores() {
         <div class="prof-info">
           <div class="prof-nome">${p.nome || '—'}</div>
           <div class="prof-email">${p.email || '—'}</div>
+          <div style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;margin-top:1px;">
+          <span id="senha-mask-${p.id}">${'•'.repeat((p.senha||'').length || 8)}</span>
+          <button onclick="toggleSenhaMask(${p.id},'${(p.senha||'').replace(/'/g,"\\'")}')" 
+          style="background:none;border:none;cursor:pointer;color:var(--text-faded);font-size:11px;padding:0 2px;">👁</button>
+          </div>
           <div class="prof-meta">
             ${papelBadge}
             ${euBadge}
@@ -1577,10 +1588,11 @@ async function salvarNovoProf() {
 
     // Insere na tabela professores
     const { data: profData, error: profError } = await sb
-      .from('professores')
-      .insert({ nome, email, papel, user_id: newUserId })
-      .select()
-      .single();
+  .from('professores')
+  .insert({ nome, email, papel, user_id: newUserId, senha })
+  .select()
+  .single();
+    
 
     if (profError) {
       erroEl.textContent = 'Usuário criado, mas erro ao salvar perfil: ' + profError.message;
@@ -1611,7 +1623,7 @@ function abrirModalEditarProf(id) {
   profSelecionadoId = id;
   document.getElementById('ep-nome').value = p.nome || '';
   document.getElementById('ep-email').value = p.email || '';
-  document.getElementById('ep-senha').value = '';
+  document.getElementById('ep-senha').value = p.senha || '';
   document.getElementById('ep-senha').type = 'password';
   document.getElementById('ep-papel').value = p.papel || 'professor';
   document.getElementById('ep-erro').style.display = 'none';
@@ -1632,8 +1644,12 @@ async function salvarEdicaoProf() {
   if (!novoEmail || !novoEmail.includes('@')) { erroEl.textContent = 'Digite um e-mail válido.'; erroEl.style.display = 'block'; return; }
   if (novaSenha && novaSenha.length < 6) { erroEl.textContent = 'A senha deve ter pelo menos 6 caracteres.'; erroEl.style.display = 'block'; return; }
 
-  const { error } = await sb.from('professores').update({ nome: novoNome, papel: novoPapel, email: novoEmail }).eq('id', p.id);
-  if (error) { erroEl.textContent = 'Erro ao salvar: ' + error.message; erroEl.style.display = 'block'; return; }
+
+const updates = { nome: novoNome, papel: novoPapel, email: novoEmail };
+if (novaSenha) updates.senha = novaSenha;
+
+const { error } = await sb.from('professores').update(updates).eq('id', p.id);
+if (error) { erroEl.textContent = 'Erro ao salvar: ' + error.message; erroEl.style.display = 'block'; return; }
 
   let senhaOk = true;
   if (novaSenha && p.user_id) {
@@ -1659,9 +1675,10 @@ async function salvarEdicaoProf() {
     }
   }
 
-  p.nome  = novoNome;
-  p.email = novoEmail;
-  p.papel = novoPapel;
+p.nome  = novoNome;
+p.email = novoEmail;
+p.papel = novoPapel;
+if (novaSenha) p.senha = novaSenha;
 
   if (senhaOk || !novaSenha) {
     fecharModal('modal-editar-prof');
