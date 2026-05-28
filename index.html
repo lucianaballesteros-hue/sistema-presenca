@@ -1167,12 +1167,20 @@ function renderDash() {
 
   const cursos = [...new Set(TURMAS.map(t => t.curso))];
 
+  const minhasTurmas = TURMAS.filter(t => t.professor_id === perfilLogado?.id || t.professor === perfilLogado?.nome);
   document.getElementById('curso-pills').innerHTML =
     `<button class="cpill ${filtroCurso === '' ? 'active' : ''}" onclick="setCurso('')">Todos</button>` +
+    (minhasTurmas.length > 0
+      ? `<button class="cpill ${filtroCurso === '__minhas__' ? 'active' : ''}" onclick="setCurso('__minhas__')">⭐ Suas Turmas <span style="background:rgba(255,255,255,.25);font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">${minhasTurmas.length}</span></button>`
+      : '') +
     cursos.map(c => `<button class="cpill ${filtroCurso === c ? 'active' : ''}" onclick="setCurso('${c.replace(/'/g, "\\'")}')">${c}</button>`).join('');
 
   const buscaTurma = (document.getElementById('busca-turmas')?.value || '').toLowerCase();
-  let filtradas = filtroCurso ? TURMAS.filter(t => t.curso === filtroCurso) : TURMAS;
+  let filtradas = filtroCurso === '__minhas__'
+    ? TURMAS.filter(t => t.professor_id === perfilLogado?.id || t.professor === perfilLogado?.nome)
+    : filtroCurso
+      ? TURMAS.filter(t => t.curso === filtroCurso)
+      : TURMAS;
   if (buscaTurma) filtradas = filtradas.filter(t => t.turma.toLowerCase().includes(buscaTurma) || t.professor.toLowerCase().includes(buscaTurma));
   filtradas = filtradas.slice().sort((a, b) => {
     const da = ordemDia(a.turma), db = ordemDia(b.turma);
