@@ -439,11 +439,11 @@
     [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.8);}
 
     /* LOGO HEADER */
-    .header-logo img { height: 30px; display: block; }
-    .logo-dark { display: none; }
-    .logo-light { display: block; }
-    [data-theme="dark"] .logo-light { display: none; }
-    [data-theme="dark"] .logo-dark { display: block; }
+    .header-logo img { height: 30px; }
+    .header-logo .logo-dark { display: none; }
+    .header-logo .logo-light { display: block; }
+    [data-theme="dark"] .header-logo .logo-light { display: none; }
+    [data-theme="dark"] .header-logo .logo-dark { display: block; }
 
     /* DOT MENU */
   .dot-menu{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-md);z-index:1000;min-width:130px;padding:4px 0;animation:dotFadeIn .1s ease;}
@@ -499,7 +499,7 @@
 <!-- APP -->
 <div id="app" style="display:none;">
   <div class="header">
-    <div class="header-logo">
+    <div class="header-logo" onclick="location.reload()" style="cursor:pointer;">
       <img class="logo-light" src="img/finexperts_pos%20preto.png" alt="Financial Experts" />
       <img class="logo-dark" src="img/financial-experts%20branco.png" alt="Financial Experts" />
     </div>
