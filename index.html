@@ -221,6 +221,17 @@
     .dia-check.selecionado{background:var(--primary-soft);color:var(--primary-soft-text);border-color:var(--primary);}
     .dia-check input{display:none;}
     .horario-modal-info{background:var(--surface-soft);border-radius:7px;padding:.625rem 1rem;font-size:12px;color:var(--primary-soft-text);margin-bottom:1rem;border:1px solid var(--primary-soft);}
+    
+    /* SELETOR DE HORÁRIO */
+  .horario-selects{display:flex;align-items:center;gap:8px;}
+  .horario-selects select{flex:1;padding:8px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:15px;font-weight:600;background:var(--surface);color:var(--text);outline:none;text-align:center;cursor:pointer;}
+  .horario-selects select:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);}
+  .horario-selects .sep{font-size:18px;font-weight:700;color:var(--text-3);}
+  .horario-presets{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .preset-btn{font-size:11px;font-weight:600;padding:4px 10px;border:1px solid var(--border-input);border-radius:99px;background:var(--surface);color:var(--text-2);cursor:pointer;transition:all .12s;}
+  .preset-btn:hover{border-color:var(--primary-light);color:var(--primary);}
+  .preset-btn.ativo{background:var(--primary-soft);color:var(--primary-soft-text);border-color:var(--primary);}
+
     /* ============================================
        ESTILOS BASE
        ============================================ */
@@ -912,7 +923,19 @@
 
     <div class="field">
       <label>Horário de início</label>
-      <input type="time" id="ht-horario" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);outline:none;" />
+      <div class="horario-selects">
+        <select id="ht-hora" onchange="marcarPresetAtivo()"></select>
+        <span class="sep">:</span>
+        <select id="ht-minuto" onchange="marcarPresetAtivo()"></select>
+      </div>
+      <div class="horario-presets" id="ht-presets">
+        <button type="button" class="preset-btn" onclick="aplicarPreset('08:00')">08:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('14:00')">14:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('15:00')">15:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('19:00')">19:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('19:30')">19:30</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('20:00')">20:00</button>
+      </div>
     </div>
 
     <div class="field">
@@ -2332,9 +2355,21 @@ function abrirModalHorario(tId) {
 
   document.getElementById('ht-turma-nome').textContent = t.turma;
   document.getElementById('ht-turma-sub').textContent = `${t.curso} · Prof. ${t.professor}`;
-  document.getElementById('ht-horario').value = t.horario_inicio ? t.horario_inicio.slice(0, 5) : '';
   document.getElementById('ht-erro').style.display = 'none';
   document.getElementById('ht-btn-limpar').style.display = t.horario_inicio ? '' : 'none';
+
+  // Preenche selects de hora (00-23) e minuto (de 5 em 5)
+  const selHora = document.getElementById('ht-hora');
+  const selMin  = document.getElementById('ht-minuto');
+  selHora.innerHTML = Array.from({length: 24}, (_, h) =>
+    `<option value="${String(h).padStart(2,'0')}">${String(h).padStart(2,'0')}</option>`).join('');
+  selMin.innerHTML = ['00','05','10','15','20','25','30','35','40','45','50','55']
+    .map(m => `<option value="${m}">${m}</option>`).join('');
+
+  // Valores salvos (ou padrão 19:00)
+  const [h, m] = (t.horario_inicio ? t.horario_inicio.slice(0,5) : '19:00').split(':');
+  selHora.value = h;
+  selMin.value = m;
 
   // Marcar dias salvos
   const diasSalvos = t.dias_semana || [];
@@ -2344,25 +2379,36 @@ function abrirModalHorario(tId) {
     const selecionado = diasSalvos.includes(val);
     check.checked = selecionado;
     label.classList.toggle('selecionado', selecionado);
-  });
-
-  // Toggle visual dos dias
-  document.querySelectorAll('#ht-dias-grid .dia-check').forEach(label => {
     label.onclick = function() {
-      const check = this.querySelector('input');
-      check.checked = !check.checked;
-      this.classList.toggle('selecionado', check.checked);
+      const c = this.querySelector('input');
+      c.checked = !c.checked;
+      this.classList.toggle('selecionado', c.checked);
     };
   });
 
+  marcarPresetAtivo();
   document.getElementById('modal-horario-turma').classList.add('open');
+}
+
+function aplicarPreset(horario) {
+  const [h, m] = horario.split(':');
+  document.getElementById('ht-hora').value = h;
+  document.getElementById('ht-minuto').value = m;
+  marcarPresetAtivo();
+}
+
+function marcarPresetAtivo() {
+  const atual = document.getElementById('ht-hora').value + ':' + document.getElementById('ht-minuto').value;
+  document.querySelectorAll('#ht-presets .preset-btn').forEach(b => {
+    b.classList.toggle('ativo', b.textContent === atual);
+  });
 }
 
 async function salvarHorarioTurma() {
   const t = TURMAS.find(x => x.id === horarioTurmaAtualId);
   if (!t) return;
 
-  const horario = document.getElementById('ht-horario').value;
+  const horario = document.getElementById('ht-hora').value + ':' + document.getElementById('ht-minuto').value;
   const diasSelecionados = [...document.querySelectorAll('#ht-dias-grid .dia-check input:checked')].map(i => i.value);
   const erroEl = document.getElementById('ht-erro');
   erroEl.style.display = 'none';
@@ -2445,4 +2491,3 @@ sb.auth.getSession().then(async ({ data }) => {
 </script>
 </body>
 </html>
-
