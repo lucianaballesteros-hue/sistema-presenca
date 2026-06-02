@@ -807,7 +807,7 @@
     <div class="field"><label>Nova turma</label>
       <select id="transf-sel" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"></select>
     </div>
-    <div class="info-box">O histórico de presenças na turma atual ficará registrado. O aluno começa do zero na nova turma.</div>
+    <div class="info-box">O histórico de presença do aluno será movido junto para a nova turma.</div>
     <div class="modal-footer">
       <button class="btn-sec" onclick="fecharModal('modal-transferir')">Cancelar</button>
       <button class="btn-save" onclick="confirmarTransferencia()">Confirmar transferência</button>
@@ -1529,15 +1529,46 @@ function abrirModalTransferir() {
 
 async function confirmarTransferencia() {
   const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
-  const tAntiga = TURMAS.find(x => x.id === a.turma_id);
+  const antigoTId = a.turma_id;
+  const tAntiga = TURMAS.find(x => x.id === antigoTId);
   const novoTId = parseInt(document.getElementById('transf-sel').value);
   const tNova = TURMAS.find(x => x.id === novoTId);
-  await sb.from('alunos').update({ turma_id: novoTId }).eq('id', a.id);
-  await sb.from('historico').insert({ aluno_id: a.id, descricao: `Transferido de "${tAntiga?.turma} (${tAntiga?.curso})" para "${tNova?.turma} (${tNova?.curso})"` });
+
+  // 1) Move o aluno para a nova turma
+  const { error: errAluno } = await sb.from('alunos').update({ turma_id: novoTId }).eq('id', a.id);
+  if (errAluno) { showToast('Erro ao transferir aluno.', 'red'); console.error(errAluno); return; }
+
+  // 2) Move TODAS as presenças do aluno da turma antiga para a nova
+  const { error: errPres } = await sb.from('presencas')
+    .update({ turma_id: novoTId })
+    .eq('aluno_id', a.id)
+    .eq('turma_id', antigoTId);
+  if (errPres) {
+    // reverte o aluno para não deixar estado inconsistente
+    await sb.from('alunos').update({ turma_id: antigoTId }).eq('id', a.id);
+    showToast('Erro ao mover o histórico de presença. Transferência cancelada.', 'red');
+    console.error(errPres);
+    return;
+  }
+
+  // 3) Registra a movimentação
+  await sb.from('historico').insert({ aluno_id: a.id, descricao: `Transferido de "${tAntiga?.turma} (${tAntiga?.curso})" para "${tNova?.turma} (${tNova?.curso})" (histórico de presença mantido)` });
+
+  // 4) Atualiza o cache local (PRESENCAS) sem recarregar a página
+  AULAS.forEach(aula => {
+    const keyAntiga = `${antigoTId}_${aula}`;
+    const keyNova = `${novoTId}_${aula}`;
+    if (PRESENCAS[keyAntiga] && PRESENCAS[keyAntiga][a.id] !== undefined) {
+      if (!PRESENCAS[keyNova]) PRESENCAS[keyNova] = {};
+      PRESENCAS[keyNova][a.id] = PRESENCAS[keyAntiga][a.id];
+      delete PRESENCAS[keyAntiga][a.id];
+    }
+  });
+
   a.turma_id = novoTId;
   fecharModal('modal-transferir');
   showToast(`${a.nome} transferido para ${tNova?.turma}!`, 'blue');
-  renderTabelaAlunos(); renderDash();
+  renderTabelaAlunos(); renderDash(); renderRel();
 }
 
 function abrirModalNovoAluno() {
