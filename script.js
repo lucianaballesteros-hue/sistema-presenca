@@ -87,6 +87,8 @@ async function doLogout() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-page').style.display = 'flex';
   document.getElementById('inp-senha').value = '';
+  const btn = document.getElementById('btn-login');
+  btn.disabled = false; btn.textContent = 'Entrar';
 }
 
 // =============================================
