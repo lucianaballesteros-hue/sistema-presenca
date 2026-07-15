@@ -44,11 +44,11 @@
     </div>
     <div class="field">
       <label>E-mail</label>
-      <input type="email" id="inp-email" placeholder="seu@email.com"/>
+      <input type="email" id="inp-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')document.getElementById('inp-senha').focus()"/>
     </div>
     <div class="field">
       <label>Senha</label>
-      <input type="password" id="inp-senha" placeholder="Senha"/>
+      <input type="password" id="inp-senha" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()"/>
       <div class="err" id="login-err">E-mail ou senha incorretos.</div>
     </div>
     <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
@@ -88,6 +88,7 @@
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem;">
           <div class="curso-pills" id="curso-pills" style="margin:0;flex:1;"></div>
           <input type="text" id="busca-turmas" placeholder="Buscar turma..." oninput="renderDash()" style="font-size:13px;padding:5px 10px;border:1px solid var(--border-input);border-radius:6px;width:200px;outline:none;background:var(--surface);color:var(--text);">
+          <button class="btn-save" onclick="abrirModalNovaTurma()">+ Nova turma</button>
         </div>
         <div id="turmas-grid" class="turmas-grid"></div>
       </div>
@@ -285,7 +286,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="ma-nome"></div>
-      <button class="close-btn" onclick="fecharModal('modal-aluno')">×</button>
+      <button class="close-btn" onclick="fecharModal('modal-aluno')" aria-label="Fechar">×</button>
     </div>
     <div id="ma-status" style="margin-bottom:1rem;"></div>
     <div class="info-grid" id="ma-info"></div>
@@ -296,7 +297,7 @@
       <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:.5rem;">Observações</div>
       <div id="ma-obs-lista" style="margin-bottom:.75rem;max-height:140px;overflow-y:auto;"></div>
       <div style="display:flex;gap:6px;">
-        <input type="text" id="obs-texto" placeholder="Digite uma observação..." style="flex:1;padding:6px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);" />
+        <input type="text" id="obs-texto" placeholder="Digite uma observação..." onkeydown="if(event.key==='Enter')iniciarObservacao()" style="flex:1;padding:6px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);" />
         <button id="obs-add-btn" onclick="iniciarObservacao()" style="padding:6px 12px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
       </div>
       <div id="obs-categoria-panel" style="display:none;margin-top:8px;background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:10px;">
@@ -323,9 +324,9 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Editar aluno</div>
-      <button class="close-btn" onclick="fecharModal('modal-editar')">×</button>
+      <button class="close-btn" onclick="fecharModal('modal-editar')" aria-label="Fechar">×</button>
     </div>
-    <div class="field"><label>Nome completo</label><input type="text" id="edit-nome"/></div>
+    <div class="field"><label>Nome completo</label><input type="text" id="edit-nome" onkeydown="if(event.key==='Enter')salvarEdicao()"/></div>
     <div class="modal-footer">
       <button class="btn-sec" onclick="fecharModal('modal-editar')">Cancelar</button>
       <button class="btn-save" onclick="salvarEdicao()">Salvar</button>
@@ -338,7 +339,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Transferir aluno de turma</div>
-      <button class="close-btn" onclick="fecharModal('modal-transferir')">×</button>
+      <button class="close-btn" onclick="fecharModal('modal-transferir')" aria-label="Fechar">×</button>
     </div>
     <div id="transf-info" style="background:var(--surface-3);border-radius:7px;padding:.75rem 1rem;margin-bottom:1rem;font-size:13px;color:var(--text);"></div>
     <div class="field"><label>Nova turma</label>
@@ -357,9 +358,9 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Adicionar novo aluno</div>
-      <button class="close-btn" onclick="fecharModal('modal-novo')">×</button>
+      <button class="close-btn" onclick="fecharModal('modal-novo')" aria-label="Fechar">×</button>
     </div>
-    <div class="field"><label>Nome completo</label><input type="text" id="novo-nome" placeholder="Nome completo"/></div>
+    <div class="field"><label>Nome completo</label><input type="text" id="novo-nome" placeholder="Nome completo" onkeydown="if(event.key==='Enter')salvarNovoAluno()"/></div>
     <div class="field"><label>Turma</label>
       <select id="novo-turma" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"></select>
     </div>
@@ -375,21 +376,21 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Adicionar novo professor</div>
-      <button class="close-btn" onclick="fecharModal('modal-novo-prof')">×</button>
+      <button class="close-btn" onclick="fecharModal('modal-novo-prof')" aria-label="Fechar">×</button>
     </div>
     <div class="field">
       <label>Nome completo</label>
-      <input type="text" id="np-nome" placeholder="Ex: Ana Clara"/>
+      <input type="text" id="np-nome" placeholder="Ex: Ana Clara" onkeydown="if(event.key==='Enter')salvarNovoProf()"/>
     </div>
     <div class="field">
       <label>E-mail de acesso</label>
-      <input type="email" id="np-email" placeholder="professor@email.com"/>
+      <input type="email" id="np-email" placeholder="professor@email.com" onkeydown="if(event.key==='Enter')salvarNovoProf()"/>
     </div>
     <div class="field">
       <label>Senha inicial</label>
       <div class="senha-wrap">
-        <input type="password" id="np-senha" value="Teste1234"/>
-        <button class="senha-toggle" type="button" onclick="toggleSenha('np-senha',this)">👁</button>
+        <input type="password" id="np-senha" value="Teste1234" onkeydown="if(event.key==='Enter')salvarNovoProf()"/>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('np-senha',this)" aria-label="Mostrar ou ocultar senha">👁</button>
       </div>
     </div>
     <div class="field">
@@ -412,21 +413,21 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Editar professor</div>
-      <button class="close-btn" onclick="fecharModal('modal-editar-prof')">×</button>
+      <button class="close-btn" onclick="fecharModal('modal-editar-prof')" aria-label="Fechar">×</button>
     </div>
     <div class="field">
       <label>Nome completo</label>
-      <input type="text" id="ep-nome"/>
+      <input type="text" id="ep-nome" onkeydown="if(event.key==='Enter')salvarEdicaoProf()"/>
     </div>
     <div class="field">
       <label>E-mail de acesso</label>
-      <input type="email" id="ep-email" placeholder="professor@email.com"/>
+      <input type="email" id="ep-email" placeholder="professor@email.com" onkeydown="if(event.key==='Enter')salvarEdicaoProf()"/>
     </div>
     <div class="field">
       <label>Nova senha <span style="font-size:10px;color:var(--text-faded);">(deixe em branco para não alterar)</span></label>
       <div class="senha-wrap">
-        <input type="password" id="ep-senha" placeholder="Nova senha..."/>
-        <button class="senha-toggle" type="button" onclick="toggleSenha('ep-senha',this)">👁</button>
+        <input type="password" id="ep-senha" placeholder="Nova senha..." onkeydown="if(event.key==='Enter')salvarEdicaoProf()"/>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('ep-senha',this)" aria-label="Mostrar ou ocultar senha">👁</button>
       </div>
     </div>
     <div class="field">
@@ -445,39 +446,56 @@
   </div>
 </div>
 
-<!-- MODAL HORÁRIO TURMA -->
-<div class="modal-bg" id="modal-horario-turma">
-  <div class="modal" style="max-width:400px;">
+<!-- MODAL NOVA TURMA -->
+<div class="modal-bg" id="modal-nova-turma">
+  <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">⏰ Horário da turma</div>
-      <button class="close-btn" onclick="fecharModal('modal-horario-turma')">×</button>
+      <div class="modal-title">Criar nova turma</div>
+      <button class="close-btn" onclick="fecharModal('modal-nova-turma')" aria-label="Fechar">×</button>
     </div>
-    <div class="horario-modal-info">
-      Configure o horário de início e os dias de aula. O sistema enviará um e-mail automático ao professor 2 horas após o início caso a chamada não tenha sido feita.
+    <div class="field">
+      <label>Nome da turma</label>
+      <input type="text" id="nt-nome" placeholder="Ex: Segunda 19h" onkeydown="if(event.key==='Enter')salvarNovaTurma()"/>
     </div>
-    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;" id="ht-turma-nome"></div>
-    <div style="font-size:11px;color:var(--text-3);margin-bottom:1rem;" id="ht-turma-sub"></div>
+    <div class="field">
+      <label>Curso</label>
+      <input type="text" id="nt-curso" list="nt-curso-list" placeholder="Ex: Elas Investem" onkeydown="if(event.key==='Enter')salvarNovaTurma()"/>
+      <datalist id="nt-curso-list"></datalist>
+    </div>
+    <div class="field">
+      <label>Professor(a)</label>
+      <select id="nt-professor"></select>
+    </div>
+    <div class="field">
+      <label>Quantidade de aulas</label>
+      <select id="nt-total-aulas"></select>
+    </div>
+    <div class="field">
+      <label>Cor da turma</label>
+      <div class="cor-picker" id="nt-cor-picker"></div>
+      <input type="hidden" id="nt-cor"/>
+    </div>
 
     <div class="field">
       <label>Horário de início</label>
       <div class="horario-selects">
-        <select id="ht-hora" onchange="marcarPresetAtivo()"></select>
+        <select id="nt-hora" onchange="marcarPresetAtivo('nt')"></select>
         <span class="sep">:</span>
-        <select id="ht-minuto" onchange="marcarPresetAtivo()"></select>
+        <select id="nt-minuto" onchange="marcarPresetAtivo('nt')"></select>
       </div>
-      <div class="horario-presets" id="ht-presets">
-        <button type="button" class="preset-btn" onclick="aplicarPreset('08:00')">08:00</button>
-        <button type="button" class="preset-btn" onclick="aplicarPreset('14:00')">14:00</button>
-        <button type="button" class="preset-btn" onclick="aplicarPreset('15:00')">15:00</button>
-        <button type="button" class="preset-btn" onclick="aplicarPreset('19:00')">19:00</button>
-        <button type="button" class="preset-btn" onclick="aplicarPreset('19:30')">19:30</button>
-        <button type="button" class="preset-btn" onclick="aplicarPreset('20:00')">20:00</button>
+      <div class="horario-presets" id="nt-presets">
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','08:00')">08:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','14:00')">14:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','15:00')">15:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','19:00')">19:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','19:30')">19:30</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','20:00')">20:00</button>
       </div>
     </div>
 
     <div class="field">
-      <label>Dias de aula</label>
-      <div class="dias-check-grid" id="ht-dias-grid">
+      <label>Dias de aula <span style="font-size:10px;color:var(--text-faded);">(deixe sem marcar para não configurar horário)</span></label>
+      <div class="dias-check-grid" id="nt-dias-grid">
         <label class="dia-check" data-dia="segunda"><input type="checkbox" value="segunda">Seg</label>
         <label class="dia-check" data-dia="terca"><input type="checkbox" value="terca">Ter</label>
         <label class="dia-check" data-dia="quarta"><input type="checkbox" value="quarta">Qua</label>
@@ -488,17 +506,95 @@
       </div>
     </div>
 
-    <div id="ht-erro" style="font-size:12px;color:var(--red);display:none;margin-bottom:8px;"></div>
+    <div id="nt-erro" style="font-size:12px;color:var(--red);display:none;margin-top:-4px;margin-bottom:8px;"></div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-nova-turma')">Cancelar</button>
+      <button class="btn-save" onclick="salvarNovaTurma()">Criar turma</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR TURMA -->
+<div class="modal-bg" id="modal-editar-turma">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Editar turma</div>
+      <button class="close-btn" onclick="fecharModal('modal-editar-turma')" aria-label="Fechar">×</button>
+    </div>
+
+    <div class="field">
+      <label>Nome da turma</label>
+      <input type="text" id="et-nome" placeholder="Ex: Segunda 19h" onkeydown="if(event.key==='Enter')salvarEditarTurma()"/>
+    </div>
+    <div class="field">
+      <label>Curso</label>
+      <input type="text" id="et-curso" list="et-curso-list" placeholder="Ex: Elas Investem" onkeydown="if(event.key==='Enter')salvarEditarTurma()"/>
+      <datalist id="et-curso-list"></datalist>
+    </div>
+    <div class="field">
+      <label>Professor(a)</label>
+      <input type="text" id="et-professor" placeholder="Nome do professor" onkeydown="if(event.key==='Enter')salvarEditarTurma()"/>
+    </div>
+    <div class="field">
+      <label>Quantidade de aulas</label>
+      <select id="et-total-aulas"></select>
+    </div>
+    <div class="field">
+      <label>Cor da turma</label>
+      <div class="cor-picker" id="et-cor-picker"></div>
+      <input type="hidden" id="et-cor"/>
+    </div>
+
+    <div class="horario-modal-info">
+      Configure o horário de início e os dias de aula para o sistema enviar um e-mail automático ao professor 2 horas após o início caso a chamada não tenha sido feita.
+    </div>
+
+    <div class="field">
+      <label>Horário de início</label>
+      <div class="horario-selects">
+        <select id="et-hora" onchange="marcarPresetAtivo('et')"></select>
+        <span class="sep">:</span>
+        <select id="et-minuto" onchange="marcarPresetAtivo('et')"></select>
+      </div>
+      <div class="horario-presets" id="et-presets">
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','08:00')">08:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','14:00')">14:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','15:00')">15:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','19:00')">19:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','19:30')">19:30</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','20:00')">20:00</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Dias de aula <span style="font-size:10px;color:var(--text-faded);">(deixe sem marcar para não configurar horário)</span></label>
+      <div class="dias-check-grid" id="et-dias-grid">
+        <label class="dia-check" data-dia="segunda"><input type="checkbox" value="segunda">Seg</label>
+        <label class="dia-check" data-dia="terca"><input type="checkbox" value="terca">Ter</label>
+        <label class="dia-check" data-dia="quarta"><input type="checkbox" value="quarta">Qua</label>
+        <label class="dia-check" data-dia="quinta"><input type="checkbox" value="quinta">Qui</label>
+        <label class="dia-check" data-dia="sexta"><input type="checkbox" value="sexta">Sex</label>
+        <label class="dia-check" data-dia="sabado"><input type="checkbox" value="sabado">Sáb</label>
+        <label class="dia-check" data-dia="domingo"><input type="checkbox" value="domingo">Dom</label>
+      </div>
+    </div>
+
+    <div id="et-erro" style="font-size:12px;color:var(--red);display:none;margin-bottom:8px;"></div>
 
     <div class="modal-footer">
-      <button class="btn-danger" id="ht-btn-limpar" onclick="limparHorarioTurma()" style="margin-right:auto;">Remover horário</button>
-      <button class="btn-sec" onclick="fecharModal('modal-horario-turma')">Cancelar</button>
-      <button class="btn-save" onclick="salvarHorarioTurma()">Salvar</button>
+      <button class="btn-sec" onclick="limparHorario('et')" style="margin-right:auto;">Limpar horário</button>
+      <button class="btn-sec" onclick="fecharModal('modal-editar-turma')">Cancelar</button>
+      <button class="btn-save" onclick="salvarEditarTurma()">Salvar</button>
     </div>
   </div>
 </div>
 
 <div class="toast green" id="toast"></div>
+
+<div id="app-loading">
+  <div class="loading-spinner"></div>
+  <div style="font-size:13px;color:var(--text-3);">Carregando...</div>
+</div>
 
 <script src="script.js"></script>
 <!-- NOTIFICADOR DE ATUALIZAÇÃO -->
