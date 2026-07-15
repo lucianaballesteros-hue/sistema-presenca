@@ -245,7 +245,7 @@ a{color:inherit;text-decoration:none;}
 .screen{display:none;}.screen.active{display:block;}
 
 /* LOGIN */
-#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--login-bg);}
+#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--login-bg);padding:1rem;}
 .login-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;width:320px;box-shadow:var(--shadow-sm);}
 .logo-box{text-align:center;margin-bottom:1.5rem;}
 .logo-icon{width:44px;height:44px;background:var(--primary-soft);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;}
@@ -291,6 +291,16 @@ a{color:inherit;text-decoration:none;}
 /* TURMA CARDS */
 .turmas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
 .turma-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;cursor:default;}
+.turma-card-inativa{opacity:.55;}
+.turma-card-inativa:hover{opacity:.85;}
+.turma-card-actions{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+.cor-picker{display:flex;gap:8px;flex-wrap:wrap;}
+.cor-swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;}
+.cor-swatch.selected{border-color:var(--text);box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--text);}
+
+#app-loading{display:none;position:fixed;inset:0;background:var(--bg);z-index:2000;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#app-loading.visible{display:flex;}
+.loading-spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;}
 .btn-chamada{margin-top:10px;width:100%;padding:7px;font-size:12px;background:none;border:1px solid var(--border-input);border-radius:7px;cursor:pointer;color:var(--text);font-weight:500;}
 .btn-chamada:hover{background:var(--surface-hover);}
 
@@ -362,12 +372,8 @@ tr.clickable:hover td{background:var(--surface-hover-2);}
 .info-box{background:var(--surface-soft);border-radius:7px;padding:.75rem 1rem;font-size:12px;color:var(--primary-soft-text);margin-bottom:1rem;}
 
 /* INLINE EDIT */
-.inline-edit-wrap{display:flex;align-items:center;gap:4px;}
-.inline-edit-btn{background:none;border:none;cursor:pointer;color:var(--text-faded);font-size:12px;padding:2px 4px;border-radius:4px;opacity:0;}
-.turma-card:hover .inline-edit-btn{opacity:1;}
+.inline-edit-btn{background:none;border:none;cursor:pointer;color:var(--text-faded);font-size:12px;width:22px;height:22px;line-height:1;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
 .inline-edit-btn:hover{background:var(--surface-hover);color:var(--text-2);}
-.inline-input{font-size:13px;font-weight:600;border:1px solid var(--primary-light);border-radius:5px;padding:2px 6px;outline:none;width:100%;background:var(--surface);color:var(--text);}
-.inline-input-sm{font-size:12px;font-weight:400;border:1px solid var(--primary-light);border-radius:5px;padding:2px 6px;outline:none;color:var(--text-2);background:var(--surface);}
 
 /* TOAST */
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;display:none;z-index:999;box-shadow:var(--shadow-md);}
@@ -469,3 +475,35 @@ tr.clickable:hover td{background:var(--surface-hover-2);}
 #upd-btn:hover{background:#e2e2e2;}
 #upd-x{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;line-height:1;padding:0 2px;}
 #upd-x:hover{color:#fff;}
+
+/* ============================================
+   RESPONSIVIDADE MOBILE
+   ============================================ */
+@media(max-width:768px){
+  .content{padding:.875rem;}
+  .header{padding:0 1rem;}
+  .nav{padding:0 .5rem;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .nav-btn{padding:10px 10px;white-space:nowrap;}
+  .turmas-grid{grid-template-columns:1fr;}
+  .prof-grid{grid-template-columns:1fr;}
+  .metr-grid{grid-template-columns:repeat(2,1fr);}
+  .filter-bar input{width:100%;}
+  .modal-bg{padding:20px .75rem .75rem;}
+  .modal{padding:1.25rem;}
+  .info-grid{grid-template-columns:1fr;}
+  .aulas-grid{grid-template-columns:repeat(2,1fr);}
+  .dias-check-grid{grid-template-columns:repeat(3,1fr);}
+
+  /* Chamada — evita que os botões de presença estourem a tela */
+  .aluno-row{flex-wrap:wrap;row-gap:8px;}
+  .aluno-nome{width:100%;order:1;}
+  .aluno-num{order:0;}
+  .pbtns{order:2;width:100%;justify-content:flex-start;}
+  .chamada-counters{flex-wrap:wrap;row-gap:6px;column-gap:1rem;}
+  .chamada-top{flex-direction:column;align-items:flex-start;}
+}
+
+@media(max-width:480px){
+  .login-card{width:100%;max-width:320px;padding:1.5rem;}
+  .hright span{display:none;}
+}
