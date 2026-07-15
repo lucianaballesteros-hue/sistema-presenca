@@ -19,9 +19,7 @@ const SUPABASE_URL = 'https://wrdguclwncirgzlpfgjq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZGd1Y2x3bmNpcmd6bHBmZ2pxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDYzNDMsImV4cCI6MjA5MDYyMjM0M30.gfWIeTfRZdNk7eZpb4kTTcrOt-Bpy1c7B5fEgh5LrCA';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const AULAS = ['Aula 1','Aula 2','Aula 3','Aula 4','Aula 5','Aula 6','Aula 7','Aula 8',
-               'Aula 9','Aula 10','Aula 11','Aula 12','Aula 13','Aula 14','Aula 15','Aula 16',
-               'Aula 17','Aula 18','Aula 19','Aula 20'];
+const AULAS = Array.from({length: 32}, (_, i) => `Aula ${i + 1}`);
 
 
 const OBS_CATEGORIAS = [
@@ -96,7 +94,7 @@ async function doLogout() {
 // =============================================
 async function inicializarApp() {
   document.getElementById('login-page').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  document.getElementById('app-loading').classList.add('visible');
   const ini = perfilLogado?.nome ? perfilLogado.nome.substring(0,2).toUpperCase() : '--';
   document.getElementById('av').textContent = ini;
   document.getElementById('hname').textContent = perfilLogado?.nome || usuarioLogado.email;
@@ -106,14 +104,19 @@ async function inicializarApp() {
     document.getElementById('nav-prof').style.display = '';
   }
 
-  await carregarTurmas();
-  await carregarAlunos();
-  await Promise.all([carregarPresencas(), carregarHistorico(), carregarProfessores()]);
+  try {
+    await carregarTurmas();
+    await carregarAlunos();
+    await Promise.all([carregarPresencas(), carregarHistorico(), carregarProfessores()]);
 
-  popularFiltros();
-  renderDash();
-  renderTabelaAlunos();
-  renderRel();
+    popularFiltros();
+    renderDash();
+    renderTabelaAlunos();
+    renderRel();
+  } finally {
+    document.getElementById('app-loading').classList.remove('visible');
+    document.getElementById('app').style.display = 'block';
+  }
 }
 
 async function carregarTurmas() {
@@ -182,8 +185,14 @@ async function carregarProfessores() {
 // =============================================
 // HELPERS
 // =============================================
+function aulasDaTurma(turma) {
+  const n = turma?.total_aulas;
+  return (n && n > 0 && n <= AULAS.length) ? AULAS.slice(0, n) : AULAS;
+}
+
 function calcAluno(aluno) {
-  const seq = AULAS.map(aula => {
+  const turma = TURMAS.find(t => t.id === aluno.turma_id);
+  const seq = aulasDaTurma(turma).map(aula => {
     const k = `${aluno.turma_id}_${aula}`;
     return (PRESENCAS[k] && PRESENCAS[k][aluno.id]) || 'N';
   });
@@ -222,6 +231,17 @@ function showToast(msg, type = 'green') {
   setTimeout(() => t.style.display = 'none', 2800);
 }
 
+const ESCAPE_HTML_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, c => ESCAPE_HTML_MAP[c]);
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isEmailValido(email) {
+  return EMAIL_REGEX.test((email || '').trim());
+}
+
 function corBadge(curso) {
   if (curso?.includes('Elas')) return 'badge-blue';
   if (curso?.includes('Master')) return 'badge-amber';
@@ -238,7 +258,7 @@ function popularFiltros() {
   // Select simples na aba Alunos
   const elCursoAlunos = document.getElementById('f-curso-alunos');
   if (elCursoAlunos) {
-    elCursoAlunos.innerHTML = '<option value="">Todos</option>' + cursos.map(c => `<option>${c}</option>`).join('');
+    elCursoAlunos.innerHTML = '<option value="">Todos</option>' + cursos.map(c => `<option>${escapeHtml(c)}</option>`).join('');
   }
 
   // Multi-selects do relatório
@@ -253,7 +273,7 @@ function popularMultiPanel(panelId, btnId, labelId, options) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
   panel.innerHTML = options.map(o =>
-    `<label class="multi-check"><input type="checkbox" value="${String(o.value).replace(/"/g,'&quot;')}" onchange="onMultiCheck('${panelId}','${btnId}','${labelId}')">${o.label}</label>`
+    `<label class="multi-check"><input type="checkbox" value="${escapeHtml(o.value)}" onchange="onMultiCheck('${panelId}','${btnId}','${labelId}')">${escapeHtml(o.label)}</label>`
   ).join('');
 }
 
@@ -285,29 +305,34 @@ function renderDash() {
   const dados = ativos.map(a => calcAluno(a));
   const alertas = dados.filter(d => d.emAlerta).length;
   const irregulares = dados.filter(d => d.freq !== null && d.freq < 70).length;
+  const turmasAtivas = TURMAS.filter(t => t.ativa !== false);
+  const turmasInativas = TURMAS.filter(t => t.ativa === false);
 
   document.getElementById('stats-area').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Turmas</div><div class="stat-val">${TURMAS.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Turmas</div><div class="stat-val">${turmasAtivas.length}</div></div>
     <div class="stat-card"><div class="stat-label">Alunos ativos</div><div class="stat-val">${ativos.length}</div></div>
     <div class="stat-card"><div class="stat-label">Irregulares (&lt;70%)</div><div class="stat-val amber">${irregulares}</div></div>
     <div class="stat-card"><div class="stat-label">Alertas (3 seguidas)</div><div class="stat-val red">${alertas}</div></div>`;
 
-  const cursos = [...new Set(TURMAS.map(t => t.curso))];
+  const cursos = [...new Set(turmasAtivas.map(t => t.curso))];
 
-  const minhasTurmas = TURMAS.filter(t => t.professor_id === perfilLogado?.id || t.professor === perfilLogado?.nome);
+  const minhasTurmas = turmasAtivas.filter(t => t.professor_id === perfilLogado?.id || t.professor === perfilLogado?.nome);
   document.getElementById('curso-pills').innerHTML =
     `<button class="cpill ${filtroCurso === '' ? 'active' : ''}" onclick="setCurso('')">Todos</button>` +
     (minhasTurmas.length > 0
       ? `<button class="cpill ${filtroCurso === '__minhas__' ? 'active' : ''}" onclick="setCurso('__minhas__')"> Suas Turmas <span style="background:rgba(255,255,255,.25);font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">${minhasTurmas.length}</span></button>`
       : '') +
-    cursos.map(c => `<button class="cpill ${filtroCurso === c ? 'active' : ''}" onclick="setCurso('${c.replace(/'/g, "\\'")}')">${c}</button>`).join('');
+    cursos.map(c => `<button class="cpill ${filtroCurso === c ? 'active' : ''}" onclick="setCurso('${c.replace(/'/g, "\\'")}')">${escapeHtml(c)}</button>`).join('') +
+    `<button class="cpill ${filtroCurso === '__inativas__' ? 'active' : ''}" onclick="setCurso('__inativas__')">Turmas inativas <span style="background:rgba(255,255,255,.25);font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">${turmasInativas.length}</span></button>`;
 
   const buscaTurma = (document.getElementById('busca-turmas')?.value || '').toLowerCase();
-  let filtradas = filtroCurso === '__minhas__'
-    ? TURMAS.filter(t => t.professor_id === perfilLogado?.id || t.professor === perfilLogado?.nome)
-    : filtroCurso
-      ? TURMAS.filter(t => t.curso === filtroCurso)
-      : TURMAS;
+  let filtradas = filtroCurso === '__inativas__'
+    ? turmasInativas
+    : filtroCurso === '__minhas__'
+      ? minhasTurmas
+      : filtroCurso
+        ? turmasAtivas.filter(t => t.curso === filtroCurso)
+        : turmasAtivas;
   if (buscaTurma) filtradas = filtradas.filter(t => t.turma.toLowerCase().includes(buscaTurma) || t.professor.toLowerCase().includes(buscaTurma));
   filtradas = filtradas.slice().sort((a, b) => {
     const da = ordemDia(a.turma), db = ordemDia(b.turma);
@@ -315,31 +340,177 @@ function renderDash() {
     return a.turma.localeCompare(b.turma, 'pt-BR');
   });
   document.getElementById('turmas-grid').innerHTML = filtradas.map(t => {
+    const inativa = t.ativa === false;
     const al = ALUNOS.filter(a => a.ativo && a.turma_id === t.id);
     const at = al.filter(a => calcAluno(a).emAlerta).length;
     const horarioTag = t.horario_inicio
-      ? `<span class="horario-tag" onclick="abrirModalHorario(${t.id})" title="Clique para editar o horário">⏰ ${t.horario_inicio.slice(0,5)}${t.dias_semana?.length ? ' · ' + t.dias_semana.map(d => d.charAt(0).toUpperCase() + d.slice(1,3)).join(', ') : ''}</span>`
-      : `<span class="horario-tag sem-horario" onclick="abrirModalHorario(${t.id})" title="Configurar horário para notificação automática">+ Configurar horário</span>`;
-    return `<div class="turma-card">
+      ? `<span class="horario-tag" onclick="abrirModalEditarTurma(${t.id})" title="Clique para editar a turma">⏰ ${t.horario_inicio.slice(0,5)}${t.dias_semana?.length ? ' · ' + t.dias_semana.map(d => d.charAt(0).toUpperCase() + d.slice(1,3)).join(', ') : ''}</span>`
+      : `<span class="horario-tag sem-horario" onclick="abrirModalEditarTurma(${t.id})" title="Configurar horário para notificação automática">+ Configurar horário</span>`;
+    return `<div class="turma-card ${inativa ? 'turma-card-inativa' : ''}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
         <div style="width:9px;height:9px;border-radius:50%;background:${t.cor || '#3b82f6'};flex-shrink:0;"></div>
-        <div class="inline-edit-wrap" style="flex:1;">
-          <div id="titulo-${t.id}" style="font-size:13px;font-weight:600;flex:1;color:var(--text);">${t.turma}</div>
-          <button class="inline-edit-btn" title="Editar nome" onclick="editarTituloTurma(${t.id})">✏</button>
+        <div style="font-size:13px;font-weight:600;flex:1;color:var(--text);">${escapeHtml(t.turma)}</div>
+        <div class="turma-card-actions">
+          <button class="inline-edit-btn" title="Editar turma" aria-label="Editar turma" onclick="abrirModalEditarTurma(${t.id})">✏</button>
+          <button class="inline-edit-btn" title="${inativa ? 'Reativar turma' : 'Inativar turma'}" aria-label="${inativa ? 'Reativar turma' : 'Inativar turma'}" onclick="toggleTurmaAtiva(${t.id})">${inativa ? '▶' : '⏸'}</button>
         </div>
       </div>
       <div style="font-size:12px;color:var(--text-3);display:flex;flex-direction:column;gap:6px;">
-        <span><span class="badge ${corBadge(t.curso)}">${t.curso}</span></span>
-        <div class="inline-edit-wrap">
-          <span id="prof-${t.id}">Prof. ${t.professor}</span>
-          <button class="inline-edit-btn" title="Editar professor" onclick="editarProfTurma(${t.id})">✏</button>
-        </div>
+        <span><span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso)}</span>${inativa ? ' <span class="badge badge-gray">Inativa</span>' : ''}</span>
+        <span>Prof. ${escapeHtml(t.professor)}</span>
         <span>${al.length} alunos${at > 0 ? ` · <span style="color:var(--red);font-weight:600;cursor:pointer;border-bottom:1.5px dashed var(--red);padding-bottom:1px;" onclick="irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
         <div>${horarioTag}</div>
       </div>
-      <button class="btn-chamada" onclick="abrirChamada(${t.id})">Fazer chamada →</button>
+      ${inativa
+        ? `<button class="btn-chamada" onclick="toggleTurmaAtiva(${t.id})">Reativar turma</button>`
+        : `<button class="btn-chamada" onclick="abrirChamada(${t.id})">Fazer chamada →</button>`}
     </div>`;
   }).join('') || '<div class="empty">Nenhuma turma encontrada.</div>';
+}
+
+async function toggleTurmaAtiva(tId) {
+  const t = TURMAS.find(x => x.id === tId);
+  if (!t) return;
+  const estaAtiva = t.ativa !== false;
+  if (estaAtiva && !confirm(`Inativar a turma "${t.turma}"?\n\nEla deixará de aparecer na lista principal (fica disponível em "Turmas inativas"), mas todos os dados de alunos e presença são mantidos.`)) return;
+  const novoStatus = !estaAtiva;
+  const { error } = await sb.from('turmas').update({ ativa: novoStatus }).eq('id', tId);
+  if (error) { showToast('Erro ao atualizar turma.', 'red'); console.error(error); return; }
+  t.ativa = novoStatus;
+  showToast(novoStatus ? 'Turma reativada!' : 'Turma inativada.');
+  renderDash(); renderRel();
+}
+
+const TURMA_CORES = ['#3b82f6','#059669','#7c3aed','#db2777','#d97706','#0891b2','#dc2626','#65a30d'];
+
+// =============================================
+// HELPERS DE HORÁRIO DE TURMA (usados na criação e edição)
+// =============================================
+function preencherSelectsHorario(prefix, horarioInicio) {
+  const selHora = document.getElementById(prefix + '-hora');
+  const selMin = document.getElementById(prefix + '-minuto');
+  selHora.innerHTML = Array.from({length: 24}, (_, h) =>
+    `<option value="${String(h).padStart(2,'0')}">${String(h).padStart(2,'0')}</option>`).join('');
+  selMin.innerHTML = ['00','05','10','15','20','25','30','35','40','45','50','55']
+    .map(m => `<option value="${m}">${m}</option>`).join('');
+  const [h, m] = (horarioInicio ? horarioInicio.slice(0,5) : '19:00').split(':');
+  selHora.value = h;
+  selMin.value = m;
+}
+
+function preencherDiasGrid(prefix, diasSalvos) {
+  document.querySelectorAll('#' + prefix + '-dias-grid .dia-check').forEach(label => {
+    const val = label.dataset.dia;
+    const check = label.querySelector('input');
+    const selecionado = (diasSalvos || []).includes(val);
+    check.checked = selecionado;
+    label.classList.toggle('selecionado', selecionado);
+    label.onclick = function() {
+      const c = this.querySelector('input');
+      c.checked = !c.checked;
+      this.classList.toggle('selecionado', c.checked);
+    };
+  });
+}
+
+function lerDiasSelecionados(prefix) {
+  return [...document.querySelectorAll('#' + prefix + '-dias-grid .dia-check input:checked')].map(i => i.value);
+}
+
+function preencherSelectTotalAulas(prefix, valorAtual) {
+  const sel = document.getElementById(prefix + '-total-aulas');
+  sel.innerHTML = AULAS.map((_, i) => i + 1).map(n => `<option value="${n}">${n} aula${n > 1 ? 's' : ''}</option>`).join('');
+  sel.value = valorAtual || AULAS.length;
+}
+
+function lerTotalAulas(prefix) {
+  return parseInt(document.getElementById(prefix + '-total-aulas').value) || AULAS.length;
+}
+
+function lerHorarioSelecionado(prefix) {
+  return document.getElementById(prefix + '-hora').value + ':' + document.getElementById(prefix + '-minuto').value;
+}
+
+function aplicarPreset(prefix, horario) {
+  const [h, m] = horario.split(':');
+  document.getElementById(prefix + '-hora').value = h;
+  document.getElementById(prefix + '-minuto').value = m;
+  marcarPresetAtivo(prefix);
+}
+
+function marcarPresetAtivo(prefix) {
+  const atual = lerHorarioSelecionado(prefix);
+  document.querySelectorAll('#' + prefix + '-presets .preset-btn').forEach(b => {
+    b.classList.toggle('ativo', b.textContent === atual);
+  });
+}
+
+function limparHorario(prefix) {
+  document.querySelectorAll('#' + prefix + '-dias-grid .dia-check').forEach(label => {
+    label.querySelector('input').checked = false;
+    label.classList.remove('selecionado');
+  });
+  document.getElementById(prefix + '-hora').value = '19';
+  document.getElementById(prefix + '-minuto').value = '00';
+  marcarPresetAtivo(prefix);
+}
+
+function abrirModalNovaTurma() {
+  document.getElementById('nt-nome').value = '';
+  document.getElementById('nt-curso').value = '';
+  document.getElementById('nt-erro').style.display = 'none';
+  document.getElementById('nt-cor').value = TURMA_CORES[0];
+  document.getElementById('nt-cor-picker').innerHTML = TURMA_CORES.map((cor, i) =>
+    `<button type="button" class="cor-swatch ${i === 0 ? 'selected' : ''}" style="background:${cor};" title="${cor}" aria-label="Cor ${cor}" onclick="selecionarCorNovaTurma('${cor}', this)"></button>`
+  ).join('');
+  const cursos = [...new Set(TURMAS.map(t => t.curso))].sort();
+  document.getElementById('nt-curso-list').innerHTML = cursos.map(c => `<option value="${escapeHtml(c)}">`).join('');
+  document.getElementById('nt-professor').innerHTML = PROFESSORES.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
+  preencherSelectTotalAulas('nt', 20);
+  preencherSelectsHorario('nt', null);
+  preencherDiasGrid('nt', []);
+  marcarPresetAtivo('nt');
+  document.getElementById('modal-nova-turma').classList.add('open');
+}
+
+function selecionarCorNovaTurma(cor, btn) {
+  document.getElementById('nt-cor').value = cor;
+  btn.parentElement.querySelectorAll('.cor-swatch').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+async function salvarNovaTurma() {
+  const nome = document.getElementById('nt-nome').value.trim();
+  const curso = document.getElementById('nt-curso').value.trim();
+  const profId = parseInt(document.getElementById('nt-professor').value);
+  const cor = document.getElementById('nt-cor').value || TURMA_CORES[0];
+  const erroEl = document.getElementById('nt-erro');
+  erroEl.style.display = 'none';
+
+  if (!nome) { erroEl.textContent = 'Digite o nome da turma.'; erroEl.style.display = 'block'; return; }
+  if (!curso) { erroEl.textContent = 'Digite o curso.'; erroEl.style.display = 'block'; return; }
+  const prof = PROFESSORES.find(p => p.id === profId);
+  if (!prof) { erroEl.textContent = 'Selecione um professor.'; erroEl.style.display = 'block'; return; }
+
+  const diasSelecionados = lerDiasSelecionados('nt');
+  const horario = lerHorarioSelecionado('nt');
+  const totalAulas = lerTotalAulas('nt');
+
+  const { data, error } = await sb.from('turmas')
+    .insert({
+      turma: nome, curso, professor: prof.nome, professor_id: prof.id, ativa: true, cor,
+      total_aulas: totalAulas,
+      horario_inicio: diasSelecionados.length ? horario + ':00' : null,
+      dias_semana: diasSelecionados.length ? diasSelecionados : null
+    })
+    .select().single();
+  if (error) { erroEl.textContent = 'Erro ao criar turma: ' + error.message; erroEl.style.display = 'block'; return; }
+
+  TURMAS.push(data);
+  fecharModal('modal-nova-turma');
+  showToast(`Turma "${nome}" criada com sucesso!`);
+  popularFiltros();
+  renderDash();
 }
 
 function ordemDia(nomeTurma) {
@@ -361,7 +532,7 @@ function abrirChamada(tId) {
   document.getElementById('ch-titulo').textContent = turmaAtual.turma + ' — ' + turmaAtual.curso;
   document.getElementById('ch-sub').textContent = 'Prof. ' + turmaAtual.professor;
   const sel = document.getElementById('aula-sel');
-  sel.innerHTML = AULAS.map(a => `<option>${a}</option>`).join('');
+  sel.innerHTML = aulasDaTurma(turmaAtual).map(a => `<option>${a}</option>`).join('');
   renderChamada();
 }
 
@@ -383,7 +554,7 @@ function renderChamada() {
     const v = PRESENCAS[key][a.id] || '';
     return `<div class="aluno-row">
       <div class="aluno-num">${i + 1}</div>
-      <div class="aluno-nome">${a.nome}</div>
+      <div class="aluno-nome">${escapeHtml(a.nome)}</div>
       <div class="pbtns">
         <button class="pbtn pbtn-p ${v === 'P' ? 'on' : ''}" onclick="marcar(${a.id},'P')">✓ Presente</button>
         <button class="pbtn pbtn-f ${v === 'F' ? 'on' : ''}" onclick="marcar(${a.id},'F')">✗ Falta</button>
@@ -445,9 +616,9 @@ function renderTabelaAlunos() {
 
   document.getElementById('tbody-alunos').innerHTML = lista.map(a => `
     <tr class="clickable ${a.emAlerta && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''}" onclick="abrirModalAluno(${a.id})">
-      <td>${a.nome}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
-      <td><span class="badge ${corBadge(a.turma?.curso)}" style="font-size:10px;">${a.turma?.curso || '—'}</span></td>
-      <td style="color:var(--text-3);">${a.turma?.turma || '—'}</td>
+      <td>${escapeHtml(a.nome)}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
+      <td><span class="badge ${corBadge(a.turma?.curso)}" style="font-size:10px;">${escapeHtml(a.turma?.curso) || '—'}</span></td>
+      <td style="color:var(--text-3);">${escapeHtml(a.turma?.turma) || '—'}</td>
       <td style="text-align:center;color:var(--green);font-weight:600;">${a.p - a.r}</td>
       <td style="text-align:center;color:var(--amber);font-weight:600;">${a.r > 0 ? a.r : '—'}</td>
       <td style="text-align:center;color:var(--red);font-weight:600;">${a.f}</td>
@@ -468,15 +639,16 @@ function abrirModalAluno(id) {
   document.getElementById('ma-nome').textContent = a.nome;
   document.getElementById('ma-status').innerHTML = statusBadge(c.freq, c.emAlerta, a.ativo);
   document.getElementById('ma-info').innerHTML = `
-    <div class="info-item"><div class="info-label">Curso</div><div class="info-val">${t?.curso || '—'}</div></div>
-    <div class="info-item"><div class="info-label">Turma</div><div class="info-val">${t?.turma || '—'}</div></div>
-    <div class="info-item"><div class="info-label">Professor(a)</div><div class="info-val">${t?.professor || '—'}</div></div>
+    <div class="info-item"><div class="info-label">Curso</div><div class="info-val">${escapeHtml(t?.curso) || '—'}</div></div>
+    <div class="info-item"><div class="info-label">Turma</div><div class="info-val">${escapeHtml(t?.turma) || '—'}</div></div>
+    <div class="info-item"><div class="info-label">Professor(a)</div><div class="info-val">${escapeHtml(t?.professor) || '—'}</div></div>
     <div class="info-item"><div class="info-label">Frequência</div><div class="info-val">${c.freq !== null ? c.freq + '%' : '—'}</div></div>
     <div class="info-item"><div class="info-label">Presenças</div><div class="info-val" style="color:var(--green);">${c.p}</div></div>
     <div class="info-item"><div class="info-label">Faltas</div><div class="info-val" style="color:var(--red);">${c.f}</div></div>`;
+  const aulasTurma = aulasDaTurma(t);
   const _aulasCom = c.seq.map((v,i) => ({v,i})).filter(x => x.v !== 'N').slice(-8);
 document.getElementById('ma-aulas').innerHTML = _aulasCom.map(({v,i}) => {
-    const au = AULAS[i];
+    const au = aulasTurma[i];
     const bg = v === 'P' ? 'var(--green-soft)' : v === 'R' ? 'var(--amber-soft)' : v === 'F' ? 'var(--red-soft)' : 'var(--surface-3)';
     const tc = v === 'P' ? 'var(--green-soft-text)' : v === 'R' ? 'var(--amber-soft-text)' : v === 'F' ? 'var(--red-soft-text)' : 'var(--text-faded)';
     return `<div class="aula-item" style="background:${bg};"><div class="aula-item-label">${au}</div><div class="aula-item-val" style="color:${tc};">${v === 'P' ? 'Presente' : v === 'R' ? 'Gravação' : v === 'F' ? 'Falta' : '—'}</div></div>`;
@@ -484,7 +656,7 @@ document.getElementById('ma-aulas').innerHTML = _aulasCom.map(({v,i}) => {
   const hist = HISTORICO.filter(h => h.aluno_id === id);
   document.getElementById('ma-hist').innerHTML = hist.length ? `
     <div style="font-size:12px;color:var(--text-3);margin-bottom:.5rem;font-weight:500;">Histórico de movimentações</div>
-    ${hist.map(h => `<div class="hist-item"><span style="font-size:10px;color:var(--text-faded);width:80px;flex-shrink:0;">${new Date(h.created_at).toLocaleDateString('pt-BR')}</span><span>${h.descricao}</span></div>`).join('')}` : '';
+    ${hist.map(h => `<div class="hist-item"><span style="font-size:10px;color:var(--text-faded);width:80px;flex-shrink:0;">${new Date(h.created_at).toLocaleDateString('pt-BR')}</span><span>${escapeHtml(h.descricao)}</span></div>`).join('')}` : '';
   const btnIn = document.getElementById('ma-btn-inativar');
   const btnCancelar = document.getElementById('ma-btn-cancelar');
   btnIn.textContent = a.ativo ? 'Inativar aluno' : 'Reativar aluno';
@@ -505,6 +677,7 @@ function fecharModal(id) { document.getElementById(id).classList.remove('open');
 async function toggleInativo() {
   const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
   const novoStatus = !a.ativo;
+  if (!novoStatus && !confirm(`Inativar o aluno "${a.nome}"?\n\nEle deixará de contar nas turmas e relatórios ativos, mas o histórico é mantido.`)) return;
   await sb.from('alunos').update({ ativo: novoStatus }).eq('id', a.id);
   await sb.from('historico').insert({ aluno_id: a.id, descricao: novoStatus ? 'Aluno reativado' : 'Aluno inativado' });
   a.ativo = novoStatus;
@@ -556,9 +729,9 @@ async function salvarEdicao() {
 function abrirModalTransferir() {
   const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
   const t = TURMAS.find(x => x.id === a.turma_id);
-  document.getElementById('transf-info').innerHTML = `<strong>${a.nome}</strong><br><span style="color:var(--text-3);">Turma atual: ${t?.turma} · ${t?.curso} · Prof. ${t?.professor}</span>`;
+  document.getElementById('transf-info').innerHTML = `<strong>${escapeHtml(a.nome)}</strong><br><span style="color:var(--text-3);">Turma atual: ${escapeHtml(t?.turma)} · ${escapeHtml(t?.curso)} · Prof. ${escapeHtml(t?.professor)}</span>`;
   const outras = TURMAS.filter(x => x.id !== a.turma_id);
-  document.getElementById('transf-sel').innerHTML = outras.map(x => `<option value="${x.id}">${x.turma} — ${x.curso} (Prof. ${x.professor})</option>`).join('');
+  document.getElementById('transf-sel').innerHTML = outras.map(x => `<option value="${x.id}">${escapeHtml(x.turma)} — ${escapeHtml(x.curso)} (Prof. ${escapeHtml(x.professor)})</option>`).join('');
   fecharModal('modal-aluno');
   document.getElementById('modal-transferir').classList.add('open');
 }
@@ -609,7 +782,7 @@ async function confirmarTransferencia() {
 
 function abrirModalNovoAluno() {
   document.getElementById('novo-nome').value = '';
-  document.getElementById('novo-turma').innerHTML = TURMAS.map(t => `<option value="${t.id}">${t.turma} — ${t.curso} (Prof. ${t.professor})</option>`).join('');
+  document.getElementById('novo-turma').innerHTML = TURMAS.map(t => `<option value="${t.id}">${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(t.professor)})</option>`).join('');
   document.getElementById('modal-novo').classList.add('open');
 }
 
@@ -638,12 +811,6 @@ function profIniciais(nome) {
   const parts = nome.trim().split(' ').filter(Boolean);
   if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function toggleSenhaMask(id, senha) {
-  const el = document.getElementById('senha-mask-' + id);
-  if (!el) return;
-  el.textContent = el.textContent.includes('•') ? senha : '•'.repeat(senha.length || 8);
 }
 
 function renderProfessores() {
@@ -676,15 +843,10 @@ function renderProfessores() {
       : '';
     return `
       <div class="prof-card">
-        <div class="prof-av" style="background:${cor};">${ini}</div>
+        <div class="prof-av" style="background:${cor};">${escapeHtml(ini)}</div>
         <div class="prof-info">
-          <div class="prof-nome">${p.nome || '—'}</div>
-          <div class="prof-email">${p.email || '—'}</div>
-          <div style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;margin-top:1px;">
-          <span id="senha-mask-${p.id}">${'•'.repeat((p.senha||'').length || 8)}</span>
-          <button onclick="toggleSenhaMask(${p.id},'${(p.senha||'').replace(/'/g,"\\'")}')"
-          style="background:none;border:none;cursor:pointer;color:var(--text-faded);font-size:11px;padding:0 2px;">👁</button>
-          </div>
+          <div class="prof-nome">${escapeHtml(p.nome) || '—'}</div>
+          <div class="prof-email">${escapeHtml(p.email) || '—'}</div>
           <div class="prof-meta">
             ${papelBadge}
             ${euBadge}
@@ -692,7 +854,7 @@ function renderProfessores() {
           </div>
         </div>
         <div class="prof-actions">
-          <button class="btn-edit-prof" onclick="abrirModalEditarProf(${p.id})">✏ Editar</button>
+          <button class="btn-edit-prof" onclick="abrirModalEditarProf(${p.id})" aria-label="Editar professor">✏ Editar</button>
         </div>
       </div>`;
   }).join('');
@@ -719,7 +881,7 @@ async function salvarNovoProf() {
 
   erroEl.style.display = 'none';
   if (!nome) { erroEl.textContent = 'Digite o nome.'; erroEl.style.display = 'block'; return; }
-  if (!email || !email.includes('@')) { erroEl.textContent = 'Digite um e-mail válido.'; erroEl.style.display = 'block'; return; }
+  if (!isEmailValido(email)) { erroEl.textContent = 'Digite um e-mail válido.'; erroEl.style.display = 'block'; return; }
   if (!senha || senha.length < 6) { erroEl.textContent = 'A senha deve ter pelo menos 6 caracteres.'; erroEl.style.display = 'block'; return; }
 
   btn.disabled = true;
@@ -759,7 +921,7 @@ async function salvarNovoProf() {
     // Insere na tabela professores
     const { data: profData, error: profError } = await sb
   .from('professores')
-  .insert({ nome, email, papel, user_id: newUserId, senha })
+  .insert({ nome, email, papel, user_id: newUserId })
   .select()
   .single();
 
@@ -793,7 +955,7 @@ function abrirModalEditarProf(id) {
   profSelecionadoId = id;
   document.getElementById('ep-nome').value = p.nome || '';
   document.getElementById('ep-email').value = p.email || '';
-  document.getElementById('ep-senha').value = p.senha || '';
+  document.getElementById('ep-senha').value = '';
   document.getElementById('ep-senha').type = 'password';
   document.getElementById('ep-papel').value = p.papel || 'professor';
   document.getElementById('ep-erro').style.display = 'none';
@@ -811,12 +973,11 @@ async function salvarEdicaoProf() {
   erroEl.style.display = 'none';
 
   if (!novoNome)  { erroEl.textContent = 'Digite o nome.'; erroEl.style.display = 'block'; return; }
-  if (!novoEmail || !novoEmail.includes('@')) { erroEl.textContent = 'Digite um e-mail válido.'; erroEl.style.display = 'block'; return; }
+  if (!isEmailValido(novoEmail)) { erroEl.textContent = 'Digite um e-mail válido.'; erroEl.style.display = 'block'; return; }
   if (novaSenha && novaSenha.length < 6) { erroEl.textContent = 'A senha deve ter pelo menos 6 caracteres.'; erroEl.style.display = 'block'; return; }
 
 
 const updates = { nome: novoNome, papel: novoPapel, email: novoEmail };
-if (novaSenha) updates.senha = novaSenha;
 
 const { error } = await sb.from('professores').update(updates).eq('id', p.id);
 if (error) { erroEl.textContent = 'Erro ao salvar: ' + error.message; erroEl.style.display = 'block'; return; }
@@ -848,7 +1009,6 @@ if (error) { erroEl.textContent = 'Erro ao salvar: ' + error.message; erroEl.sty
 p.nome  = novoNome;
 p.email = novoEmail;
 p.papel = novoPapel;
-if (novaSenha) p.senha = novaSenha;
 
   if (senhaOk || !novaSenha) {
     fecharModal('modal-editar-prof');
@@ -1062,8 +1222,8 @@ function renderRel() {
     html += `<div style="margin-bottom:1.5rem;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
         <div style="width:9px;height:9px;border-radius:50%;background:${t.cor || '#3b82f6'};flex-shrink:0;"></div>
-        <span style="font-size:14px;font-weight:600;color:var(--text);">${t.turma}</span>
-        <span style="font-size:12px;color:var(--text-3);">· ${t.curso} · Prof. ${t.professor} · ${ativos.length} ativos · freq. média ${fMedia !== null ? fMedia + '%' : '—'}${at > 0 ? ` · <span style="color:var(--red);font-weight:600;">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
+        <span style="font-size:14px;font-weight:600;color:var(--text);">${escapeHtml(t.turma)}</span>
+        <span style="font-size:12px;color:var(--text-3);">· ${escapeHtml(t.curso)} · Prof. ${escapeHtml(t.professor)} · ${ativos.length} ativos · freq. média ${fMedia !== null ? fMedia + '%' : '—'}${at > 0 ? ` · <span style="color:var(--red);font-weight:600;">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
       </div>
       <div class="table-wrap"><table>
         <thead><tr>
@@ -1077,7 +1237,7 @@ function renderRel() {
           <th style="width:12%;">Status</th>
         </tr></thead>
         <tbody>${lista.map(a => `<tr class="clickable ${a.emAlerta && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''}" onclick="abrirModalAluno(${a.id})">
-          <td>${a.nome}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
+          <td>${escapeHtml(a.nome)}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
           <td><div class="dots" style="cursor:pointer;">${(() => { const _c = a.seq.map((v,i)=>({v,i})).filter(x=>x.v!=='N').slice(-8); return _c.map(({v,i}) => `<div class="dot ${v==='P'?'dot-p':v==='R'?'dot-r':v==='F'?'dot-f':'dot-n'}" style="cursor:pointer;transition:transform .1s;" onmouseenter="this.style.transform='scale(1.3)'" onmouseleave="this.style.transform='scale(1)'" onclick="event.stopPropagation();abrirDotMenu(event,${a.id},${t.id},${i})" title="Aula ${i+1}: ${v==='P'?'Presente':v==='R'?'Gravação':v==='F'?'Falta':'Sem registro'}"></div>`).join(''); })()}</div></td>
           <td style="text-align:center;color:var(--green);font-weight:600;">${a.p - a.r}</td>
           <td style="text-align:center;color:var(--amber);font-weight:600;">${a.r > 0 ? a.r : '—'}</td>
@@ -1097,7 +1257,7 @@ function atualizarTurmasAlunos() {
   let turmasFilt = TURMAS;
   if (fCurso) turmasFilt = turmasFilt.filter(t => t.curso === fCurso);
   const ft = document.getElementById('f-turma-alunos');
-  if (ft) ft.innerHTML = '<option value="">Todas</option>' + turmasFilt.map(t => '<option value="'+t.id+'">'+t.turma+' - '+t.curso+'</option>').join('');
+  if (ft) ft.innerHTML = '<option value="">Todas</option>' + turmasFilt.map(t => '<option value="'+t.id+'">'+escapeHtml(t.turma)+' - '+escapeHtml(t.curso)+'</option>').join('');
 }
 
 async function carregarObservacoes(alunoId) {
@@ -1112,7 +1272,7 @@ async function carregarObservacoes(alunoId) {
     const d = h.data_obs ? new Date(h.data_obs + 'T00:00:00').toLocaleDateString('pt-BR') : new Date(h.created_at).toLocaleDateString('pt-BR');
     const cat = OBS_CATEGORIAS.find(c => c.id === h.categoria);
     const catBadge = cat ? `<span class="badge ${cat.badge}" style="font-size:10px;margin-left:6px;">${cat.icon} ${cat.label}</span>` : '';
-    return '<div style="padding:6px 0;border-bottom:1px solid var(--border-2);font-size:12px;color:var(--text);"><div style="display:flex;align-items:center;flex-wrap:wrap;margin-bottom:3px;"><span style="color:var(--text-faded);font-size:11px;">'+d+'</span>'+catBadge+'</div><div>'+h.descricao+'</div></div>';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border-2);font-size:12px;color:var(--text);"><div style="display:flex;align-items:center;flex-wrap:wrap;margin-bottom:3px;"><span style="color:var(--text-faded);font-size:11px;">'+d+'</span>'+catBadge+'</div><div>'+escapeHtml(h.descricao)+'</div></div>';
   }).join('');
 }
 
@@ -1169,54 +1329,6 @@ async function confirmarObservacao() {
 }
 
 // =============================================
-// EDIÇÃO INLINE DE TURMA
-// =============================================
-function editarTituloTurma(tId) {
-  const t = TURMAS.find(x => x.id === tId);
-  const el = document.getElementById('titulo-' + tId);
-  if (!el) return;
-  const input = document.createElement('input');
-  input.className = 'inline-input';
-  input.value = t.turma;
-  el.replaceWith(input);
-  input.focus(); input.select();
-  async function salvar() {
-    const novo = input.value.trim();
-    if (novo && novo !== t.turma) {
-      await sb.from('turmas').update({ turma: novo }).eq('id', tId);
-      t.turma = novo;
-      showToast('Nome da turma atualizado!');
-    }
-    renderDash(); renderTabelaAlunos(); renderRel();
-  }
-  input.onblur = salvar;
-  input.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') { input.onblur = null; renderDash(); } };
-}
-
-function editarProfTurma(tId) {
-  const t = TURMAS.find(x => x.id === tId);
-  const el = document.getElementById('prof-' + tId);
-  if (!el) return;
-  const input = document.createElement('input');
-  input.className = 'inline-input-sm';
-  input.value = t.professor;
-  input.style.width = '140px';
-  el.replaceWith(input);
-  input.focus(); input.select();
-  async function salvar() {
-    const novo = input.value.trim();
-    if (novo && novo !== t.professor) {
-      await sb.from('turmas').update({ professor: novo }).eq('id', tId);
-      t.professor = novo;
-      showToast('Professor atualizado!');
-    }
-    renderDash(); renderTabelaAlunos(); renderRel();
-  }
-  input.onblur = salvar;
-  input.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') { input.onblur = null; renderDash(); } };
-}
-
-// =============================================
 // DOT MENU — EDIÇÃO DE PRESENÇA NO RELATÓRIO
 // =============================================
 function abrirDotMenu(e, alunoId, turmaId, aulaIdx) {
@@ -1228,7 +1340,7 @@ function abrirDotMenu(e, alunoId, turmaId, aulaIdx) {
       dotMenuContext = null; return;
     }
   }
-  const key = `${turmaId}_${AULAS[aulaIdx]}`;
+  const key = `${turmaId}_${aulasDaTurma(TURMAS.find(x => x.id === turmaId))[aulaIdx]}`;
   const atual = (PRESENCAS[key] && PRESENCAS[key][alunoId]) || null;
   dotMenuContext = { alunoId, turmaId, aulaIdx };
   const opcoes = [
@@ -1253,7 +1365,7 @@ function abrirDotMenu(e, alunoId, turmaId, aulaIdx) {
 
 async function selecionarStatusDot(novoVal) {
   const { alunoId, turmaId, aulaIdx } = dotMenuContext;
-  const aula = AULAS[aulaIdx];
+  const aula = aulasDaTurma(TURMAS.find(x => x.id === turmaId))[aulaIdx];
   const key = `${turmaId}_${aula}`;
   if (!PRESENCAS[key]) PRESENCAS[key] = {};
   const atual = PRESENCAS[key][alunoId] || null;
@@ -1339,11 +1451,12 @@ async function exportarExcel() {
     TURMAS.forEach(t => {
       const alunosDaTurma = ALUNOS.filter(a => a.turma_id === t.id);
       if (!alunosDaTurma.length) return;
-      const aulasComDados = AULAS.filter(aula => {
+      const aulasTurma = aulasDaTurma(t);
+      const aulasComDados = aulasTurma.filter(aula => {
         const key = `${t.id}_${aula}`;
         return PRESENCAS[key] && Object.keys(PRESENCAS[key]).length > 0;
       });
-      const aulasCols = aulasComDados.length > 0 ? aulasComDados : AULAS;
+      const aulasCols = aulasComDados.length > 0 ? aulasComDados : aulasTurma;
       const header = ['Aluno', 'Status', ...aulasCols, 'Presenças', 'Faltas', '% Freq.', 'Faltas Consec.'];
       const rows = [
         [t.turma + ' — ' + t.curso + ' — Prof. ' + t.professor],
@@ -1411,107 +1524,79 @@ async function exportarExcel() {
 }
 
 // =============================================
-// HORÁRIO DE TURMA
+// EDITAR TURMA (nome, curso, professor, cor, horário)
 // =============================================
-let horarioTurmaAtualId = null;
+let turmaEmEdicaoId = null;
 
-function abrirModalHorario(tId) {
+function abrirModalEditarTurma(tId) {
   const t = TURMAS.find(x => x.id === tId);
   if (!t) return;
-  horarioTurmaAtualId = tId;
+  turmaEmEdicaoId = tId;
 
-  document.getElementById('ht-turma-nome').textContent = t.turma;
-  document.getElementById('ht-turma-sub').textContent = `${t.curso} · Prof. ${t.professor}`;
-  document.getElementById('ht-erro').style.display = 'none';
-  document.getElementById('ht-btn-limpar').style.display = t.horario_inicio ? '' : 'none';
+  document.getElementById('et-nome').value = t.turma;
+  document.getElementById('et-curso').value = t.curso;
+  document.getElementById('et-professor').value = t.professor;
+  document.getElementById('et-erro').style.display = 'none';
 
-  // Preenche selects de hora (00-23) e minuto (de 5 em 5)
-  const selHora = document.getElementById('ht-hora');
-  const selMin  = document.getElementById('ht-minuto');
-  selHora.innerHTML = Array.from({length: 24}, (_, h) =>
-    `<option value="${String(h).padStart(2,'0')}">${String(h).padStart(2,'0')}</option>`).join('');
-  selMin.innerHTML = ['00','05','10','15','20','25','30','35','40','45','50','55']
-    .map(m => `<option value="${m}">${m}</option>`).join('');
+  const cursos = [...new Set(TURMAS.map(x => x.curso))].sort();
+  document.getElementById('et-curso-list').innerHTML = cursos.map(c => `<option value="${escapeHtml(c)}">`).join('');
 
-  // Valores salvos (ou padrão 19:00)
-  const [h, m] = (t.horario_inicio ? t.horario_inicio.slice(0,5) : '19:00').split(':');
-  selHora.value = h;
-  selMin.value = m;
+  const corAtual = t.cor || TURMA_CORES[0];
+  document.getElementById('et-cor').value = corAtual;
+  document.getElementById('et-cor-picker').innerHTML = TURMA_CORES.map(cor =>
+    `<button type="button" class="cor-swatch ${cor === corAtual ? 'selected' : ''}" style="background:${cor};" title="${cor}" aria-label="Cor ${cor}" onclick="selecionarCorEditarTurma('${cor}', this)"></button>`
+  ).join('');
 
-  // Marcar dias salvos
-  const diasSalvos = t.dias_semana || [];
-  document.querySelectorAll('#ht-dias-grid .dia-check').forEach(label => {
-    const val = label.dataset.dia;
-    const check = label.querySelector('input');
-    const selecionado = diasSalvos.includes(val);
-    check.checked = selecionado;
-    label.classList.toggle('selecionado', selecionado);
-    label.onclick = function() {
-      const c = this.querySelector('input');
-      c.checked = !c.checked;
-      this.classList.toggle('selecionado', c.checked);
-    };
-  });
-
-  marcarPresetAtivo();
-  document.getElementById('modal-horario-turma').classList.add('open');
+  preencherSelectTotalAulas('et', t.total_aulas);
+  preencherSelectsHorario('et', t.horario_inicio);
+  preencherDiasGrid('et', t.dias_semana);
+  marcarPresetAtivo('et');
+  document.getElementById('modal-editar-turma').classList.add('open');
 }
 
-function aplicarPreset(horario) {
-  const [h, m] = horario.split(':');
-  document.getElementById('ht-hora').value = h;
-  document.getElementById('ht-minuto').value = m;
-  marcarPresetAtivo();
+function selecionarCorEditarTurma(cor, btn) {
+  document.getElementById('et-cor').value = cor;
+  btn.parentElement.querySelectorAll('.cor-swatch').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
 }
 
-function marcarPresetAtivo() {
-  const atual = document.getElementById('ht-hora').value + ':' + document.getElementById('ht-minuto').value;
-  document.querySelectorAll('#ht-presets .preset-btn').forEach(b => {
-    b.classList.toggle('ativo', b.textContent === atual);
-  });
-}
-
-async function salvarHorarioTurma() {
-  const t = TURMAS.find(x => x.id === horarioTurmaAtualId);
+async function salvarEditarTurma() {
+  const t = TURMAS.find(x => x.id === turmaEmEdicaoId);
   if (!t) return;
 
-  const horario = document.getElementById('ht-hora').value + ':' + document.getElementById('ht-minuto').value;
-  const diasSelecionados = [...document.querySelectorAll('#ht-dias-grid .dia-check input:checked')].map(i => i.value);
-  const erroEl = document.getElementById('ht-erro');
+  const nome = document.getElementById('et-nome').value.trim();
+  const curso = document.getElementById('et-curso').value.trim();
+  const professor = document.getElementById('et-professor').value.trim();
+  const cor = document.getElementById('et-cor').value || TURMA_CORES[0];
+  const erroEl = document.getElementById('et-erro');
   erroEl.style.display = 'none';
 
-  if (!horario) { erroEl.textContent = 'Selecione um horário de início.'; erroEl.style.display = 'block'; return; }
-  if (!diasSelecionados.length) { erroEl.textContent = 'Selecione pelo menos um dia de aula.'; erroEl.style.display = 'block'; return; }
+  if (!nome) { erroEl.textContent = 'Digite o nome da turma.'; erroEl.style.display = 'block'; return; }
+  if (!curso) { erroEl.textContent = 'Digite o curso.'; erroEl.style.display = 'block'; return; }
+  if (!professor) { erroEl.textContent = 'Digite o professor.'; erroEl.style.display = 'block'; return; }
 
-  const { error } = await sb.from('turmas').update({
-    horario_inicio: horario + ':00',
-    dias_semana: diasSelecionados
-  }).eq('id', t.id);
+  const diasSelecionados = lerDiasSelecionados('et');
+  const horario = lerHorarioSelecionado('et');
+  const totalAulas = lerTotalAulas('et');
+  const updates = {
+    turma: nome,
+    curso,
+    professor,
+    cor,
+    total_aulas: totalAulas,
+    horario_inicio: diasSelecionados.length ? horario + ':00' : null,
+    dias_semana: diasSelecionados.length ? diasSelecionados : null
+  };
 
+  const { error } = await sb.from('turmas').update(updates).eq('id', t.id);
   if (error) { erroEl.textContent = 'Erro ao salvar: ' + error.message; erroEl.style.display = 'block'; return; }
 
-  t.horario_inicio = horario + ':00';
-  t.dias_semana = diasSelecionados;
+  Object.assign(t, updates);
 
-  fecharModal('modal-horario-turma');
-  showToast('Horário configurado! Notificações automáticas ativas.', 'green');
-  renderDash();
-}
-
-async function limparHorarioTurma() {
-  const t = TURMAS.find(x => x.id === horarioTurmaAtualId);
-  if (!t) return;
-  if (!confirm(`Remover o horário configurado da turma "${t.turma}"?\n\nAs notificações automáticas serão desativadas para esta turma.`)) return;
-
-  const { error } = await sb.from('turmas').update({ horario_inicio: null, dias_semana: null }).eq('id', t.id);
-  if (error) { showToast('Erro ao remover horário.', 'red'); return; }
-
-  t.horario_inicio = null;
-  t.dias_semana = null;
-
-  fecharModal('modal-horario-turma');
-  showToast('Horário removido. Notificações desativadas para esta turma.', 'blue');
-  renderDash();
+  fecharModal('modal-editar-turma');
+  showToast('Turma atualizada!');
+  popularFiltros();
+  renderDash(); renderTabelaAlunos(); renderRel();
 }
 
 // =============================================
