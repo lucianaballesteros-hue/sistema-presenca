@@ -368,15 +368,55 @@ function renderDash() {
   }).join('') || '<div class="empty">Nenhuma turma encontrada.</div>';
 }
 
+const MARCA_INATIVACAO_AUTO = 'Aluno inativado automaticamente (turma inativada)';
+const MARCA_REATIVACAO_AUTO = 'Aluno reativado automaticamente (turma reativada)';
+
 async function toggleTurmaAtiva(tId) {
   const t = TURMAS.find(x => x.id === tId);
   if (!t) return;
   const estaAtiva = t.ativa !== false;
-  if (estaAtiva && !confirm(`Inativar a turma "${t.turma}"?\n\nEla deixará de aparecer na lista principal (fica disponível em "Turmas inativas"), mas todos os dados de alunos e presença são mantidos.`)) return;
+  if (estaAtiva && !confirm(`Inativar a turma "${t.turma}"?\n\nTodos os alunos ativos dessa turma serão inativados automaticamente. Ao reativar a turma, esses mesmos alunos voltam a ficar ativos. Alunos já cancelados/inativados manualmente não são afetados. Dados de alunos e presença são mantidos.`)) return;
   const novoStatus = !estaAtiva;
+
   const { error } = await sb.from('turmas').update({ ativa: novoStatus }).eq('id', tId);
   if (error) { showToast('Erro ao atualizar turma.', 'red'); console.error(error); return; }
   t.ativa = novoStatus;
+
+  if (!novoStatus) {
+    // Inativando turma: inativa somente os alunos que estão ativos agora
+    const afetados = ALUNOS.filter(a => a.turma_id === tId && a.ativo);
+    if (afetados.length) {
+      const ids = afetados.map(a => a.id);
+      const { error: errAl } = await sb.from('alunos').update({ ativo: false }).in('id', ids);
+      if (errAl) {
+        console.error(errAl);
+        showToast('Turma inativada, mas houve erro ao inativar os alunos.', 'red');
+      } else {
+        await sb.from('historico').insert(ids.map(id => ({ aluno_id: id, descricao: MARCA_INATIVACAO_AUTO })));
+        afetados.forEach(a => a.ativo = false);
+      }
+    }
+  } else {
+    // Reativando turma: reativa somente os alunos cuja última movimentação foi a inativação automática desta turma
+    // (alunos cancelados/inativados manualmente antes disso permanecem inativos)
+    const candidatos = ALUNOS.filter(a => a.turma_id === tId && !a.ativo).filter(a => {
+      const ultimo = HISTORICO.find(h => h.aluno_id === a.id);
+      return ultimo?.descricao === MARCA_INATIVACAO_AUTO;
+    });
+    if (candidatos.length) {
+      const ids = candidatos.map(a => a.id);
+      const { error: errAl } = await sb.from('alunos').update({ ativo: true }).in('id', ids);
+      if (errAl) {
+        console.error(errAl);
+        showToast('Turma reativada, mas houve erro ao reativar os alunos.', 'red');
+      } else {
+        await sb.from('historico').insert(ids.map(id => ({ aluno_id: id, descricao: MARCA_REATIVACAO_AUTO })));
+        candidatos.forEach(a => a.ativo = true);
+      }
+    }
+  }
+
+  await carregarHistorico();
   showToast(novoStatus ? 'Turma reativada!' : 'Turma inativada.');
   renderDash(); renderRel();
 }
@@ -673,6 +713,12 @@ document.getElementById('ma-aulas').innerHTML = _aulasCom.map(({v,i}) => {
 }
 
 function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('mousedown', e => {
+    if (e.target === bg) fecharModal(bg.id);
+  });
+});
 
 async function toggleInativo() {
   const a = ALUNOS.find(x => x.id === alunoSelecionadoId);
