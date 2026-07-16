@@ -475,7 +475,7 @@ tr.clickable:hover td{background:var(--surface-hover-2);}
 #upd-btn:hover{background:#e2e2e2;}
 #upd-x{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;line-height:1;padding:0 2px;}
 #upd-x:hover{color:#fff;}
-
+ 
 /* ============================================
    RESPONSIVIDADE MOBILE
    ============================================ */
