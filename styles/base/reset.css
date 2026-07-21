@@ -1,0 +1,4 @@
+/* RESET / BASE */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);transition:background .2s,color .2s;}
+a{color:inherit;text-decoration:none;}

@@ -1,0 +1,14 @@
+/* BADGES */
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500;white-space:nowrap;display:inline-block;}
+.badge-blue{background:var(--primary-soft);color:var(--primary-soft-text);}
+.badge-green{background:var(--green-soft);color:var(--green-soft-text);}
+.badge-amber{background:var(--amber-soft);color:var(--amber-soft-text);}
+.badge-red{background:var(--red-soft);color:var(--red-soft-text);}
+.badge-gray{background:var(--gray-soft);color:var(--gray-soft-text);}
+.badge-purple{background:var(--purple-soft);color:var(--purple-soft-text);}
+.badge-pink{background:var(--pink-soft);color:var(--pink-soft-text);}
+
+/* PILLS DE FILTRO POR CURSO */
+.curso-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
+.cpill{padding:5px 14px;border-radius:99px;font-size:12px;cursor:pointer;border:1px solid var(--border-input);background:var(--surface);color:var(--text-2);font-weight:500;}
+.cpill.active{background:var(--primary);color:#fff;border-color:var(--primary);}

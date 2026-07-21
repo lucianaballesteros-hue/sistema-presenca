@@ -1,0 +1,12 @@
+/* LOGIN */
+#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--login-bg);padding:1rem;}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;width:320px;box-shadow:var(--shadow-sm);}
+.logo-box{text-align:center;margin-bottom:1.5rem;}
+.logo-icon{width:44px;height:44px;background:var(--primary-soft);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;}
+.logo-box h1{font-size:17px;font-weight:600;color:var(--text);}
+.logo-box p{font-size:12px;color:var(--text-3);margin-top:3px;}
+.err{font-size:11px;color:var(--red);margin-top:5px;display:none;}
+
+@media(max-width:480px){
+  .login-card{width:100%;max-width:320px;padding:1.5rem;}
+}
