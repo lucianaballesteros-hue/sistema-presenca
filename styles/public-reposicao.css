@@ -1,0 +1,70 @@
+/* Página pública de reposição — autocontida, não depende de theme-tokens.css
+   (essa página é deliberadamente separada do painel interno). Segue o tema
+   claro/escuro do sistema operacional do aluno/responsável, sem alternador. */
+:root{
+  --bg:#f5f5f5; --surface:#ffffff; --surface-2:#f9fafb; --border:#e5e5e5;
+  --text:#111111; --text-2:#555555; --text-3:#777777;
+  --primary:#1d4ed8; --primary-hover:#1e40af; --primary-soft:#dbeafe;
+  --green:#059669; --shadow:0 8px 32px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f172a; --surface:#1e293b; --surface-2:#172033; --border:#334155;
+    --text:#e2e8f0; --text-2:#cbd5e1; --text-3:#94a3b8;
+    --primary:#3b82f6; --primary-hover:#60a5fa; --primary-soft:#1e3a8a;
+    --green:#34d399; --shadow:0 8px 32px rgba(0,0,0,.4);
+  }
+}
+
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);}
+
+.page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px;}
+
+.brand{margin-bottom:20px;}
+.brand-logo{height:28px;width:auto;}
+.brand-logo-dark{display:none;}
+@media (prefers-color-scheme: dark){
+  .brand-logo-light{display:none;}
+  .brand-logo-dark{display:inline-block;}
+}
+
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  box-shadow:var(--shadow);padding:28px 24px;width:100%;max-width:440px;text-align:center;
+}
+.icone{font-size:32px;margin-bottom:8px;}
+h1{font-size:19px;margin:0 0 8px;color:var(--text);}
+.sub{font-size:13px;color:var(--text-2);margin:0 0 4px;}
+.muted{font-size:12px;color:var(--text-3);}
+.instrucao{font-size:13px;color:var(--text-2);margin:16px 0 12px;text-align:left;}
+
+.opcoes{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.opcao-card{
+  display:block;width:100%;text-align:left;background:var(--surface-2);
+  border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;
+  font-family:inherit;cursor:pointer;color:var(--text);
+}
+button.opcao-card:hover{border-color:var(--primary);}
+.opcao-card.selecionada{border-color:var(--primary);background:var(--primary-soft);}
+.opcao-data{font-size:13px;font-weight:700;color:var(--text);}
+.opcao-turma{font-size:12px;color:var(--text-2);margin-top:2px;}
+.opcao-prof{font-size:11px;color:var(--text-3);margin-top:2px;}
+.opcao-obs{font-size:11px;color:var(--text-3);margin-top:4px;font-style:italic;}
+
+.btn-confirmar{
+  width:100%;padding:12px;background:var(--primary);color:#fff;border:none;
+  border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;
+}
+.btn-confirmar:hover{background:var(--primary-hover);}
+.btn-confirmar:disabled{opacity:.5;cursor:not-allowed;}
+
+.erro{font-size:12px;color:#dc2626;margin-top:10px;min-height:16px;}
+
+.spinner{
+  width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--primary);
+  border-radius:50%;margin:0 auto 12px;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.footer-note{font-size:11px;color:var(--text-3);margin-top:20px;text-align:center;}
