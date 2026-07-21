@@ -1,9 +1,0 @@
-/* NAV */
-.nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 1.5rem;gap:2px;position:sticky;top:52px;z-index:99;}
-.nav-btn{padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-1px;}
-.nav-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:500;}
-
-@media(max-width:768px){
-  .nav{padding:0 .5rem;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .nav-btn{padding:10px 10px;white-space:nowrap;}
-}
