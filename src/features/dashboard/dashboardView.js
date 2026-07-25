@@ -72,7 +72,7 @@ export function renderDash() {
         <span><span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso)}</span>${inativa ? ' <span class="badge badge-gray">Inativa</span>' : ''}</span>
         <span>Prof. ${escapeHtml(t.professor)}</span>
         <span>${al.length} alunos${at > 0 ? ` · <span style="color:var(--red);font-weight:600;cursor:pointer;border-bottom:1.5px dashed var(--red);padding-bottom:1px;" onclick="irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
-        <span>${ultimaAula ? `<span class="badge badge-blue" title="Última aula com presença registrada">Ultima Aula: ${ultimaAula}</span>` : `<span class="badge badge-gray" title="Nenhuma presença registrada ainda">Sem aulas registradas</span>`}</span>
+        <span>${ultimaAula ? `<span class="badge badge-blue" title="Última aula com presença registrada">Ultima: ${ultimaAula}</span>` : `<span class="badge badge-gray" title="Nenhuma presença registrada ainda">Sem aulas registradas</span>`}</span>
         <div>${horarioTag}</div>
       </div>
       ${inativa
