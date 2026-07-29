@@ -1,0 +1,21 @@
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
+.header-logo{font-size:15px;font-weight:600;color:var(--text);}
+.hright{display:flex;align-items:center;gap:8px;}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--primary-soft);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--primary-soft-text);}
+.logout-btn{font-size:12px;color:var(--text-3);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;}
+.logout-btn:hover{background:var(--surface-hover);}
+
+/* LOGO (troca claro/escuro) */
+.header-logo img { height: 30px; }
+.header-logo .logo-dark { display: none; }
+.header-logo .logo-light { display: block; }
+[data-theme="dark"] .header-logo .logo-light { display: none; }
+[data-theme="dark"] .header-logo .logo-dark { display: block; }
+
+@media(max-width:768px){
+  .header{padding:0 1rem;}
+}
+@media(max-width:480px){
+  .hright span{display:none;}
+}
