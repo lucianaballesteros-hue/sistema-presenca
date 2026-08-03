@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="app-version" content="12"/>
+  <title>Sistema de Presença</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='8' height='8' rx='2' fill='%231d4ed8'/%3E%3Crect x='13' y='3' width='8' height='8' rx='2' fill='%2393c5fd'/%3E%3Crect x='3' y='13' width='8' height='8' rx='2' fill='%2393c5fd'/%3E%3Crect x='13' y='13' width='8' height='8' rx='2' fill='%231d4ed8'/%3E%3C/svg%3E"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
+  <script>
+    // Aplica o tema imediatamente, antes do CSS carregar, para evitar flash
+    (function() {
+      try {
+        var t = localStorage.getItem('tema') || 'claro';
+        if (t === 'escuro') document.documentElement.setAttribute('data-theme', 'dark');
+      } catch(e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="styles/base/reset.css"/>
+  <link rel="stylesheet" href="styles/base/theme-tokens.css"/>
+  <link rel="stylesheet" href="styles/layout/header.css"/>
+  <link rel="stylesheet" href="styles/layout/nav.css"/>
+  <link rel="stylesheet" href="styles/layout/content.css"/>
+  <link rel="stylesheet" href="styles/components/login.css"/>
+  <link rel="stylesheet" href="styles/components/buttons.css"/>
+  <link rel="stylesheet" href="styles/components/badges.css"/>
+  <link rel="stylesheet" href="styles/components/forms.css"/>
+  <link rel="stylesheet" href="styles/components/cards.css"/>
+  <link rel="stylesheet" href="styles/components/tables.css"/>
+  <link rel="stylesheet" href="styles/components/modals.css"/>
+  <link rel="stylesheet" href="styles/components/dots.css"/>
+  <link rel="stylesheet" href="styles/components/multiselect.css"/>
+  <link rel="stylesheet" href="styles/components/toast.css"/>
+  <link rel="stylesheet" href="styles/components/reposicoes.css"/>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div class="login-card">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:.5rem;">
+      <button class="theme-toggle" onclick="toggleTema()" title="Alternar tema claro/escuro" aria-label="Alternar tema">
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+    <div class="logo-box">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="8" height="8" rx="2" fill="#1d4ed8"/>
+          <rect x="13" y="3" width="8" height="8" rx="2" fill="#93c5fd"/>
+          <rect x="3" y="13" width="8" height="8" rx="2" fill="#93c5fd"/>
+          <rect x="13" y="13" width="8" height="8" rx="2" fill="#1d4ed8"/>
+        </svg>
+      </div>
+      <h1>Sistema de Presença</h1>
+      <p>Gestão de turmas e frequência</p>
+    </div>
+    <div class="field">
+      <label>E-mail</label>
+      <input type="email" id="inp-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')document.getElementById('inp-senha').focus()"/>
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="inp-senha" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()"/>
+      <div class="err" id="login-err">E-mail ou senha incorretos.</div>
+    </div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+    <div style="text-align:center;margin-top:.75rem;">
+      <a href="#" onclick="event.preventDefault();abrirRecuperarSenha()" style="font-size:12px;color:var(--text-3);text-decoration:underline;">Esqueci minha senha</a>
+    </div>
+  </div>
+</div>
+
+<!-- RECUPERAR SENHA (passo 1: pedir o link por e-mail) -->
+<div id="recover-request-page" style="display:none;">
+  <div class="login-card">
+    <div class="logo-box">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="8" height="8" rx="2" fill="#1d4ed8"/>
+          <rect x="13" y="3" width="8" height="8" rx="2" fill="#93c5fd"/>
+          <rect x="3" y="13" width="8" height="8" rx="2" fill="#93c5fd"/>
+          <rect x="13" y="13" width="8" height="8" rx="2" fill="#1d4ed8"/>
+        </svg>
+      </div>
+      <h1>Recuperar senha</h1>
+      <p>Informe seu e-mail para receber o link de redefinição</p>
+    </div>
+    <div class="field">
+      <label>E-mail</label>
+      <input type="email" id="rec-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')enviarLinkRecuperacao()"/>
+      <div class="err" id="rec-err">Erro ao enviar o link.</div>
+    </div>
+    <button class="btn-primary" id="btn-rec-enviar" onclick="enviarLinkRecuperacao()">Enviar link de recuperação</button>
+    <div style="text-align:center;margin-top:.75rem;">
+      <a href="#" onclick="event.preventDefault();voltarParaLogin()" style="font-size:12px;color:var(--text-3);text-decoration:underline;">Voltar para o login</a>
+    </div>
+  </div>
+</div>
+
+<!-- RECUPERAR SENHA (passo 2: definir nova senha — aberto pelo link do e-mail) -->
+<div id="recovery-page" style="display:none;">
+  <div class="login-card">
+    <div class="logo-box">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="8" height="8" rx="2" fill="#1d4ed8"/>
+          <rect x="13" y="3" width="8" height="8" rx="2" fill="#93c5fd"/>
+          <rect x="3" y="13" width="8" height="8" rx="2" fill="#93c5fd"/>
+          <rect x="13" y="13" width="8" height="8" rx="2" fill="#1d4ed8"/>
+        </svg>
+      </div>
+      <h1>Definir nova senha</h1>
+      <p>Escolha uma nova senha para sua conta</p>
+    </div>
+    <div class="field">
+      <label>Nova senha</label>
+      <div class="senha-wrap">
+        <input type="password" id="rec-nova-senha" placeholder="Nova senha" onkeydown="if(event.key==='Enter')document.getElementById('rec-confirma-senha').focus()"/>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-nova-senha',this)" aria-label="Mostrar ou ocultar senha">👁</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Confirmar nova senha</label>
+      <div class="senha-wrap">
+        <input type="password" id="rec-confirma-senha" placeholder="Repita a nova senha" onkeydown="if(event.key==='Enter')salvarNovaSenhaRecuperacao()"/>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-confirma-senha',this)" aria-label="Mostrar ou ocultar senha">👁</button>
+      </div>
+    </div>
+    <div id="rec-nova-erro" class="field-error" style="margin-top:-4px;"></div>
+    <button class="btn-primary" id="btn-rec-salvar" onclick="salvarNovaSenhaRecuperacao()">Salvar nova senha</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <div class="header">
+    <div class="header-logo" onclick="location.reload()" style="cursor:pointer;">
+      <img class="logo-light" src="img/finexperts_pos%20preto.png" alt="Financial Experts" />
+      <img class="logo-dark" src="img/financial-experts%20branco.png" alt="Financial Experts" />
+    </div>
+    <div class="hright">
+      <button class="theme-toggle" onclick="toggleTema()" title="Alternar tema claro/escuro" aria-label="Alternar tema">
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <div class="avatar" id="av">--</div>
+      <span style="font-size:13px;color:var(--text-2);" id="hname"></span>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="goTab('turmas')">Turmas</button>
+    <button class="nav-btn" onclick="goTab('alunos')">Alunos</button>
+    <button class="nav-btn" onclick="goTab('relatorio')">Relatórios</button>
+    <button class="nav-btn" onclick="goTab('metricas')">Métricas</button>
+    <button class="nav-btn" onclick="goTab('reposicoes')">Reposições</button>
+    <button class="nav-btn hidden" id="nav-prof" onclick="goTab('professores')">Professores</button>
+  </div>
+  <div class="content">
+
+    <!-- TAB TURMAS -->
+    <div id="tab-turmas" class="screen active">
+      <div id="dash-view">
+        <div class="stats-row" id="stats-area"></div>
+        <div class="flex-row" style="gap:10px;margin-bottom:.75rem;">
+          <div class="curso-pills" id="curso-pills" style="margin:0;flex:1;"></div>
+          <input type="text" id="busca-turmas" class="search-input" placeholder="Buscar turma..." oninput="renderDash()" style="width:200px;">
+          <button class="btn-save" onclick="abrirModalNovaTurma()">+ Nova turma</button>
+        </div>
+        <div id="turmas-grid" class="turmas-grid"></div>
+        <div id="turmas-mostrar-mais-wrap" style="text-align:center;margin-top:.75rem;"></div>
+      </div>
+      <div id="chamada-view" style="display:none;">
+        <button class="back-btn" onclick="voltarDash()">← Voltar para turmas</button>
+        <div class="chamada-top">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);" id="ch-titulo"></div>
+            <div class="text-caption" id="ch-sub" style="margin-top:2px;"></div>
+          </div>
+          <div class="flex-row">
+            <label style="font-size:12px;color:var(--text-2);font-weight:500;">Aula:</label>
+            <select id="aula-sel" onchange="renderChamada()" style="font-size:13px;padding:5px 9px;border:1px solid var(--border-input);border-radius:6px;background:var(--surface);color:var(--text);"></select>
+            <span id="chamada-status" style="font-size:12px;color:var(--green);font-weight:500;"></span>
+          </div>
+        </div>
+        <div class="chamada-counters" id="ch-counters"></div>
+        <div class="alunos-list" id="alunos-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB ALUNOS -->
+    <div id="tab-alunos" class="screen">
+      <div class="toolbar-row">
+        <div class="filter-bar" style="margin:0;flex:1;">
+          <label>Buscar:</label>
+          <input type="text" id="busca-alunos" placeholder="Nome do aluno..." oninput="renderTabelaAlunos()">
+          <label>Curso:</label>
+          <select id="f-curso-alunos" onchange="atualizarTurmasAlunos();renderTabelaAlunos()">
+            <option value="">Todos</option>
+          </select>
+          <label>Turma:</label>
+          <select id="f-turma-alunos" onchange="renderTabelaAlunos()">
+            <option value="">Todas</option>
+          </select>
+          <div class="flex-row" style="gap:6px;">
+            <label style="margin:0;">Status:</label>
+            <select id="f-status-alunos" onchange="renderTabelaAlunos()">
+              <option value="">Todos</option>
+              <option value="ativo">Ativos</option>
+              <option value="inativo">Inativos</option>
+              <option value="cancelado">Cancelados</option>
+              <option value="alerta">Alerta (3 seguidas)</option>
+              <option value="irregular">Irregular (&lt;70%)</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-save" onclick="abrirModalNovoAluno()">+ Novo aluno</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th style="width:30%;">Aluno</th>
+          <th style="width:14%;">Curso</th>
+          <th style="width:14%;">Turma</th>
+          <th style="width:7%;text-align:center;">P</th>
+          <th style="width:7%;text-align:center;">R</th>
+          <th style="width:7%;text-align:center;">F</th>
+          <th style="width:9%;text-align:center;">Consec.</th>
+          <th style="width:12%;">Freq.</th>
+        </tr></thead>
+        <tbody id="tbody-alunos"></tbody>
+      </table></div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:.5rem;" id="alunos-count"></div>
+      <div id="alunos-mostrar-mais-wrap" style="text-align:center;margin-top:.75rem;"></div>
+    </div>
+
+    <!-- TAB RELATORIO -->
+    <div id="tab-relatorio" class="screen">
+      <div class="filter-bar" style="gap:10px;flex-wrap:wrap;">
+        <label>Curso:</label>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="curso-multi-btn" onclick="toggleMultiDropdown(event,'curso-multi-panel')">
+            <span id="curso-multi-label">Todos</span><span class="hint-text">▾</span>
+          </button>
+          <div class="multi-select-panel" id="curso-multi-panel"></div>
+        </div>
+        <label>Professor:</label>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="prof-multi-btn" onclick="toggleMultiDropdown(event,'prof-multi-panel')">
+            <span id="prof-multi-label">Todos</span><span class="hint-text">▾</span>
+          </button>
+          <div class="multi-select-panel" id="prof-multi-panel"></div>
+        </div>
+        <label>Turma:</label>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="turma-rel-multi-btn" onclick="toggleMultiDropdown(event,'turma-rel-multi-panel')">
+            <span id="turma-rel-multi-label">Todas</span><span class="hint-text">▾</span>
+          </button>
+          <div class="multi-select-panel" id="turma-rel-multi-panel" style="max-height:220px;overflow-y:auto;"></div>
+        </div>
+        <label>Mostrar:</label>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="tipo-multi-btn" onclick="toggleMultiDropdown(event,'tipo-multi-panel')">
+            <span id="tipo-multi-label">Todos</span><span class="hint-text">▾</span>
+          </button>
+          <div class="multi-select-panel" id="tipo-multi-panel">
+            <label class="multi-check"><input type="checkbox" value="alerta" onchange="onMultiCheck('tipo-multi-panel','tipo-multi-btn','tipo-multi-label')"> Alertas (3 seguidas)</label>
+            <label class="multi-check"><input type="checkbox" value="irregular" onchange="onMultiCheck('tipo-multi-panel','tipo-multi-btn','tipo-multi-label')"> Irregulares (&lt;70%)</label>
+          </div>
+        </div>
+        <label>Status:</label>
+        <div class="multi-select-wrap">
+          <button type="button" class="multi-select-btn" id="status-multi-btn" onclick="toggleMultiDropdown(event,'status-multi-panel')">
+            <span id="status-multi-label">Todos</span><span class="hint-text">▾</span>
+          </button>
+          <div class="multi-select-panel" id="status-multi-panel">
+            <label class="multi-check"><input type="checkbox" value="regular" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Regular</label>
+            <label class="multi-check"><input type="checkbox" value="atencao" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Atenção</label>
+            <label class="multi-check"><input type="checkbox" value="alerta-status" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> ⚠ Alerta</label>
+            <label class="multi-check"><input type="checkbox" value="cancelado" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Cancelados</label>
+          </div>
+        </div>
+        <button onclick="exportarExcel()" id="btn-exportar" style="margin-left:auto;padding:7px 16px;background:var(--green);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
+      </div>
+      <div id="rel-area"></div>
+    </div>
+
+    <!-- TAB MÉTRICAS -->
+    <div id="tab-metricas" class="screen">
+
+      <!-- VISÃO GERAL -->
+      <div class="metr-section">
+        <div class="metr-section-header">
+          <span class="metr-section-icon">📊</span>
+          <span class="metr-section-title">Visão Geral</span>
+        </div>
+        <div class="metr-table-wrap">
+          <table class="metr-table" id="metr-visao-geral"></table>
+        </div>
+      </div>
+
+      <!-- DIMENSIONAMENTO POR CURSO -->
+      <div class="metr-section">
+        <div class="metr-section-header">
+          <span class="metr-section-icon">≡</span>
+          <span class="metr-section-title">Dimensionamento por Curso</span>
+        </div>
+        <div class="metr-table-wrap">
+          <table class="metr-table" id="metr-tabela-curso"></table>
+        </div>
+      </div>
+
+      <!-- FREQUÊNCIA E DESEMPENHO -->
+      <div class="metr-section">
+        <div class="metr-section-header">
+          <span class="metr-section-icon">📈</span>
+          <span class="metr-section-title">Frequência e Desempenho</span>
+        </div>
+        <div class="metr-table-wrap">
+          <table class="metr-table" id="metr-frequencia"></table>
+        </div>
+      </div>
+
+      <!-- EVASÃO E MOVIMENTAÇÃO -->
+      <div class="metr-section">
+        <div class="metr-section-header">
+          <span class="metr-section-icon">↔</span>
+          <span class="metr-section-title">Evasão e Movimentação</span>
+        </div>
+        <div class="metr-table-wrap">
+          <table class="metr-table" id="metr-movimentacao"></table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB REPOSIÇÕES -->
+    <div id="tab-reposicoes" class="screen">
+      <div class="toolbar-row">
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);">Reposições</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Crie um link para o aluno (ou responsável) marcar a reposição de uma aula perdida</div>
+        </div>
+      </div>
+      <div class="hint-box">
+        💡 Para criar uma reposição, abra o aluno na aba <strong>Alunos</strong> e clique em <strong>"Criar reposição"</strong>. Aqui você acompanha os links já enviados.
+      </div>
+      <div class="flex-row" style="gap:10px;margin:1rem 0;">
+        <div class="filter-bar" style="margin:0;flex:1;">
+          <label>Buscar:</label>
+          <input type="text" id="busca-reposicoes" placeholder="Nome do aluno..." oninput="aplicarFiltroReposicoes()">
+          <label>Status:</label>
+          <select id="f-status-reposicoes" onchange="aplicarFiltroReposicoes()">
+            <option value="">Todos</option>
+            <option value="aberta">Aguardando escolha</option>
+            <option value="agendada">Agendada</option>
+            <option value="concluida">Concluída</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th style="width:26%;">Aluno</th>
+          <th style="width:18%;">Aula perdida (origem)</th>
+          <th style="width:24%;">Opções oferecidas</th>
+          <th style="width:12%;">Criada em</th>
+          <th style="width:20%;">Ações</th>
+        </tr></thead>
+        <tbody id="tbody-reposicoes"></tbody>
+      </table></div>
+    </div>
+
+    <!-- TAB PROFESSORES -->
+    <div id="tab-professores" class="screen">
+      <div class="toolbar-row">
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);">Professores</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Gerencie os usuários com acesso ao sistema</div>
+        </div>
+        <button class="btn-save" onclick="abrirModalNovoProf()">+ Novo professor</button>
+      </div>
+
+      <div class="hint-box">
+        💡 <strong>Senha padrão:</strong> ao criar um professor, a senha inicial é <code>Teste1234</code>. O professor pode alterá-la após o primeiro acesso.
+      </div>
+
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);" id="prof-stats"></div>
+
+      <div style="margin-bottom:.75rem;">
+        <input type="text" id="busca-prof" class="search-input" placeholder="Buscar professor..." oninput="renderProfessores()" style="width:240px;">
+      </div>
+
+      <div class="prof-grid" id="prof-grid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL ALUNO -->
+<div class="modal-bg" id="modal-aluno">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="ma-nome"></div>
+      <button class="close-btn" onclick="fecharModal('modal-aluno')" aria-label="Fechar">×</button>
+    </div>
+    <div id="ma-status" style="margin-bottom:1rem;"></div>
+    <div class="info-grid" id="ma-info"></div>
+    <div class="text-caption" style="margin-bottom:.5rem;">Histórico por aula</div>
+    <div class="aulas-grid" id="ma-aulas"></div>
+    <div id="ma-hist" style="margin-top:1rem;"></div>
+    <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
+      <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:.5rem;">Observações</div>
+      <div id="ma-obs-lista" style="margin-bottom:.75rem;max-height:140px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="obs-texto" placeholder="Digite uma observação..." onkeydown="if(event.key==='Enter')iniciarObservacao()" style="flex:1;padding:6px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);" />
+        <button id="obs-add-btn" onclick="iniciarObservacao()" style="padding:6px 12px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
+      </div>
+      <div id="obs-categoria-panel" style="display:none;margin-top:8px;background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:10px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Selecione uma categoria:</div>
+        <div id="obs-cat-preview" style="font-size:11px;color:var(--text-3);font-style:italic;padding:6px 8px;background:var(--surface);border-radius:6px;border-left:2px solid var(--border-input);margin-bottom:8px;"></div>
+        <div id="obs-cat-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px;"></div>
+        <div style="display:flex;gap:6px;justify-content:flex-end;">
+          <button onclick="cancelarObservacao()" style="padding:5px 12px;background:none;border:1px solid var(--border-input);border-radius:6px;font-size:11px;cursor:pointer;color:var(--text-2);">Cancelar</button>
+          <button id="obs-confirm-btn" onclick="confirmarObservacao()" disabled style="padding:5px 12px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Salvar</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger hidden" id="ma-btn-cancelar" onclick="cancelarMatricula()">Cancelar matrícula</button>
+      <button class="btn-warning" id="ma-btn-inativar" onclick="toggleInativo()"></button>
+      <button class="btn-sec" onclick="abrirModalEditar()">Editar nome</button>
+      <button class="btn-sec" onclick="abrirModalReposicao()">Criar reposição</button>
+      <button class="btn-save" onclick="abrirModalTransferir()">Transferir turma</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CRIAR REPOSIÇÃO -->
+<div class="modal-bg" id="modal-reposicao">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Criar reposição</div>
+      <button class="close-btn" onclick="fecharModal('modal-reposicao')" aria-label="Fechar">×</button>
+    </div>
+    <div style="background:var(--surface-3);border-radius:7px;padding:.75rem 1rem;margin-bottom:1rem;">
+      <div style="font-weight:600;color:var(--text);" id="rep-aluno-nome"></div>
+      <div class="text-caption" id="rep-aluno-info"></div>
+    </div>
+    <div class="field">
+      <label>Aula a repor</label>
+      <select id="rep-aula-sel" onchange="renderSugestoesReposicao()"></select>
+    </div>
+    <div id="rep-sugestoes" class="rep-sugestoes"></div>
+    <div class="field">
+      <label>Opções de horário para o aluno escolher <span class="hint-text">(até 4)</span></label>
+      <div id="rep-opcoes-list"></div>
+      <button type="button" class="btn-sec" onclick="adicionarOpcaoReposicao()" style="margin-top:4px;">+ Adicionar opção</button>
+    </div>
+    <div id="rep-erro" class="field-error"></div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-reposicao')">Cancelar</button>
+      <button class="btn-save" id="rep-btn-salvar" onclick="salvarReposicao()">Gerar link</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LINK DA REPOSIÇÃO -->
+<div class="modal-bg" id="modal-reposicao-link">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Reposição criada!</div>
+      <button class="close-btn" onclick="fecharModal('modal-reposicao-link')" aria-label="Fechar">×</button>
+    </div>
+    <div class="rep-link-sucesso">
+      <div class="rep-link-icone">✅</div>
+      <div style="font-size:13px;color:var(--text-2);" id="rep-link-desc"></div>
+    </div>
+    <div class="rep-link-box">
+      <input type="text" id="rep-link-input" readonly onclick="this.select()"/>
+      <button class="btn-sec" onclick="copiarLinkReposicao()" title="Copiar link">📋 Copiar</button>
+    </div>
+    <div class="info-box" style="margin-top:1rem;">Esse link não exige login — envie por WhatsApp ou e-mail. Ele acompanha só este caso de reposição.</div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-reposicao-link')">Fechar</button>
+      <button class="btn-save" onclick="abrirPaginaReposicaoGerada()">↗ Abrir página novamente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR ALUNO -->
+<div class="modal-bg" id="modal-editar">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Editar aluno</div>
+      <button class="close-btn" onclick="fecharModal('modal-editar')" aria-label="Fechar">×</button>
+    </div>
+    <div class="field"><label>Nome completo</label><input type="text" id="edit-nome" onkeydown="if(event.key==='Enter')salvarEdicao()"/></div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-editar')">Cancelar</button>
+      <button class="btn-save" id="edit-btn-salvar" onclick="salvarEdicao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TRANSFERIR -->
+<div class="modal-bg" id="modal-transferir">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Transferir aluno de turma</div>
+      <button class="close-btn" onclick="fecharModal('modal-transferir')" aria-label="Fechar">×</button>
+    </div>
+    <div id="transf-info" style="background:var(--surface-3);border-radius:7px;padding:.75rem 1rem;margin-bottom:1rem;font-size:13px;color:var(--text);"></div>
+    <div class="field"><label>Nova turma</label>
+      <select id="transf-sel" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"></select>
+    </div>
+    <div class="info-box">O histórico de presença do aluno será movido junto para a nova turma.</div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-transferir')">Cancelar</button>
+      <button class="btn-save" id="transf-btn-confirmar" onclick="confirmarTransferencia()">Confirmar transferência</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO ALUNO -->
+<div class="modal-bg" id="modal-novo">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Adicionar novo aluno</div>
+      <button class="close-btn" onclick="fecharModal('modal-novo')" aria-label="Fechar">×</button>
+    </div>
+    <div class="field"><label>Nome completo</label><input type="text" id="novo-nome" placeholder="Nome completo" onkeydown="if(event.key==='Enter')salvarNovoAluno()"/></div>
+    <div class="field"><label>Turma</label>
+      <select id="novo-turma" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-novo')">Cancelar</button>
+      <button class="btn-save" id="novo-btn-adicionar" onclick="salvarNovoAluno()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO PROFESSOR -->
+<div class="modal-bg" id="modal-novo-prof">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Adicionar novo professor</div>
+      <button class="close-btn" onclick="fecharModal('modal-novo-prof')" aria-label="Fechar">×</button>
+    </div>
+    <div class="field">
+      <label>Nome completo</label>
+      <input type="text" id="np-nome" placeholder="Ex: Ana Clara" onkeydown="if(event.key==='Enter')salvarNovoProf()"/>
+    </div>
+    <div class="field">
+      <label>E-mail de acesso</label>
+      <input type="email" id="np-email" placeholder="professor@email.com" onkeydown="if(event.key==='Enter')salvarNovoProf()"/>
+    </div>
+    <div class="field">
+      <label>Senha inicial</label>
+      <div class="senha-wrap">
+        <input type="password" id="np-senha" value="Teste1234" onkeydown="if(event.key==='Enter')salvarNovoProf()"/>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('np-senha',this)" aria-label="Mostrar ou ocultar senha">👁</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Perfil de acesso</label>
+      <select id="np-papel">
+        <option value="professor">Professor (só suas turmas)</option>
+        <option value="admin">Admin (acesso total)</option>
+      </select>
+    </div>
+    <div id="np-erro" class="field-error" style="margin-top:-4px;"></div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-novo-prof')">Cancelar</button>
+      <button class="btn-save" id="np-btn" onclick="salvarNovoProf()">Criar professor</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PROFESSOR -->
+<div class="modal-bg" id="modal-editar-prof">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Editar professor</div>
+      <button class="close-btn" onclick="fecharModal('modal-editar-prof')" aria-label="Fechar">×</button>
+    </div>
+    <div class="field">
+      <label>Nome completo</label>
+      <input type="text" id="ep-nome" onkeydown="if(event.key==='Enter')salvarEdicaoProf()"/>
+    </div>
+    <div class="field">
+      <label>E-mail de acesso</label>
+      <input type="email" id="ep-email" placeholder="professor@email.com" onkeydown="if(event.key==='Enter')salvarEdicaoProf()"/>
+    </div>
+    <div class="field">
+      <label>Nova senha <span class="hint-text">(deixe em branco para não alterar)</span></label>
+      <div class="senha-wrap">
+        <input type="password" id="ep-senha" placeholder="Nova senha..." onkeydown="if(event.key==='Enter')salvarEdicaoProf()"/>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('ep-senha',this)" aria-label="Mostrar ou ocultar senha">👁</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Perfil de acesso</label>
+      <select id="ep-papel">
+        <option value="admin">Admin (acesso total)</option>
+        <option value="professor">Professor (só suas turmas)</option>
+      </select>
+    </div>
+    <div id="ep-erro" class="field-error"></div>
+    <div class="modal-footer">
+      <button class="btn-warning" id="ep-btn-reset" onclick="enviarResetSenha()" style="margin-right:auto;" title="Envia e-mail de redefinição de senha para o professor">✉ Enviar reset de senha</button>
+      <button class="btn-sec" onclick="fecharModal('modal-editar-prof')">Cancelar</button>
+      <button class="btn-save" id="ep-btn-salvar" onclick="salvarEdicaoProf()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVA TURMA -->
+<div class="modal-bg" id="modal-nova-turma">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Criar nova turma</div>
+      <button class="close-btn" onclick="fecharModal('modal-nova-turma')" aria-label="Fechar">×</button>
+    </div>
+    <div class="field">
+      <label>Nome da turma</label>
+      <input type="text" id="nt-nome" placeholder="Ex: Segunda 19h" onkeydown="if(event.key==='Enter')salvarNovaTurma()"/>
+    </div>
+    <div class="field">
+      <label>Curso</label>
+      <input type="text" id="nt-curso" list="nt-curso-list" placeholder="Ex: Elas Investem" onkeydown="if(event.key==='Enter')salvarNovaTurma()"/>
+      <datalist id="nt-curso-list"></datalist>
+    </div>
+    <div class="field">
+      <label>Professor(a)</label>
+      <select id="nt-professor"></select>
+    </div>
+    <div class="field">
+      <label>Quantidade de aulas</label>
+      <select id="nt-total-aulas"></select>
+    </div>
+    <div class="field">
+      <label>Cor da turma</label>
+      <div class="cor-picker" id="nt-cor-picker"></div>
+      <input type="hidden" id="nt-cor"/>
+    </div>
+
+    <div class="field">
+      <label>Horário de início</label>
+      <div class="horario-selects">
+        <select id="nt-hora" onchange="marcarPresetAtivo('nt')"></select>
+        <span class="sep">:</span>
+        <select id="nt-minuto" onchange="marcarPresetAtivo('nt')"></select>
+      </div>
+      <div class="horario-presets" id="nt-presets">
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','08:00')">08:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','14:00')">14:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','15:00')">15:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','19:00')">19:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','19:30')">19:30</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('nt','20:00')">20:00</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Dias de aula <span class="hint-text">(deixe sem marcar para não configurar horário)</span></label>
+      <div class="dias-check-grid" id="nt-dias-grid">
+        <label class="dia-check" data-dia="segunda"><input type="checkbox" value="segunda">Seg</label>
+        <label class="dia-check" data-dia="terca"><input type="checkbox" value="terca">Ter</label>
+        <label class="dia-check" data-dia="quarta"><input type="checkbox" value="quarta">Qua</label>
+        <label class="dia-check" data-dia="quinta"><input type="checkbox" value="quinta">Qui</label>
+        <label class="dia-check" data-dia="sexta"><input type="checkbox" value="sexta">Sex</label>
+        <label class="dia-check" data-dia="sabado"><input type="checkbox" value="sabado">Sáb</label>
+        <label class="dia-check" data-dia="domingo"><input type="checkbox" value="domingo">Dom</label>
+      </div>
+    </div>
+
+    <div id="nt-erro" class="field-error" style="margin-top:-4px;"></div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-nova-turma')">Cancelar</button>
+      <button class="btn-save" id="nt-btn-salvar" onclick="salvarNovaTurma()">Criar turma</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR TURMA -->
+<div class="modal-bg" id="modal-editar-turma">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Editar turma</div>
+      <button class="close-btn" onclick="fecharModal('modal-editar-turma')" aria-label="Fechar">×</button>
+    </div>
+
+    <div class="field">
+      <label>Nome da turma</label>
+      <input type="text" id="et-nome" placeholder="Ex: Segunda 19h" onkeydown="if(event.key==='Enter')salvarEditarTurma()"/>
+    </div>
+    <div class="field">
+      <label>Curso</label>
+      <input type="text" id="et-curso" list="et-curso-list" placeholder="Ex: Elas Investem" onkeydown="if(event.key==='Enter')salvarEditarTurma()"/>
+      <datalist id="et-curso-list"></datalist>
+    </div>
+    <div class="field">
+      <label>Professor(a)</label>
+      <input type="text" id="et-professor" placeholder="Nome do professor" onkeydown="if(event.key==='Enter')salvarEditarTurma()"/>
+    </div>
+    <div class="field">
+      <label>Quantidade de aulas</label>
+      <select id="et-total-aulas"></select>
+    </div>
+    <div class="field">
+      <label>Cor da turma</label>
+      <div class="cor-picker" id="et-cor-picker"></div>
+      <input type="hidden" id="et-cor"/>
+    </div>
+
+    <div class="horario-modal-info">
+      Configure o horário de início e os dias de aula para o sistema enviar um e-mail automático ao professor 2 horas após o início caso a chamada não tenha sido feita.
+    </div>
+
+    <div class="field">
+      <label>Horário de início</label>
+      <div class="horario-selects">
+        <select id="et-hora" onchange="marcarPresetAtivo('et')"></select>
+        <span class="sep">:</span>
+        <select id="et-minuto" onchange="marcarPresetAtivo('et')"></select>
+      </div>
+      <div class="horario-presets" id="et-presets">
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','08:00')">08:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','14:00')">14:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','15:00')">15:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','19:00')">19:00</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','19:30')">19:30</button>
+        <button type="button" class="preset-btn" onclick="aplicarPreset('et','20:00')">20:00</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Dias de aula <span class="hint-text">(deixe sem marcar para não configurar horário)</span></label>
+      <div class="dias-check-grid" id="et-dias-grid">
+        <label class="dia-check" data-dia="segunda"><input type="checkbox" value="segunda">Seg</label>
+        <label class="dia-check" data-dia="terca"><input type="checkbox" value="terca">Ter</label>
+        <label class="dia-check" data-dia="quarta"><input type="checkbox" value="quarta">Qua</label>
+        <label class="dia-check" data-dia="quinta"><input type="checkbox" value="quinta">Qui</label>
+        <label class="dia-check" data-dia="sexta"><input type="checkbox" value="sexta">Sex</label>
+        <label class="dia-check" data-dia="sabado"><input type="checkbox" value="sabado">Sáb</label>
+        <label class="dia-check" data-dia="domingo"><input type="checkbox" value="domingo">Dom</label>
+      </div>
+    </div>
+
+    <div id="et-erro" class="field-error"></div>
+
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="limparHorario('et')" style="margin-right:auto;">Limpar horário</button>
+      <button class="btn-sec" onclick="fecharModal('modal-editar-turma')">Cancelar</button>
+      <button class="btn-save" id="et-btn-salvar" onclick="salvarEditarTurma()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE CONFIRMAÇÃO (substitui o confirm() nativo do navegador) -->
+<div class="modal-bg confirm-bg" id="modal-confirm">
+  <div class="modal confirm-modal">
+    <div class="confirm-title" id="confirm-titulo"></div>
+    <div class="confirm-msg" id="confirm-mensagem"></div>
+    <div class="modal-footer">
+      <button class="btn-sec" id="confirm-btn-cancelar" onclick="responderConfirm(false)">Cancelar</button>
+      <button class="btn-save" id="confirm-btn-ok" onclick="responderConfirm(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast"></div>
+
+<div id="app-loading">
+  <div class="loading-spinner"></div>
+  <div style="font-size:13px;color:var(--text-3);">Carregando...</div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+<!-- NOTIFICADOR DE ATUALIZAÇÃO -->
+<div id="update-banner">
+  <span class="spin">↻</span>
+  <span>Atualização disponível</span>
+  <button id="upd-btn" onclick="location.reload()">ATUALIZAR AGORA</button>
+  <button id="upd-x" onclick="this.closest('#update-banner').classList.remove('visible')" title="Ignorar">×</button>
+</div>
+</body>
+</html>
