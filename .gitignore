@@ -1,6 +1,3 @@
-# Configuração local com as credenciais do Supabase (veja src/config/env.example.js)
-src/config/env.js
-
 # Arquivos de sistema/editor
 .DS_Store
 Thumbs.db
