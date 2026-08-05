@@ -1,5 +1,5 @@
 import { state } from '../../state/store.js';
-import { aulasDaTurma } from '../../../backend/domain/attendance.js';
+import { aulasDaTurma, registroPorAulaDaTurma } from '../../../backend/domain/attendance.js';
 import { escapeHtml, showToast } from '../../shared/dom.js';
 import { salvarPresenca, removerPresenca } from '../../../backend/api/presencasRepo.js';
 import { renderDash } from '../dashboard/dashboardView.js';
@@ -26,6 +26,15 @@ export function renderChamada() {
   const aula = document.getElementById('aula-sel').value;
   const key = `${state.turmaAtual.id}_${aula}`;
   if (!state.PRESENCAS[key]) state.PRESENCAS[key] = {};
+
+  const registroAulas = registroPorAulaDaTurma(state.turmaAtual);
+  document.getElementById('ch-aulas-grid').innerHTML = aulasDaTurma(state.turmaAtual).map((au, i) => {
+    const tem = registroAulas[i];
+    const bg = tem ? 'var(--green-soft)' : 'var(--gray-soft)';
+    const tc = tem ? 'var(--green-soft-text)' : 'var(--gray-soft-text)';
+    return `<div class="aula-chip" style="background:${bg};color:${tc};" title="${au}${tem ? ': já tem registro' : ': sem registro'}">${i + 1}</div>`;
+  }).join('');
+
   const alunos = state.ALUNOS.filter(a => a.ativo && a.turma_id === state.turmaAtual.id);
   let p = 0, r = 0, f = 0, s = 0;
   alunos.forEach(a => {
