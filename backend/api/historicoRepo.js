@@ -1,5 +1,5 @@
 import { sb } from './supabaseClient.js';
-import { state } from '../state/store.js';
+import { state } from '../../frontend/state/store.js';
 
 export async function carregarHistorico() {
   const alunoIds = state.ALUNOS.map(a => a.id);

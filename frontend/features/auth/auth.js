@@ -1,11 +1,11 @@
-import { sb } from '../../api/supabaseClient.js';
+import { sb } from '../../../backend/api/supabaseClient.js';
 import { state } from '../../state/store.js';
 import { estaEmRecuperacaoSenha } from './recovery.js';
-import { carregarTurmas } from '../../api/turmasRepo.js';
-import { carregarAlunos } from '../../api/alunosRepo.js';
-import { carregarPresencas } from '../../api/presencasRepo.js';
-import { carregarHistorico } from '../../api/historicoRepo.js';
-import { carregarProfessores } from '../../api/professoresRepo.js';
+import { carregarTurmas } from '../../../backend/api/turmasRepo.js';
+import { carregarAlunos } from '../../../backend/api/alunosRepo.js';
+import { carregarPresencas } from '../../../backend/api/presencasRepo.js';
+import { carregarHistorico } from '../../../backend/api/historicoRepo.js';
+import { carregarProfessores } from '../../../backend/api/professoresRepo.js';
 import { popularFiltros, renderRel } from '../relatorios/relatoriosView.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';

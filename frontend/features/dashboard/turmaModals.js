@@ -1,13 +1,13 @@
 import { state } from '../../state/store.js';
-import { atualizarTurma, inserirTurma } from '../../api/turmasRepo.js';
-import { atualizarAlunosEmLote } from '../../api/alunosRepo.js';
-import { registrarMovimentacoesEmLote, carregarHistorico } from '../../api/historicoRepo.js';
+import { atualizarTurma, inserirTurma } from '../../../backend/api/turmasRepo.js';
+import { atualizarAlunosEmLote } from '../../../backend/api/alunosRepo.js';
+import { registrarMovimentacoesEmLote, carregarHistorico } from '../../../backend/api/historicoRepo.js';
 import { showToast, fecharModal, escapeHtml } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
 import { renderDash } from './dashboardView.js';
 import { renderRel, popularFiltros } from '../relatorios/relatoriosView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
-import { AULAS } from '../../domain/attendance.js';
+import { AULAS } from '../../../backend/domain/attendance.js';
 
 export const TURMA_CORES = ['#3b82f6', '#059669', '#7c3aed', '#db2777', '#d97706', '#0891b2', '#dc2626', '#65a30d'];
 

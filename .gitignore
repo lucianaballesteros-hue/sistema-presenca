@@ -1,3 +1,5 @@
 # Arquivos de sistema/editor
-.DS_Store
-Thumbs.db
+.DS_StoreThumbs.db
+
+# Referência local de ambiente/credenciais (veja .env.example)
+.env

@@ -1,5 +1,5 @@
 import { state } from '../../state/store.js';
-import { calcAluno, aulasDaTurma } from '../../domain/attendance.js';
+import { calcAluno, aulasDaTurma } from '../../../backend/domain/attendance.js';
 import { showToast } from '../../shared/dom.js';
 
 // A biblioteca xlsx é carregada via <script> global no index.html (sem passo

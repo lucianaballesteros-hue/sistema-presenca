@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { escapeHtml, showToast } from '../../shared/dom.js';
-import { carregarObservacoes as buscarObservacoes, registrarObservacao } from '../../api/historicoRepo.js';
+import { carregarObservacoes as buscarObservacoes, registrarObservacao } from '../../../backend/api/historicoRepo.js';
 
 export const OBS_CATEGORIAS = [
   { id: 'transferencia_turma', label: 'Transferência de turma', icon: '↔', badge: 'badge-blue' },

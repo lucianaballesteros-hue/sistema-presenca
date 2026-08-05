@@ -1,6 +1,6 @@
 import { sb } from './supabaseClient.js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/env.js';
-import { state } from '../state/store.js';
+import { state } from '../../frontend/state/store.js';
 
 export async function carregarProfessores() {
   const { data } = await sb.from('professores').select('*').order('nome');

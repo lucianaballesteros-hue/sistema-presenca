@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
-import { calcAluno } from '../../domain/attendance.js';
-import { statusInativo, corBadge } from '../../domain/status.js';
+import { calcAluno } from '../../../backend/domain/attendance.js';
+import { statusInativo, corBadge } from '../../../backend/domain/status.js';
 
 export function renderMetricas() {
   const ativos = state.ALUNOS.filter(a => a.ativo);

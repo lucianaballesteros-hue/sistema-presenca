@@ -2,7 +2,7 @@
 // login/Auth nem o `state` do painel. É intencionalmente isolada: fala com o
 // Supabase só através de duas funções (RPC) que validam o token do link,
 // nunca lendo/escrevendo as tabelas diretamente (ver sql/reposicoes.sql).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/env.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../backend/config/env.js';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const app = document.getElementById('app');

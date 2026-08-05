@@ -1,7 +1,7 @@
 import { state } from '../../state/store.js';
-import { aulasDaTurma } from '../../domain/attendance.js';
+import { aulasDaTurma } from '../../../backend/domain/attendance.js';
 import { escapeHtml, showToast } from '../../shared/dom.js';
-import { salvarPresenca, removerPresenca } from '../../api/presencasRepo.js';
+import { salvarPresenca, removerPresenca } from '../../../backend/api/presencasRepo.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
 

@@ -7,14 +7,14 @@ Este documento explica, em detalhe, o que cada parte do código faz e como elas 
 1. [Visão geral](#1-visão-geral)
 2. [Como tudo se conecta](#2-como-tudo-se-conecta)
 3. [`index.html`](#3-indexhtml)
-4. [`styles/`](#4-styles)
-5. [`src/config/`](#5-srcconfig)
-6. [`src/state/store.js`](#6-srcstatestorejs)
-7. [`src/api/`](#7-srcapi--repositórios)
-8. [`src/domain/`](#8-srcdomain--regras-de-negócio)
-9. [`src/shared/`](#9-srcshared--utilitários)
-10. [`src/features/`](#10-srcfeatures)
-11. [`src/main.js`](#11-srcmainjs--a-raiz-de-composição)
+4. [`frontend/styles/`](#4-frontendstyles)
+5. [`backend/config/`](#5-backendconfig)
+6. [`frontend/state/store.js`](#6-frontendstatestorejs)
+7. [`backend/api/`](#7-backendapi--repositórios)
+8. [`backend/domain/`](#8-backenddomain--regras-de-negócio)
+9. [`frontend/shared/`](#9-frontendshared--utilitários)
+10. [`frontend/features/`](#10-frontendfeatures)
+11. [`frontend/main.js`](#11-frontendmainjs--a-raiz-de-composição)
 12. [Modelo de dados (inferido)](#12-modelo-de-dados-inferido)
 13. [Fluxos completos, passo a passo](#13-fluxos-completos-passo-a-passo)
 14. [O que existe fora deste código](#14-o-que-existe-fora-deste-código)
@@ -57,8 +57,8 @@ se der erro, a feature desfaz a mudança local e avisa com um toast
 
 Duas ideias seguram esse fluxo:
 
-- **`state` central** (`src/state/store.js`): um objeto só, importado por quase todo mundo, com os dados carregados (turmas, alunos, presenças...) e o "estado da tela" (qual aluno está selecionado, qual filtro está ativo etc.). Não existe estado duplicado escondido em variáveis locais de cada arquivo.
-- **Ponte para o HTML** (`src/main.js`): como o HTML chama funções por nome (`onclick="abrirChamada(5)"`), e módulos ES não criam variáveis globais automaticamente, o `main.js` importa a função de cada feature e a registra explicitamente em `window`. É a única parte do código onde isso acontece — todo o resto é import/export normal.
+- **`state` central** (`frontend/state/store.js`): um objeto só, importado por quase todo mundo, com os dados carregados (turmas, alunos, presenças...) e o "estado da tela" (qual aluno está selecionado, qual filtro está ativo etc.). Não existe estado duplicado escondido em variáveis locais de cada arquivo.
+- **Ponte para o HTML** (`frontend/main.js`): como o HTML chama funções por nome (`onclick="abrirChamada(5)"`), e módulos ES não criam variáveis globais automaticamente, o `main.js` importa a função de cada feature e a registra explicitamente em `window`. É a única parte do código onde isso acontece — todo o resto é import/export normal.
 
 ---
 
@@ -68,7 +68,7 @@ Um único HTML com todas as telas dentro (nenhuma navegação de página — é 
 
 | Bloco | O que é |
 |---|---|
-| `<head>` | Ícone, os dois `<script>` de CDN (Supabase e xlsx), um script inline que aplica o tema salvo **antes** do CSS carregar (evita flash de tela clara ao abrir no escuro), e os 15 `<link rel="stylesheet">` de `styles/`. |
+| `<head>` | Ícone, os dois `<script>` de CDN (Supabase e xlsx), um script inline que aplica o tema salvo **antes** do CSS carregar (evita flash de tela clara ao abrir no escuro), e os 15 `<link rel="stylesheet">` de `frontend/styles/`. |
 | `#login-page` | Formulário de e-mail/senha. |
 | `#app` | A aplicação depois de logado: cabeçalho (`.header`), menu de abas (`.nav`) e o conteúdo (`.content`). |
 | `#tab-turmas` | Contém **duas visões que se alternam**: `#dash-view` (grade de turmas) e `#chamada-view` (fazer chamada de uma turma). Só uma fica visível por vez. |
@@ -78,13 +78,13 @@ Um único HTML com todas as telas dentro (nenhuma navegação de página — é 
 | `#tab-professores` | Grade de cartões de professores (só visível para admins). |
 | `.modal-bg#modal-*` | Nove modais (aluno, editar aluno, transferir, novo aluno, novo professor, editar professor, nova turma, editar turma) — todos escondidos por padrão, abrem recebendo a classe `.open`. |
 | `#toast`, `#app-loading`, `#update-banner` | Elementos de feedback global (aviso rápido, tela de carregamento, banner de "nova versão disponível"). |
-| `<script type="module" src="src/main.js">` | Carrega a aplicação. Fica no fim do `<body>` para simplicidade, mas como é `type="module"`, o navegador já executa de forma adiada (equivalente a `defer`) — ou seja, roda depois que todo o HTML acima foi criado. |
+| `<script type="module" src="frontend/main.js">` | Carrega a aplicação. Fica no fim do `<body>` para simplicidade, mas como é `type="module"`, o navegador já executa de forma adiada (equivalente a `defer`) — ou seja, roda depois que todo o HTML acima foi criado. |
 
 Quase todo elemento interativo tem um atributo inline (`onclick`, `onchange`, `oninput`, `onkeydown`) chamando uma função pelo nome — essas funções são exatamente as que o `main.js` registra em `window` (seção 11).
 
 ---
 
-## 4. `styles/`
+## 4. `frontend/styles/`
 
 O CSS antigo (um arquivo de 28KB) foi dividido por responsabilidade. A ordem de carregamento no `<head>` importa (CSS depois sobrescreve CSS de antes):
 
@@ -112,7 +112,7 @@ components/toast.css    toast, tela de carregamento, banner de atualização, es
 
 ---
 
-## 5. `src/config/`
+## 5. `backend/config/`
 
 - **`env.js`** (não versionado — está no `.gitignore`): exporta `SUPABASE_URL` e `SUPABASE_ANON_KEY`, os únicos dois valores que mudam entre "ambientes" (ex.: se um dia existir um projeto Supabase de teste separado do de produção).
 - **`env.example.js`**: o mesmo arquivo com valores de exemplo, versionado, para quem clonar o projeto saber o que preencher.
@@ -121,7 +121,7 @@ Nenhum outro arquivo tem uma credencial hardcoded — todos importam de `config/
 
 ---
 
-## 6. `src/state/store.js`
+## 6. `frontend/state/store.js`
 
 Um único objeto exportado, `state`, com dezoito campos. É o "banco de dados na memória" da aba aberta no navegador:
 
@@ -146,7 +146,7 @@ Qualquer módulo pode ler `state.TURMAS`, por exemplo; para **alterar**, também
 
 ---
 
-## 7. `src/api/` — repositórios
+## 7. `backend/api/` — repositórios
 
 Cada arquivo corresponde a uma tabela do Supabase e é o **único lugar** que fala com `sb` (o cliente Supabase) para aquela tabela. As features nunca chamam `sb` diretamente (exceto `auth.js`, que trata login/logout/sessão — ver seção 10.2).
 
@@ -164,7 +164,7 @@ Cada arquivo corresponde a uma tabela do Supabase e é o **único lugar** que fa
 
 ---
 
-## 8. `src/domain/` — regras de negócio
+## 8. `backend/domain/` — regras de negócio
 
 Funções puras (sem tocar no DOM nem no Supabase) que calculam coisas a partir do `state`.
 
@@ -192,7 +192,7 @@ Funções puras (sem tocar no DOM nem no Supabase) que calculam coisas a partir 
 
 ---
 
-## 9. `src/shared/` — utilitários
+## 9. `frontend/shared/` — utilitários
 
 - **`dom.js`**: `escapeHtml` (escapa `&<>"'` para exibir texto com segurança dentro de HTML), `escapeAttr` (mais forte — para quando o valor vai dentro de um `onclick="fn('valor')"`, precisa neutralizar dois níveis: o literal JS de aspas simples e o atributo HTML de aspas duplas ao mesmo tempo), `showToast`, `fecharModal`, `toggleSenha` (mostra/oculta senha nos campos de senha), `wireModalBackdrops` (fecha modal ao clicar fora dele).
 - **`validators.js`**: `isEmailValido` — checagem simples de formato de e-mail.
@@ -201,7 +201,7 @@ Funções puras (sem tocar no DOM nem no Supabase) que calculam coisas a partir 
 
 ---
 
-## 10. `src/features/`
+## 10. `frontend/features/`
 
 Cada pasta é uma área da tela. Nenhuma feature acessa `sb` diretamente — sempre passa por `api/`.
 
@@ -278,7 +278,7 @@ Um único `renderMetricas()` que monta 4 tabelas a partir dos mesmos dados já c
 
 ---
 
-## 11. `src/main.js` — a raiz de composição
+## 11. `frontend/main.js` — a raiz de composição
 
 Três responsabilidades, nessa ordem:
 
@@ -290,7 +290,7 @@ Três responsabilidades, nessa ordem:
 
 ## 12. Modelo de dados (inferido)
 
-Não há acesso direto ao banco a partir deste código — o esquema abaixo foi **inferido** a partir das consultas feitas pelos repositórios (`src/api/`). Vale conferir no painel do Supabase se quiser ter certeza:
+Não há acesso direto ao banco a partir deste código — o esquema abaixo foi **inferido** a partir das consultas feitas pelos repositórios (`backend/api/`). Vale conferir no painel do Supabase se quiser ter certeza:
 
 | Tabela | Colunas usadas pelo código |
 |---|---|
@@ -338,7 +338,7 @@ Se for mexer nesses dois pontos, é preciso procurar no painel do Supabase (Edge
 
 ## 15. Segurança — resumo
 
-1. **Credenciais fora do código-fonte**: `SUPABASE_URL`/`SUPABASE_ANON_KEY` vivem só em `src/config/env.js`, que não é versionado.
+1. **Credenciais fora do código-fonte**: `SUPABASE_URL`/`SUPABASE_ANON_KEY` vivem só em `backend/config/env.js`, que não é versionado.
 2. **Troca de senha de terceiros removida**: não é possível (nem deveria ser) definir a senha de outro usuário a partir do navegador — só o próprio Supabase Auth pode, via e-mail de redefinição (`enviarResetSenha`).
 3. **Escape correto em atributos inline**: valores como nome de curso, que acabam dentro de `onclick="fn('valor')"`, passam por `escapeAttr` (não só `escapeHtml`), para não permitir que um texto com aspas quebre o atributo.
 4. **Limitação conhecida e aceita (fora de escopo)**: a interface esconde a aba "Professores" e alguns botões de quem não é admin, mas isso é só estética — qualquer usuário autenticado consegue chamar as mesmas funções pelo console do navegador. A proteção de verdade contra isso precisa ser **Row Level Security** nas tabelas do Supabase, validando `papel` no banco, não no navegador.
@@ -360,9 +360,9 @@ Coberto na [seção 10.8](#108-reposicoes--aba-reposições-equipe-autenticada):
 
 ### 16.3 Lado público (sem login) — `reposicao.html`
 
-- **Arquivos**: `reposicao.html` (na raiz, ao lado de `index.html`) + `src/public/reposicaoPublica.js` + `styles/public-reposicao.css`. Deliberadamente não importa nada de `src/state/`, `src/features/` ou `src/api/` do painel — é uma mini-aplicação à parte, para não correr o risco de puxar (mesmo sem querer) alguma lógica ou dado pensado só para usuário autenticado. Reaproveita só `src/config/env.js` (URL + anon key, que já são públicas por natureza — ver comentário em `env.example.js`).
+- **Arquivos**: `reposicao.html` (na raiz, ao lado de `index.html`) + `frontend/public/reposicaoPublica.js` + `frontend/styles/public-reposicao.css`. Deliberadamente não importa nada de `frontend/state/`, `frontend/features/` ou `backend/api/` do painel — é uma mini-aplicação à parte, para não correr o risco de puxar (mesmo sem querer) alguma lógica ou dado pensado só para usuário autenticado. Reaproveita só `backend/config/env.js` (URL + anon key, que já são públicas por natureza — ver comentário em `env.example.js`).
 - **Sem tabela exposta ao público**: `reposicoes`/`reposicao_opcoes` têm RLS ligado e **nenhuma policy para `anon`** — ou seja, a chave anônima não consegue ler/escrever essas tabelas diretamente, nem que alguém inspecione o JS e tente chamar `sb.from('reposicoes')` na mão. O único acesso é via duas funções Postgres `security definer` (rodam com permissão de dono, ignorando RLS internamente, mas cada uma valida o token antes de fazer qualquer coisa):
   - `reposicao_publica_get(p_token)`: devolve só os dados daquele caso (nome do aluno, aula, opções) — nunca a tabela inteira.
   - `reposicao_publica_confirmar(p_token, p_opcao_id)`: só atualiza se o caso ainda estiver `'aberta'` e a opção pertencer a esse mesmo caso; o `update ... where status='aberta'` combinado com a contagem de linhas afetadas evita que duas abas do mesmo link confirmem dois horários diferentes ao mesmo tempo (condição de corrida).
-- **Sem branding pesado**: a página mostra o logo (`img/`) mas não tem nav, tema alternável ou qualquer outro elemento do painel — só carregamento → escolha de horário → confirmação, pensada para abrir num celular a partir de um link do WhatsApp (`styles/public-reposicao.css` é mobile-first, com um breakpoint extra em 380px para aparelhos bem pequenos).
+- **Sem branding pesado**: a página mostra o logo (`frontend/img/`) mas não tem nav, tema alternável ou qualquer outro elemento do painel — só carregamento → escolha de horário → confirmação, pensada para abrir num celular a partir de um link do WhatsApp (`frontend/styles/public-reposicao.css` é mobile-first, com um breakpoint extra em 380px para aparelhos bem pequenos).
 - **A chave anon é compartilhada com o painel principal — de propósito, é inevitável.** Quem abre `reposicao.html` carrega o mesmo `SUPABASE_URL`/`SUPABASE_ANON_KEY` que qualquer visitante do `index.html` já carrega antes mesmo de logar (a chave "anon" sempre foi pública por natureza — ver `env.example.js`, seção 5). Ou seja, um aluno com o link **não ganha nenhum acesso a mais** do que um visitante comum já teria; o que decide tudo é RLS. [`sql/verificar_seguranca.sql`](sql/verificar_seguranca.sql) confere isso nas tabelas do painel inteiro (não só nas duas novas) — ver o ponto 5 da [seção 15](#15-segurança--resumo).

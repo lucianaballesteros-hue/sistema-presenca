@@ -1,11 +1,11 @@
 import { state } from '../../state/store.js';
-import { AULAS, calcAluno } from '../../domain/attendance.js';
-import { statusBadge } from '../../domain/status.js';
+import { AULAS, calcAluno } from '../../../backend/domain/attendance.js';
+import { statusBadge } from '../../../backend/domain/status.js';
 import { escapeHtml, showToast, fecharModal } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
-import { inserirAluno, atualizarAluno } from '../../api/alunosRepo.js';
-import { registrarMovimentacao } from '../../api/historicoRepo.js';
-import { moverPresencasDeTurma } from '../../api/presencasRepo.js';
+import { inserirAluno, atualizarAluno } from '../../../backend/api/alunosRepo.js';
+import { registrarMovimentacao } from '../../../backend/api/historicoRepo.js';
+import { moverPresencasDeTurma } from '../../../backend/api/presencasRepo.js';
 import { carregarObservacoes } from './observacoes.js';
 import { renderTabelaAlunos } from './alunosTable.js';
 import { renderDash } from '../dashboard/dashboardView.js';

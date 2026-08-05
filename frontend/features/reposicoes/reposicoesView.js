@@ -4,8 +4,8 @@ import { confirmar } from '../../shared/confirm.js';
 import {
   carregarReposicoes, cancelarReposicao, concluirReposicao,
   assinarMudancasReposicoes, buscarOpcaoReposicao,
-} from '../../api/reposicoesRepo.js';
-import { salvarPresenca } from '../../api/presencasRepo.js';
+} from '../../../backend/api/reposicoesRepo.js';
+import { salvarPresenca } from '../../../backend/api/presencasRepo.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
 import { renderRel } from '../relatorios/relatoriosView.js';

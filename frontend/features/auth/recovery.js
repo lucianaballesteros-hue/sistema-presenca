@@ -1,7 +1,7 @@
-import { sb } from '../../api/supabaseClient.js';
+import { sb } from '../../../backend/api/supabaseClient.js';
 import { showToast } from '../../shared/dom.js';
 import { isEmailValido } from '../../shared/validators.js';
-import { enviarResetSenha } from '../../api/professoresRepo.js';
+import { enviarResetSenha } from '../../../backend/api/professoresRepo.js';
 
 let emFluxoRecuperacao = false;
 

@@ -1,7 +1,7 @@
 import { state } from '../../state/store.js';
-import { aulasDaTurma, calcAluno, ultimaAulaRegistrada, proximaAula, proximaDataTurma } from '../../domain/attendance.js';
+import { aulasDaTurma, calcAluno, ultimaAulaRegistrada, proximaAula, proximaDataTurma } from '../../../backend/domain/attendance.js';
 import { escapeHtml, escapeAttr, showToast, fecharModal } from '../../shared/dom.js';
-import { criarReposicao } from '../../api/reposicoesRepo.js';
+import { criarReposicao } from '../../../backend/api/reposicoesRepo.js';
 import { renderReposicoes } from './reposicoesView.js';
 
 const MAX_OPCOES = 4;

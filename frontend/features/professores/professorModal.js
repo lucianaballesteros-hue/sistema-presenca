@@ -1,7 +1,7 @@
 import { state } from '../../state/store.js';
 import { isEmailValido } from '../../shared/validators.js';
 import { showToast, fecharModal } from '../../shared/dom.js';
-import { criarContaAuth, criarPerfilProfessor, atualizarProfessor, enviarResetSenha as enviarResetSenhaRepo } from '../../api/professoresRepo.js';
+import { criarContaAuth, criarPerfilProfessor, atualizarProfessor, enviarResetSenha as enviarResetSenhaRepo } from '../../../backend/api/professoresRepo.js';
 import { renderProfessores } from './professoresView.js';
 import { popularFiltros, renderRel } from '../relatorios/relatoriosView.js';
 import { renderDash } from '../dashboard/dashboardView.js';

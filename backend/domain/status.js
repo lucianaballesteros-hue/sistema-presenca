@@ -1,4 +1,4 @@
-import { state } from '../state/store.js';
+import { state } from '../../frontend/state/store.js';
 
 export function freqBar(freq) {
   if (freq === null) return '<span style="font-size:11px;color:var(--text-faded);">—</span>';

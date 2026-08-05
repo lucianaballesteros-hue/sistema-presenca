@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
-import { calcAluno } from '../../domain/attendance.js';
-import { corBadge, freqBar, statusInativo } from '../../domain/status.js';
+import { calcAluno } from '../../../backend/domain/attendance.js';
+import { corBadge, freqBar, statusInativo } from '../../../backend/domain/status.js';
 import { escapeHtml } from '../../shared/dom.js';
 
 const PAGE_SIZE = 30;

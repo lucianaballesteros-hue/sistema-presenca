@@ -1,5 +1,5 @@
 import { sb } from './supabaseClient.js';
-import { state } from '../state/store.js';
+import { state } from '../../frontend/state/store.js';
 
 // Professores só enxergam as próprias turmas; admins enxergam todas.
 export async function carregarTurmas() {

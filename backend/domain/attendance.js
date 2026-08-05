@@ -1,4 +1,4 @@
-import { state } from '../state/store.js';
+import { state } from '../../frontend/state/store.js';
 
 export const AULAS = Array.from({ length: 32 }, (_, i) => `Aula ${i + 1}`);
 
@@ -19,6 +19,17 @@ export function ultimaAulaRegistrada(turma) {
     if (state.PRESENCAS[key] && Object.values(state.PRESENCAS[key]).some(v => v)) ultima = au;
   });
   return ultima;
+}
+
+// Para cada aula da turma, diz se já existe pelo menos um registro de
+// presença (de qualquer aluno) — usado no dashboard para visualizar de
+// relance quais aulas já foram registradas e quais ainda faltam.
+export function registroPorAulaDaTurma(turma) {
+  if (!turma) return [];
+  return aulasDaTurma(turma).map(au => {
+    const key = `${turma.id}_${au}`;
+    return Boolean(state.PRESENCAS[key] && Object.values(state.PRESENCAS[key]).some(v => v));
+  });
 }
 
 // Próxima aula que a turma ainda vai dar (a aula seguinte à última já

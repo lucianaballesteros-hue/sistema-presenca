@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
-import { calcAluno, ultimaAulaRegistrada } from '../../domain/attendance.js';
-import { ordemDia, corBadge } from '../../domain/status.js';
+import { calcAluno, ultimaAulaRegistrada, aulasDaTurma, registroPorAulaDaTurma } from '../../../backend/domain/attendance.js';
+import { ordemDia, corBadge } from '../../../backend/domain/status.js';
 import { escapeHtml, escapeAttr } from '../../shared/dom.js';
 import { goTab } from '../../shared/navigation.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
@@ -62,6 +62,13 @@ export function renderDash(resetPagina = true) {
     const al = state.ALUNOS.filter(a => a.ativo && a.turma_id === t.id);
     const at = al.filter(a => calcAluno(a).emAlerta).length;
     const ultimaAula = ultimaAulaRegistrada(t);
+    const registroAulas = registroPorAulaDaTurma(t);
+    const chipsAulas = aulasDaTurma(t).map((au, i) => {
+      const tem = registroAulas[i];
+      const bg = tem ? 'var(--green-soft)' : 'var(--gray-soft)';
+      const tc = tem ? 'var(--green-soft-text)' : 'var(--gray-soft-text)';
+      return `<div class="aula-chip" style="background:${bg};color:${tc};" title="${au}${tem ? ': já tem registro' : ': sem registro'}">${i + 1}</div>`;
+    }).join('');
     const horarioTag = t.horario_inicio
       ? `<span class="horario-tag" onclick="abrirModalEditarTurma(${t.id})" title="Clique para editar a turma"><span class="icon-mask icon-relogio"></span>${t.horario_inicio.slice(0, 5)}${t.dias_semana?.length ? ' · ' + t.dias_semana.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ') : ''}</span>`
       : `<span class="horario-tag sem-horario" onclick="abrirModalEditarTurma(${t.id})" title="Configurar horário para notificação automática">+ Configurar horário</span>`;
@@ -79,11 +86,10 @@ export function renderDash(resetPagina = true) {
         <span>Prof. ${escapeHtml(t.professor)}</span>
         <span>${al.length} alunos${at > 0 ? ` · <span style="color:var(--red);font-weight:600;cursor:pointer;border-bottom:1.5px dashed var(--red);padding-bottom:1px;" onclick="irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
         <span>${ultimaAula ? `<span class="badge badge-blue" title="Última aula com presença registrada">Ultima Aula: ${ultimaAula}</span>` : `<span class="badge badge-gray" title="Nenhuma presença registrada ainda">Sem aulas registradas</span>`}</span>
+        <div class="aulas-grid">${chipsAulas}</div>
         <div>${horarioTag}</div>
       </div>
-      ${inativa
-        ? `<button class="btn-chamada" onclick="toggleTurmaAtiva(event, ${t.id})">Reativar turma</button>`
-        : `<button class="btn-chamada" onclick="abrirChamada(${t.id})">Fazer chamada <span class="icon-mask icon-seta-direita" style="margin-left:6px;"></span></button>`}
+      <button class="btn-chamada" onclick="abrirChamada(${t.id})">Acessar turma <span class="icon-mask icon-seta-direita" style="margin-left:6px;"></span></button>
     </div>`;
   }).join('') || '<div class="empty">Nenhuma turma encontrada.</div>';
   document.getElementById('turmas-mostrar-mais-wrap').innerHTML = totalFiltradasTurmas > turmasPagina.length

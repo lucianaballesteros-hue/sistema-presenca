@@ -1,8 +1,8 @@
 import { state } from '../../state/store.js';
-import { calcAluno, aulasDaTurma } from '../../domain/attendance.js';
-import { statusInativo, freqBar, statusBadge } from '../../domain/status.js';
+import { calcAluno, aulasDaTurma } from '../../../backend/domain/attendance.js';
+import { statusInativo, freqBar, statusBadge } from '../../../backend/domain/status.js';
 import { escapeHtml, showToast } from '../../shared/dom.js';
-import { salvarPresenca, removerPresenca } from '../../api/presencasRepo.js';
+import { salvarPresenca, removerPresenca } from '../../../backend/api/presencasRepo.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos, atualizarTurmasAlunos } from '../alunos/alunosTable.js';
 
