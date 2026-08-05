@@ -35,7 +35,11 @@ export function renderChamada() {
     return `<div class="aula-chip" style="background:${bg};color:${tc};" title="${au}${tem ? ': já tem registro' : ': sem registro'}">${i + 1}</div>`;
   }).join('');
 
-  const alunos = state.ALUNOS.filter(a => a.ativo && a.turma_id === state.turmaAtual.id);
+  // Turma inativa: mostra todos os alunos dela (inclusive os inativados junto
+  // com ela) para ainda dar pra ver/corrigir a presença. Turma ativa continua
+  // só com alunos ativos, como antes.
+  const turmaInativa = state.turmaAtual.ativa === false;
+  const alunos = state.ALUNOS.filter(a => a.turma_id === state.turmaAtual.id && (turmaInativa || a.ativo));
   let p = 0, r = 0, f = 0, s = 0;
   alunos.forEach(a => {
     const v = state.PRESENCAS[key][a.id];
