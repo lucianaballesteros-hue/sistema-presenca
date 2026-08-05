@@ -3,12 +3,18 @@ import { showToast } from '../../shared/dom.js';
 import { isEmailValido } from '../../shared/validators.js';
 import { enviarResetSenha } from '../../../backend/api/professoresRepo.js';
 
-let emFluxoRecuperacao = false;
+// Checagem síncrona do hash da URL, feita na hora em que este módulo é
+// importado (por main.js, antes de restoreSession() rodar). É síncrona de
+// propósito: o evento PASSWORD_RECOVERY do SDK do Supabase é assíncrono e
+// pode disparar depois que restoreSession() já resolveu getSession() e
+// decidiu mostrar o app — daí o bug de aparecer tela de troca de senha E
+// aplicativo ao mesmo tempo. Checando o hash direto não tem essa corrida.
+let emFluxoRecuperacao = window.location.hash.includes('type=recovery');
+if (emFluxoRecuperacao) mostrarTelaNovaSenha();
 
-// Registrado assim que este módulo é importado (por main.js, antes de
-// restoreSession() rodar) para não perder o evento PASSWORD_RECOVERY, que o
-// SDK do Supabase dispara ao detectar o token de recuperação no hash da URL
-// durante a inicialização do client.
+// Mantido como reforço (ex.: se o hash já tiver sido limpo por algum motivo
+// antes desta checagem) — mas a checagem síncrona acima é o que garante a
+// ordem certa.
 sb.auth.onAuthStateChange((event) => {
   if (event === 'PASSWORD_RECOVERY') {
     emFluxoRecuperacao = true;
