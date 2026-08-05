@@ -86,10 +86,12 @@ export function renderDash(resetPagina = true) {
         <span>Prof. ${escapeHtml(t.professor)}</span>
         <span>${al.length} alunos${at > 0 ? ` · <span style="color:var(--red);font-weight:600;cursor:pointer;border-bottom:1.5px dashed var(--red);padding-bottom:1px;" onclick="irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
         <span>${ultimaAula ? `<span class="badge badge-blue" title="Última aula com presença registrada">Ultima Aula: ${ultimaAula}</span>` : `<span class="badge badge-gray" title="Nenhuma presença registrada ainda">Sem aulas registradas</span>`}</span>
-        <div class="aulas-grid">${chipsAulas}</div>
         <div>${horarioTag}</div>
       </div>
-      <button class="btn-chamada" onclick="abrirChamada(${t.id})">Acessar turma <span class="icon-mask icon-seta-direita" style="margin-left:6px;"></span></button>
+      <button class="btn-chamada" onclick="abrirChamada(${t.id})">
+        <div class="aulas-grid">${chipsAulas}</div>
+        <span class="btn-chamada-label">Acessar turma <span class="icon-mask icon-seta-direita"></span></span>
+      </button>
     </div>`;
   }).join('') || '<div class="empty">Nenhuma turma encontrada.</div>';
   document.getElementById('turmas-mostrar-mais-wrap').innerHTML = totalFiltradasTurmas > turmasPagina.length
