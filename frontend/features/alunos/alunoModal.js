@@ -97,7 +97,7 @@ export async function cancelarMatricula() {
   showToast('Matrícula cancelada.', 'red');
   renderTabelaAlunos(); renderDash();
 }
-
+ 
 export function abrirModalEditar() {
   const a = state.ALUNOS.find(x => x.id === state.alunoSelecionadoId);
   document.getElementById('edit-nome').value = a.nome;
