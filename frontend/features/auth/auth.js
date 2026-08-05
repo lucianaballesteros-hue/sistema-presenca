@@ -11,6 +11,35 @@ import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
 import { iniciarNotificacoesReposicoes } from '../reposicoes/reposicoesView.js';
 
+let autoLoginTimer = null;
+
+// Login automático quando o navegador preenche e-mail/senha sozinho
+// (autofill do gerenciador de senhas). Espera os campos ficarem estáveis por
+// 400ms antes de logar — evita disparar no meio da digitação manual (ex.:
+// com a senha ainda incompleta). Nunca dispara durante a tela de
+// recuperação/troca de senha (estaEmRecuperacaoSenha()), mesmo que os campos
+// escondidos do login ainda tenham valor — é o mesmo tipo de corrida que já
+// causava as duas telas aparecerem juntas.
+function agendarAutoLogin() {
+  clearTimeout(autoLoginTimer);
+  if (estaEmRecuperacaoSenha()) return;
+  const email = document.getElementById('inp-email').value.trim();
+  const senha = document.getElementById('inp-senha').value;
+  if (!email || !senha) return;
+  autoLoginTimer = setTimeout(() => {
+    const aindaEmail = document.getElementById('inp-email').value.trim();
+    const aindaSenha = document.getElementById('inp-senha').value;
+    if (aindaEmail === email && aindaSenha === senha && !estaEmRecuperacaoSenha()) {
+      doLogin();
+    }
+  }, 400);
+}
+
+export function wireAutoLogin() {
+  document.getElementById('inp-email').addEventListener('input', agendarAutoLogin);
+  document.getElementById('inp-senha').addEventListener('input', agendarAutoLogin);
+}
+
 export async function doLogin() {
   const email = document.getElementById('inp-email').value.trim();
   const senha = document.getElementById('inp-senha').value;

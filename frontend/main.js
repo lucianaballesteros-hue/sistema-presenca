@@ -14,7 +14,7 @@ import { goTab } from './shared/navigation.js';
 import { startUpdateNotifier } from './shared/updateNotifier.js';
 
 import { toggleTema } from './features/theme/theme.js';
-import { doLogin, doLogout, restoreSession } from './features/auth/auth.js';
+import { doLogin, doLogout, restoreSession, wireAutoLogin } from './features/auth/auth.js';
 import { abrirRecuperarSenha, voltarParaLogin, enviarLinkRecuperacao, salvarNovaSenhaRecuperacao } from './features/auth/recovery.js';
 
 import { renderDash, setCurso, irParaAlertas, mostrarMaisTurmas } from './features/dashboard/dashboardView.js';
@@ -101,3 +101,4 @@ document.addEventListener('click', (e) => {
 // Retoma sessão existente (se houver) e liga o aviso de nova versão publicada.
 restoreSession();
 startUpdateNotifier();
+wireAutoLogin();
