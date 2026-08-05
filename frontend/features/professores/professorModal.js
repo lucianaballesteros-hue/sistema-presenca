@@ -86,8 +86,6 @@ export function abrirModalEditarProf(id) {
   state.profSelecionadoId = id;
   document.getElementById('ep-nome').value = p.nome || '';
   document.getElementById('ep-email').value = p.email || '';
-  document.getElementById('ep-senha').value = '';
-  document.getElementById('ep-senha').type = 'password';
   document.getElementById('ep-papel').value = p.papel || 'professor';
   document.getElementById('ep-erro').style.display = 'none';
   const btnSalvar = document.getElementById('ep-btn-salvar');
@@ -104,22 +102,12 @@ export async function salvarEdicaoProf() {
   if (!p) return;
   const novoNome = document.getElementById('ep-nome').value.trim();
   const novoEmail = document.getElementById('ep-email').value.trim();
-  const novaSenha = document.getElementById('ep-senha').value;
   const novoPapel = document.getElementById('ep-papel').value;
   const erroEl = document.getElementById('ep-erro');
   erroEl.style.display = 'none';
 
   if (!novoNome) { erroEl.textContent = 'Digite o nome.'; erroEl.style.display = 'block'; return; }
   if (!isEmailValido(novoEmail)) { erroEl.textContent = 'Digite um e-mail válido.'; erroEl.style.display = 'block'; return; }
-
-  // Definir a senha de OUTRA pessoa exige a service_role key do Supabase, que
-  // nunca pode existir no navegador — então nem tentamos: orientamos a usar
-  // o fluxo legítimo (e-mail de redefinição) e paramos aqui.
-  if (novaSenha) {
-    erroEl.textContent = 'Não é possível definir a senha de outra pessoa por aqui. Use "✉ Enviar reset de senha" para o professor escolher a própria senha.';
-    erroEl.style.display = 'block';
-    return;
-  }
 
   const updates = { nome: novoNome, papel: novoPapel, email: novoEmail };
   const btnSalvar = document.getElementById('ep-btn-salvar');
