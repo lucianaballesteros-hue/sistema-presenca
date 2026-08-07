@@ -33,6 +33,9 @@ import {
   abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno,
 } from './features/alunos/alunoModal.js';
 import { iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs } from './features/alunos/observacoes.js';
+import {
+  importarPlanilhaSelecionada, atualizarLinhaImportacao, cancelarImportacaoPlanilha, confirmarImportacaoPlanilha,
+} from './features/alunos/importarPlanilha.js';
 
 import { renderProfessores } from './features/professores/professoresView.js';
 import {
@@ -72,6 +75,7 @@ Object.assign(window, {
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
   abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno,
   iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs,
+  importarPlanilhaSelecionada, atualizarLinhaImportacao, cancelarImportacaoPlanilha, confirmarImportacaoPlanilha,
   renderProfessores,
   abrirModalNovoProf, salvarNovoProf, abrirModalEditarProf, salvarEdicaoProf, enviarResetSenha,
   renderRel, onMultiCheck, toggleMultiDropdown, abrirDotMenu, selecionarStatusDot,
