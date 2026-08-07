@@ -24,7 +24,7 @@ import {
   toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario,
 } from './features/dashboard/turmaModals.js';
 
-import { abrirChamada, voltarDash, renderChamada, marcar } from './features/chamada/chamadaView.js';
+import { abrirChamada, voltarDash, renderChamada, selecionarAula, marcar } from './features/chamada/chamadaView.js';
 
 import { renderTabelaAlunos, atualizarTurmasAlunos, mostrarMaisAlunos } from './features/alunos/alunosTable.js';
 import {
@@ -34,7 +34,8 @@ import {
 } from './features/alunos/alunoModal.js';
 import { iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs } from './features/alunos/observacoes.js';
 import {
-  importarPlanilhaSelecionada, atualizarLinhaImportacao, cancelarImportacaoPlanilha, confirmarImportacaoPlanilha,
+  importarPlanilhaSelecionada, atualizarLinhaImportacao, atualizarFiltroCursoImportacao,
+  cancelarImportacaoPlanilha, confirmarImportacaoPlanilha,
 } from './features/alunos/importarPlanilha.js';
 
 import { renderProfessores } from './features/professores/professoresView.js';
@@ -69,13 +70,14 @@ Object.assign(window, {
   abrirModalNovaTurma, selecionarCorNovaTurma, salvarNovaTurma,
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
   toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario,
-  abrirChamada, voltarDash, renderChamada, marcar,
+  abrirChamada, voltarDash, renderChamada, selecionarAula, marcar,
   renderTabelaAlunos, atualizarTurmasAlunos, mostrarMaisAlunos,
   abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
   abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno,
   iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs,
-  importarPlanilhaSelecionada, atualizarLinhaImportacao, cancelarImportacaoPlanilha, confirmarImportacaoPlanilha,
+  importarPlanilhaSelecionada, atualizarLinhaImportacao, atualizarFiltroCursoImportacao,
+  cancelarImportacaoPlanilha, confirmarImportacaoPlanilha,
   renderProfessores,
   abrirModalNovoProf, salvarNovoProf, abrirModalEditarProf, salvarEdicaoProf, enviarResetSenha,
   renderRel, onMultiCheck, toggleMultiDropdown, abrirDotMenu, selecionarStatusDot,

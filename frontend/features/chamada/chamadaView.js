@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { aulasDaTurma, registroPorAulaDaTurma } from '../../../backend/domain/attendance.js';
-import { escapeHtml, showToast } from '../../shared/dom.js';
+import { escapeHtml, escapeAttr, showToast } from '../../shared/dom.js';
 import { salvarPresenca, removerPresenca } from '../../../backend/api/presencasRepo.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
@@ -17,6 +17,11 @@ export function abrirChamada(tId) {
   renderChamada();
 }
 
+export function selecionarAula(aula) {
+  document.getElementById('aula-sel').value = aula;
+  renderChamada();
+}
+
 export function voltarDash() {
   document.getElementById('chamada-view').style.display = 'none';
   document.getElementById('dash-view').style.display = 'block';
@@ -30,9 +35,11 @@ export function renderChamada() {
   const registroAulas = registroPorAulaDaTurma(state.turmaAtual);
   document.getElementById('ch-aulas-grid').innerHTML = aulasDaTurma(state.turmaAtual).map((au, i) => {
     const tem = registroAulas[i];
+    const ativa = au === aula;
     const bg = tem ? 'var(--green-soft)' : 'var(--gray-soft)';
     const tc = tem ? 'var(--green-soft-text)' : 'var(--gray-soft-text)';
-    return `<div class="aula-chip" style="background:${bg};color:${tc};" title="${au}${tem ? ': já tem registro' : ': sem registro'}">${i + 1}</div>`;
+    const contorno = ativa ? `outline:2px solid var(--primary);outline-offset:1px;` : '';
+    return `<div class="aula-chip" style="background:${bg};color:${tc};cursor:pointer;${contorno}" title="Ir para ${au}${tem ? ' (já tem registro)' : ' (sem registro)'}" onclick="selecionarAula('${escapeAttr(au)}')">${i + 1}</div>`;
   }).join('');
 
   // Turma inativa: mostra todos os alunos dela (inclusive os inativados junto

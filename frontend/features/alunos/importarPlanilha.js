@@ -11,14 +11,77 @@ import { renderRel, popularFiltros } from '../relatorios/relatoriosView.js';
 // aqui só pra LER a planilha em vez de gerar uma.
 let linhasImportacao = [];
 
+// Palavras que aparecem no nome da aba/curso mas não ajudam a identificar
+// qual curso é (ex: aba "Alunos Master" — "alunos" não diz nada).
+const PALAVRAS_GENERICAS = ['alunos', 'aluno', 'turma', 'turmas', 'planilha', 'lista', 'curso', 'pagina'];
+
 function normalizarTexto(s) {
   return (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-function acharTurmaPorNome(nomeTurma) {
-  const alvo = normalizarTexto(nomeTurma);
+function turmasAtivas() {
+  return state.TURMAS.filter(t => t.ativa !== false);
+}
+
+// Cursos disponíveis pro filtro — só os que têm ao menos uma turma ativa.
+function cursosDisponiveis() {
+  return [...new Set(turmasAtivas().map(t => t.curso).filter(Boolean))].sort();
+}
+
+// O curso pode vir de duas formas na planilha: uma coluna com "curso" no
+// cabeçalho (valor por linha, mais preciso) ou o nome da aba (ex: "Alunos
+// Master"). Aqui tenta achar, entre as turmas ativas, um curso que bata com
+// esse texto — exato primeiro, senão por palavra-chave em comum.
+function resolverCursoUnico(cursoTexto) {
+  const alvo = normalizarTexto(cursoTexto);
+  if (!alvo) return '';
+  const cursos = cursosDisponiveis();
+
+  const exato = cursos.find(c => normalizarTexto(c) === alvo);
+  if (exato) return exato;
+
+  const palavras = alvo.split(' ').filter(p => p.length > 2 && !PALAVRAS_GENERICAS.includes(p));
+  if (!palavras.length) return '';
+  const candidatos = cursos.filter(c => palavras.some(p => normalizarTexto(c).includes(p)));
+  // Só assume automaticamente quando não há ambiguidade (ex: "Master" batendo
+  // em "Master 1/2026" E "Master 2/2026" ao mesmo tempo fica em aberto pro
+  // usuário escolher no filtro).
+  return candidatos.length === 1 ? candidatos[0] : '';
+}
+
+// Turmas ativas candidatas pra um texto de curso — mais permissivo que
+// resolverCursoUnico: usa TODOS os cursos que batem por palavra-chave (não
+// só quando é único), pra não perder opções na hora de achar o horário.
+function turmasCandidatas(cursoTexto) {
+  const ativas = turmasAtivas();
+  const alvo = normalizarTexto(cursoTexto);
+  if (!alvo) return ativas;
+
+  const exatas = ativas.filter(t => normalizarTexto(t.curso) === alvo);
+  if (exatas.length) return exatas;
+
+  const palavras = alvo.split(' ').filter(p => p.length > 2 && !PALAVRAS_GENERICAS.includes(p));
+  if (!palavras.length) return ativas;
+  const candidatas = ativas.filter(t => palavras.some(p => normalizarTexto(t.curso).includes(p)));
+  return candidatas.length ? candidatas : ativas;
+}
+
+// A coluna "Turma" na planilha traz só o horário (ex: "Segunda 14:00"), e o
+// nome completo da turma no sistema pode ter texto no meio (ex: "Segunda Sta
+// Dorotéia 14:00") — por isso não basta um substring contíguo: cada palavra
+// do horário (dia, hora) precisa aparecer em algum lugar do nome da turma.
+function turmaContemHorario(nomeTurma, horarioTexto) {
+  const turmaNorm = normalizarTexto(nomeTurma);
+  const tokens = normalizarTexto(horarioTexto).split(' ').filter(Boolean);
+  return tokens.length > 0 && tokens.every(tok => turmaNorm.includes(tok));
+}
+
+function acharTurma(candidatas, horarioTexto) {
+  const alvo = normalizarTexto(horarioTexto);
   if (!alvo) return null;
-  return state.TURMAS.find(t => normalizarTexto(t.turma) === alvo) || null;
+  return candidatas.find(t => normalizarTexto(t.turma) === alvo)
+    || candidatas.find(t => turmaContemHorario(t.turma, horarioTexto))
+    || null;
 }
 
 function alunoJaExiste(nome, turmaId) {
@@ -37,9 +100,7 @@ export function importarPlanilhaSelecionada(e) {
     try {
       const data = new Uint8Array(evt.target.result);
       const wb = XLSX.read(data, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const linhas = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      processarLinhasPlanilha(linhas);
+      processarPastaDeTrabalho(wb);
     } catch (err) {
       console.error('Erro ao ler planilha:', err);
       showToast('Não foi possível ler essa planilha. Verifique o arquivo.', 'red');
@@ -49,25 +110,51 @@ export function importarPlanilhaSelecionada(e) {
   reader.readAsArrayBuffer(file);
 }
 
-function processarLinhasPlanilha(linhasBrutas) {
-  if (!linhasBrutas.length) { showToast('Planilha vazia.', 'red'); return; }
+// Percorre TODAS as abas da planilha (cada uma pode representar um curso
+// diferente, ex: "Alunos Master", "Alunos Evolution"). Abas sem colunas de
+// Nome/Turma são ignoradas silenciosamente (ex: uma aba de resumo/instruções).
+function processarPastaDeTrabalho(wb) {
+  linhasImportacao = [];
+  let abasComDados = 0;
 
-  const headers = Object.keys(linhasBrutas[0]);
-  const nomeKey = headers.find(h => h.toLowerCase().includes('nome'));
-  const turmaKey = headers.find(h => h.toLowerCase().includes('turma'));
-  if (!nomeKey || !turmaKey) {
-    showToast('A planilha precisa ter colunas com "Nome" e "Turma" no cabeçalho.', 'red');
+  wb.SheetNames.forEach(nomeAba => {
+    const ws = wb.Sheets[nomeAba];
+    const linhasBrutas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    if (!linhasBrutas.length) return;
+
+    const headers = Object.keys(linhasBrutas[0]);
+    const nomeKey = headers.find(h => h.toLowerCase().includes('nome'));
+    const turmaKey = headers.find(h => h.toLowerCase().includes('turma'));
+    const cursoKey = headers.find(h => h.toLowerCase().includes('curso'));
+    if (!nomeKey || !turmaKey) return;
+
+    abasComDados++;
+    linhasBrutas.forEach(l => {
+      const nome = String(l[nomeKey] || '').trim();
+      const horarioTexto = String(l[turmaKey] || '').trim();
+      if (!nome) return;
+
+      // Coluna "Curso" no cabeçalho tem prioridade (é por linha, mais
+      // preciso); sem ela, usa o nome da aba como pista do curso.
+      const cursoTexto = (cursoKey && String(l[cursoKey] || '').trim()) || nomeAba;
+      const cursoFiltro = resolverCursoUnico(cursoTexto);
+      const candidatas = turmasCandidatas(cursoFiltro || cursoTexto);
+      const turmaEncontrada = acharTurma(candidatas, horarioTexto);
+
+      linhasImportacao.push({
+        nome,
+        horarioTexto,
+        cursoTexto,
+        cursoFiltro,
+        turmaId: turmaEncontrada ? String(turmaEncontrada.id) : '',
+      });
+    });
+  });
+
+  if (!abasComDados) {
+    showToast('Nenhuma aba com colunas "Nome" e "Turma" foi encontrada na planilha.', 'red');
     return;
   }
-
-  linhasImportacao = linhasBrutas
-    .map(l => ({ nome: String(l[nomeKey] || '').trim(), turmaTexto: String(l[turmaKey] || '').trim() }))
-    .filter(l => l.nome)
-    .map(l => {
-      const turmaEncontrada = acharTurmaPorNome(l.turmaTexto);
-      return { ...l, turmaId: turmaEncontrada ? String(turmaEncontrada.id) : '' };
-    });
-
   if (!linhasImportacao.length) { showToast('Nenhum aluno encontrado na planilha.', 'red'); return; }
 
   renderModalImportacao();
@@ -83,7 +170,8 @@ function renderModalImportacao() {
     (semTurma ? ` · ${semTurma} sem turma reconhecida (selecione manualmente)` : '') +
     (duplicados ? ` · ${duplicados} possivelmente já cadastrado(s)` : '');
 
-  const inputStyle = 'width:100%;padding:6px 8px;border:1px solid var(--border-input);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);';
+  const selectStyle = 'width:100%;padding:6px 8px;border:1px solid var(--border-input);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);';
+  const cursos = cursosDisponiveis();
 
   document.getElementById('imp-tbody').innerHTML = linhasImportacao.map((l, i) => {
     const duplicado = l.turmaId && alunoJaExiste(l.nome, parseInt(l.turmaId));
@@ -92,15 +180,22 @@ function renderModalImportacao() {
       : duplicado
         ? '<span class="badge badge-amber">Já existe</span>'
         : '<span class="badge badge-green">OK</span>';
+
+    const turmasDaLinha = turmasAtivas().filter(t => !l.cursoFiltro || t.curso === l.cursoFiltro);
+
     return `<tr>
       <td>${i + 1}</td>
-      <td><input type="text" value="${escapeHtml(l.nome)}" oninput="atualizarLinhaImportacao(${i},'nome',this.value)" style="${inputStyle}"/></td>
+      <td><input type="text" value="${escapeHtml(l.nome)}" oninput="atualizarLinhaImportacao(${i},'nome',this.value)" style="${selectStyle}"/></td>
       <td>
-        <select onchange="atualizarLinhaImportacao(${i},'turmaId',this.value)" style="${inputStyle}">
-          <option value="">— selecione —</option>
-          ${state.TURMAS.map(t => `<option value="${t.id}" ${String(t.id) === l.turmaId ? 'selected' : ''}>${escapeHtml(t.turma)} — ${escapeHtml(t.curso)}</option>`).join('')}
+        <select onchange="atualizarFiltroCursoImportacao(${i},this.value)" style="${selectStyle}margin-bottom:5px;">
+          <option value="">Todos os cursos</option>
+          ${cursos.map(c => `<option value="${escapeHtml(c)}" ${c === l.cursoFiltro ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
         </select>
-        ${!l.turmaId && l.turmaTexto ? `<div style="font-size:10px;color:var(--text-faded);margin-top:3px;">Na planilha: "${escapeHtml(l.turmaTexto)}"</div>` : ''}
+        <select onchange="atualizarLinhaImportacao(${i},'turmaId',this.value)" style="${selectStyle}">
+          <option value="">— selecione a turma —</option>
+          ${turmasDaLinha.map(t => `<option value="${t.id}" ${String(t.id) === l.turmaId ? 'selected' : ''}>${escapeHtml(t.turma)} — ${escapeHtml(t.curso)}</option>`).join('')}
+        </select>
+        <div style="font-size:10px;color:var(--text-faded);margin-top:3px;">Na planilha: ${escapeHtml(l.cursoTexto)}${l.horarioTexto ? ` · "${escapeHtml(l.horarioTexto)}"` : ''}</div>
       </td>
       <td>${statusHtml}</td>
     </tr>`;
@@ -109,6 +204,19 @@ function renderModalImportacao() {
 
 export function atualizarLinhaImportacao(i, campo, valor) {
   linhasImportacao[i][campo] = valor;
+  renderModalImportacao();
+}
+
+// Ao trocar o filtro de curso de uma linha, se a turma já selecionada não
+// pertencer mais ao curso escolhido, limpa a seleção pra evitar ficar com
+// aluno-turma-curso incoerentes.
+export function atualizarFiltroCursoImportacao(i, cursoFiltro) {
+  const l = linhasImportacao[i];
+  l.cursoFiltro = cursoFiltro;
+  if (l.turmaId) {
+    const turmaAtual = state.TURMAS.find(t => String(t.id) === l.turmaId);
+    if (!turmaAtual || (cursoFiltro && turmaAtual.curso !== cursoFiltro)) l.turmaId = '';
+  }
   renderModalImportacao();
 }
 
