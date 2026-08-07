@@ -7,6 +7,10 @@
 .badge-gray{background:var(--gray-soft);color:var(--gray-soft-text);}
 .badge-purple{background:var(--purple-soft);color:var(--purple-soft-text);}
 .badge-pink{background:var(--pink-soft);color:var(--pink-soft-text);}
+.badge-yellow{background:var(--experimental-soft);color:var(--experimental-soft-text);}
+
+/* Destaque no nome de alunos experimentais — identificação visual rápida */
+.nome-experimental{background:var(--experimental-soft);color:var(--experimental-soft-text);padding:1px 7px;border-radius:5px;}
 
 /* PILLS DE FILTRO POR CURSO */
 .curso-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}

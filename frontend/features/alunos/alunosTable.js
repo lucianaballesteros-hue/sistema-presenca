@@ -16,6 +16,7 @@ export function renderTabelaAlunos(resetPagina = true) {
   if (fTurmaAlunos) lista = lista.filter(a => String(a.turma_id) === fTurmaAlunos);
   if (fStatus === 'ativo') lista = lista.filter(a => a.ativo);
   else if (fStatus === 'inativo') lista = lista.filter(a => !a.ativo);
+  else if (fStatus === 'experimental') lista = lista.filter(a => a.experimental);
   else if (fStatus === 'cancelado') lista = lista.filter(a => !a.ativo && statusInativo(a.id) === 'cancelado');
   else if (fStatus === 'alerta') lista = lista.filter(a => a.ativo && a.emAlerta);
   else if (fStatus === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 70);
@@ -25,7 +26,7 @@ export function renderTabelaAlunos(resetPagina = true) {
   const listaPagina = lista.slice(0, state.paginaAlunos * PAGE_SIZE);
 
   document.getElementById('tbody-alunos').innerHTML = listaPagina.map(a => `
-    <tr class="clickable ${a.emAlerta && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''}" onclick="abrirModalAluno(${a.id})">
+    <tr class="clickable ${a.emAlerta && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''} ${a.experimental ? 'row-experimental' : ''}" onclick="abrirModalAluno(${a.id})">
       <td>${escapeHtml(a.nome)}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
       <td><span class="badge ${corBadge(a.turma?.curso)}" style="font-size:10px;">${escapeHtml(a.turma?.curso) || '—'}</span></td>
       <td style="color:var(--text-3);">${escapeHtml(a.turma?.turma) || '—'}</td>

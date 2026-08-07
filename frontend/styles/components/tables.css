@@ -5,6 +5,7 @@ th{text-align:left;padding:9px 1rem;font-weight:600;font-size:11px;color:var(--t
 td{padding:9px 1rem;border-bottom:1px solid var(--border-2);color:var(--text);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
 tr.row-alerta td{background:var(--row-alerta-bg);}
+tr.row-experimental td{background:var(--row-experimental-bg);}
 tr.row-inativo{opacity:.45;}
 tr.clickable{cursor:pointer;}
 tr.clickable:hover td{background:var(--surface-hover-2);}

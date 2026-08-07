@@ -85,7 +85,7 @@ export function aplicarFiltroReposicoes() {
       return `<div class="rep-opcao-item${marcada ? ' escolhida' : ''}">${formatData(o.data)} — ${escapeHtml(td?.turma) || '?'}${marcada ? ' ✓' : ''}</div>`;
     }).join('') : '<span class="muted">—</span>';
 
-    return `<tr>
+    return `<tr class="${r.aluno?.experimental ? 'row-experimental' : ''}">
       <td>
         <div class="rep-aluno-cell">
           <span class="rep-aluno-nome">${escapeHtml(r.aluno?.nome) || '—'}</span>

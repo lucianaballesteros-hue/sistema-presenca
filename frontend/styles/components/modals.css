@@ -4,7 +4,7 @@
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
 .modal-title{font-size:15px;font-weight:600;color:var(--text);}
-.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);}
+.modal-footer{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);}
 
 /* CONTEÚDO DO MODAL DE ALUNO */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;}

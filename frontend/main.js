@@ -28,9 +28,9 @@ import { abrirChamada, voltarDash, renderChamada, marcar } from './features/cham
 
 import { renderTabelaAlunos, atualizarTurmasAlunos, mostrarMaisAlunos } from './features/alunos/alunosTable.js';
 import {
-  abrirModalAluno, toggleInativo, cancelarMatricula,
+  abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
-  abrirModalNovoAluno, salvarNovoAluno,
+  abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno,
 } from './features/alunos/alunoModal.js';
 import { iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs } from './features/alunos/observacoes.js';
 
@@ -68,9 +68,9 @@ Object.assign(window, {
   toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario,
   abrirChamada, voltarDash, renderChamada, marcar,
   renderTabelaAlunos, atualizarTurmasAlunos, mostrarMaisAlunos,
-  abrirModalAluno, toggleInativo, cancelarMatricula,
+  abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
-  abrirModalNovoAluno, salvarNovoAluno,
+  abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno,
   iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs,
   renderProfessores,
   abrirModalNovoProf, salvarNovoProf, abrirModalEditarProf, salvarEdicaoProf, enviarResetSenha,
@@ -89,12 +89,14 @@ Object.assign(window, {
 // Fecha modal ao clicar fora do card.
 wireModalBackdrops();
 
-// Fecha o menu de pontos e os painéis de multi-select ao clicar fora deles.
+// Fecha o menu de pontos, o menu de ações do aluno e os painéis de
+// multi-select ao clicar fora deles.
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#dot-menu')) {
     const menu = document.getElementById('dot-menu');
     if (menu) { menu.remove(); state.dotMenuContext = null; }
   }
+  if (!e.target.closest('#ma-acoes-menu')) fecharMenuAluno();
   document.querySelectorAll('.multi-select-panel.open').forEach(p => p.classList.remove('open'));
 });
 

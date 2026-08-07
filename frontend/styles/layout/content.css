@@ -9,6 +9,7 @@
 .aluno-row{display:flex;align-items:center;padding:10px 1.25rem;border-bottom:1px solid var(--border-2);gap:10px;}
 .aluno-row:last-child{border-bottom:none;}
 .aluno-row.inativo{opacity:.45;}
+.aluno-row.experimental{background:var(--row-experimental-bg);}
 .aluno-num{font-size:11px;color:var(--text-faded);width:22px;flex-shrink:0;}
 .aluno-nome{flex:1;font-size:13px;color:var(--text);}
 .pbtns{display:flex;gap:5px;}

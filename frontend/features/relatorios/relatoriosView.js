@@ -119,7 +119,7 @@ export function renderRel() {
           <th style="width:12%;">Freq.</th>
           <th style="width:12%;">Status</th>
         </tr></thead>
-        <tbody>${lista.map(a => `<tr class="clickable ${a.emAlerta && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''}" onclick="abrirModalAluno(${a.id})">
+        <tbody>${lista.map(a => `<tr class="clickable ${a.emAlerta && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''} ${a.experimental ? 'row-experimental' : ''}" onclick="abrirModalAluno(${a.id})">
           <td>${escapeHtml(a.nome)}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
           <td><div class="dots" style="cursor:pointer;">${(() => { const _c = a.seq.map((v, i) => ({ v, i })).filter(x => x.v !== 'N').slice(-8); return _c.map(({ v, i }) => `<div class="dot ${v === 'P' ? 'dot-p' : v === 'R' ? 'dot-r' : v === 'F' ? 'dot-f' : 'dot-n'}" style="cursor:pointer;transition:transform .1s;" onmouseenter="this.style.transform='scale(1.3)'" onmouseleave="this.style.transform='scale(1)'" onclick="event.stopPropagation();abrirDotMenu(event,${a.id},${t.id},${i})" title="Aula ${i + 1}: ${v === 'P' ? 'Presente' : v === 'R' ? 'Gravação' : v === 'F' ? 'Falta' : 'Sem registro'}"></div>`).join(''); })()}</div></td>
           <td style="text-align:center;color:var(--green);font-weight:600;">${a.p - a.r}</td>

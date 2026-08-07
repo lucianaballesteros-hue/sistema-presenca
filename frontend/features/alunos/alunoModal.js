@@ -16,7 +16,7 @@ export function abrirModalAluno(id) {
   const a = state.ALUNOS.find(x => x.id === id);
   const t = state.TURMAS.find(x => x.id === a.turma_id);
   const c = calcAluno(a);
-  document.getElementById('ma-nome').textContent = a.nome;
+  document.getElementById('ma-nome').innerHTML = a.experimental ? `<span class="nome-experimental">${escapeHtml(a.nome)}</span>` : escapeHtml(a.nome);
   document.getElementById('ma-status').innerHTML = statusBadge(c.freq, c.emAlerta, a.ativo);
   document.getElementById('ma-info').innerHTML = `
     <div class="info-item"><div class="info-label">Curso</div><div class="info-val">${escapeHtml(t?.curso) || '—'}</div></div>
@@ -39,19 +39,47 @@ export function abrirModalAluno(id) {
     <div style="font-size:12px;color:var(--text-3);margin-bottom:.5rem;font-weight:500;">Histórico de movimentações</div>
     ${hist.map(h => `<div class="hist-item"><span style="font-size:10px;color:var(--text-faded);width:80px;flex-shrink:0;">${new Date(h.created_at).toLocaleDateString('pt-BR')}</span><span>${escapeHtml(h.descricao)}</span></div>`).join('')}` : '';
 
-  const btnIn = document.getElementById('ma-btn-inativar');
-  const btnCancelar = document.getElementById('ma-btn-cancelar');
-  btnIn.textContent = a.ativo ? 'Inativar aluno' : 'Reativar aluno';
-  btnIn.className = 'btn-warning';
-  btnIn.disabled = false;
-  btnCancelar.classList.remove('hidden');
-  btnCancelar.disabled = false;
-  btnCancelar.textContent = 'Cancelar matrícula';
-
   const obsTexto = document.getElementById('obs-texto');
   if (obsTexto) obsTexto.value = '';
   carregarObservacoes(id);
   document.getElementById('modal-aluno').classList.add('open');
+}
+
+// Menu "⚙ Configurações" — reúne todas as ações que alteram o aluno numa
+// lista flutuante (mesmo padrão visual do menu de pontos do relatório), em
+// vez de espalhar botões pelo rodapé do modal.
+export function abrirMenuAluno(e) {
+  e.stopPropagation();
+  const existing = document.getElementById('ma-acoes-menu');
+  if (existing) { existing.remove(); return; }
+
+  const a = state.ALUNOS.find(x => x.id === state.alunoSelecionadoId);
+  if (!a) return;
+
+  const divisor = '<div style="height:1px;background:var(--border-2);margin:4px 0;"></div>';
+  const menu = document.createElement('div');
+  menu.id = 'ma-acoes-menu';
+  menu.className = 'dot-menu';
+  menu.style.minWidth = '220px';
+  menu.innerHTML = `
+    <div class="dot-menu-item" onclick="fecharMenuAluno();abrirModalEditar();">Editar nome</div>
+    <div class="dot-menu-item" onclick="fecharMenuAluno();abrirModalTransferir();">Transferir turma</div>
+    <div class="dot-menu-item" onclick="fecharMenuAluno();abrirModalReposicao();">Criar reposição</div>
+    ${divisor}
+    <div class="dot-menu-item" onclick="fecharMenuAluno();toggleInativo();">${a.ativo ? 'Inativar aluno' : 'Reativar aluno'}</div>
+    <div class="dot-menu-item" onclick="fecharMenuAluno();toggleExperimental();">${a.experimental ? 'Tornar matriculado' : 'Marcar como experimental'}</div>
+    ${divisor}
+    <div class="dot-menu-item" style="color:var(--red);" onclick="fecharMenuAluno();cancelarMatricula();">Cancelar matrícula</div>
+  `;
+  document.body.appendChild(menu);
+  const rect = e.currentTarget.getBoundingClientRect();
+  const left = Math.max(8, rect.right - 220);
+  menu.style.left = left + 'px';
+  menu.style.top = (rect.bottom + 4) + 'px';
+}
+
+export function fecharMenuAluno() {
+  document.getElementById('ma-acoes-menu')?.remove();
 }
 
 export async function toggleInativo() {
@@ -65,15 +93,23 @@ export async function toggleInativo() {
     });
     if (!ok) return;
   }
-  const btnIn = document.getElementById('ma-btn-inativar');
-  btnIn.disabled = true;
-  btnIn.textContent = novoStatus ? 'Reativando…' : 'Inativando…';
   await atualizarAluno(a.id, { ativo: novoStatus });
   await registrarMovimentacao(a.id, novoStatus ? 'Aluno(a) reativado' : 'Aluno(a) inativado');
   a.ativo = novoStatus;
   fecharModal('modal-aluno');
   showToast(novoStatus ? 'Aluno(a) reativado.' : 'Aluno(a) inativado.');
   renderTabelaAlunos(); renderDash();
+}
+
+export async function toggleExperimental() {
+  const a = state.ALUNOS.find(x => x.id === state.alunoSelecionadoId);
+  const novoStatus = !a.experimental;
+  await atualizarAluno(a.id, { experimental: novoStatus });
+  await registrarMovimentacao(a.id, novoStatus ? 'Marcado(a) como aluno(a) experimental' : 'Deixou de ser aluno(a) experimental (matriculado)');
+  a.experimental = novoStatus;
+  fecharModal('modal-aluno');
+  showToast(novoStatus ? 'Aluno(a) marcado como experimental.' : 'Aluno(a) agora está matriculado.');
+  renderTabelaAlunos(); renderDash(); renderRel();
 }
 
 export async function cancelarMatricula() {
@@ -87,9 +123,6 @@ export async function cancelarMatricula() {
     perigo: true,
   });
   if (!ok) return;
-  const btnCancelar = document.getElementById('ma-btn-cancelar');
-  btnCancelar.disabled = true;
-  btnCancelar.textContent = 'Cancelando…';
   await atualizarAluno(a.id, { ativo: false });
   await registrarMovimentacao(a.id, 'Matrícula cancelada');
   a.ativo = false;
@@ -189,26 +222,32 @@ export async function confirmarTransferencia() {
 export function abrirModalNovoAluno() {
   document.getElementById('novo-nome').value = '';
   document.getElementById('novo-turma').innerHTML = state.TURMAS.map(t => `<option value="${t.id}">${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(t.professor)})</option>`).join('');
+  document.getElementById('novo-experimental-btn').classList.remove('active');
   const btnAdicionar = document.getElementById('novo-btn-adicionar');
   btnAdicionar.disabled = false;
   btnAdicionar.textContent = 'Adicionar';
   document.getElementById('modal-novo').classList.add('open');
 }
 
+export function toggleNovoExperimental() {
+  document.getElementById('novo-experimental-btn').classList.toggle('active');
+}
+
 export async function salvarNovoAluno() {
   const nome = document.getElementById('novo-nome').value.trim();
   if (!nome) { showToast('Digite o nome do aluno.', 'red'); return; }
   const turmaId = parseInt(document.getElementById('novo-turma').value);
+  const experimental = document.getElementById('novo-experimental-btn').classList.contains('active');
   const btn = document.getElementById('novo-btn-adicionar');
   btn.disabled = true;
   btn.textContent = 'Adicionando…';
-  const { data, error } = await inserirAluno({ nome, turma_id: turmaId, ativo: true });
+  const { data, error } = await inserirAluno({ nome, turma_id: turmaId, ativo: true, experimental });
   if (error) {
     showToast('Erro ao adicionar aluno.', 'red');
     btn.disabled = false; btn.textContent = 'Adicionar';
     return;
   }
-  await registrarMovimentacao(data.id, 'Aluno adicionado ao sistema');
+  await registrarMovimentacao(data.id, experimental ? 'Aluno adicionado ao sistema (experimental)' : 'Aluno adicionado ao sistema');
   state.ALUNOS.push(data);
   fecharModal('modal-novo');
   showToast(`${nome} adicionado com sucesso!`);

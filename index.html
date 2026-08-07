@@ -212,6 +212,7 @@
               <option value="">Todos</option>
               <option value="ativo">Ativos</option>
               <option value="inativo">Inativos</option>
+              <option value="experimental">Experimental</option>
               <option value="cancelado">Cancelados</option>
               <option value="alerta">Alerta (3 seguidas)</option>
               <option value="irregular">Irregular (&lt;70%)</option>
@@ -405,7 +406,10 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="ma-nome"></div>
-      <button class="close-btn" onclick="fecharModal('modal-aluno')" aria-label="Fechar">×</button>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="menu-btn" onclick="abrirMenuAluno(event)" aria-label="Configurações" title="Configurações"><span class="icon-mask icon-config"></span></button>
+        <button class="close-btn" onclick="fecharModal('modal-aluno')" aria-label="Fechar">×</button>
+      </div>
     </div>
     <div id="ma-status" style="margin-bottom:1rem;"></div>
     <div class="info-grid" id="ma-info"></div>
@@ -428,13 +432,6 @@
           <button id="obs-confirm-btn" onclick="confirmarObservacao()" disabled style="padding:5px 12px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Salvar</button>
         </div>
       </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-danger hidden" id="ma-btn-cancelar" onclick="cancelarMatricula()">Cancelar matrícula</button>
-      <button class="btn-warning" id="ma-btn-inativar" onclick="toggleInativo()"></button>
-      <button class="btn-sec" onclick="abrirModalEditar()">Editar nome</button>
-      <button class="btn-sec" onclick="abrirModalReposicao()">Criar reposição</button>
-      <button class="btn-save" onclick="abrirModalTransferir()">Transferir turma</button>
     </div>
   </div>
 </div>
@@ -535,6 +532,10 @@
     <div class="field"><label>Nome completo</label><input type="text" id="novo-nome" placeholder="Nome completo" onkeydown="if(event.key==='Enter')salvarNovoAluno()"/></div>
     <div class="field"><label>Turma</label>
       <select id="novo-turma" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"></select>
+    </div>
+    <div class="field">
+      <button type="button" class="btn-toggle-experimental" id="novo-experimental-btn" onclick="toggleNovoExperimental()" style="width:100%;">Aula experimental</button>
+      <div style="font-size:11px;color:var(--text-faded);margin-top:4px;">Aluno ainda não matriculado, veio só experimentar.</div>
     </div>
     <div class="modal-footer">
       <button class="btn-sec" onclick="fecharModal('modal-novo')">Cancelar</button>

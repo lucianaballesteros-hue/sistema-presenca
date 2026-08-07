@@ -49,7 +49,7 @@ export function renderChamada() {
     `<span style="color:var(--green);">✓ ${p} presentes</span><span style="color:var(--red);">✗ ${f} faltas</span><span style="color:var(--amber);">↺ ${r} gravações</span><span>○ ${s} sem registro</span>`;
   document.getElementById('alunos-list').innerHTML = alunos.map((a, i) => {
     const v = state.PRESENCAS[key][a.id] || '';
-    return `<div class="aluno-row">
+    return `<div class="aluno-row ${a.experimental ? 'experimental' : ''}">
       <div class="aluno-num">${i + 1}</div>
       <div class="aluno-nome">${escapeHtml(a.nome)}</div>
       <div class="pbtns">
