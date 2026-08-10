@@ -221,7 +221,7 @@ export async function confirmarTransferencia() {
 
 export function abrirModalNovoAluno() {
   document.getElementById('novo-nome').value = '';
-  document.getElementById('novo-turma').innerHTML = state.TURMAS.map(t => `<option value="${t.id}">${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(t.professor)})</option>`).join('');
+  document.getElementById('novo-turma').innerHTML = state.TURMAS.filter(t => t.ativa !== false).map(t => `<option value="${t.id}">${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(t.professor)})</option>`).join('');
   document.getElementById('novo-experimental-btn').classList.remove('active');
   const btnAdicionar = document.getElementById('novo-btn-adicionar');
   btnAdicionar.disabled = false;
@@ -243,6 +243,7 @@ export async function salvarNovoAluno() {
   btn.textContent = 'Adicionando…';
   const { data, error } = await inserirAluno({ nome, turma_id: turmaId, ativo: true, experimental });
   if (error) {
+    console.error('Erro ao adicionar aluno:', error);
     showToast('Erro ao adicionar aluno.', 'red');
     btn.disabled = false; btn.textContent = 'Adicionar';
     return;
