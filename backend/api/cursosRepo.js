@@ -26,9 +26,13 @@ export async function sincronizarCursosComTurmas() {
     const chave = nome.toLowerCase();
     if (!existentes.has(chave) && !faltantes.has(chave)) faltantes.set(chave, nome);
   }
+  console.debug('[sincronizarCursosComTurmas] CURSOS antes:', JSON.parse(JSON.stringify(state.CURSOS)));
+  console.debug('[sincronizarCursosComTurmas] TURMAS.curso:', state.TURMAS.map(t => t.curso));
+  console.debug('[sincronizarCursosComTurmas] faltantes:', [...faltantes.values()]);
   if (!faltantes.size) return;
 
   const { data, error } = await sb.from('cursos').insert([...faltantes.values()].map(nome => ({ nome }))).select();
+  console.debug('[sincronizarCursosComTurmas] insert result:', { data, error });
   if (error) { console.error('Erro ao sincronizar cursos:', error); return; }
   state.CURSOS.push(...(data || []));
   state.CURSOS.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
