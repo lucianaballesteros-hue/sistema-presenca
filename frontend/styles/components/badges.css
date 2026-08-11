@@ -13,6 +13,10 @@
 .nome-experimental{background:var(--experimental-soft);color:var(--experimental-soft-text);padding:1px 7px;border-radius:5px;}
 
 /* PILLS DE FILTRO POR CURSO */
-.curso-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
-.cpill{padding:5px 14px;border-radius:99px;font-size:12px;cursor:pointer;border:1px solid var(--border-input);background:var(--surface);color:var(--text-2);font-weight:500;}
-.cpill.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.curso-pills{display:flex;gap:var(--space-1);flex-wrap:wrap;align-items:center;margin-bottom:var(--space-4);background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;padding:6px;}
+.cpill{padding:6px 14px;border-radius:99px;font-size:12px;cursor:pointer;border:1px solid transparent;background:transparent;color:var(--text-2);font-weight:500;}
+.cpill:hover{background:var(--surface-hover);color:var(--text);}
+.cpill.active{background:var(--primary);color:#fff;font-weight:600;box-shadow:var(--shadow-sm);}
+.cpill.active:hover{background:var(--primary-hover);}
+.cpill-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:99px;font-size:10px;font-weight:700;margin-left:5px;background:var(--surface-3);color:var(--text-3);vertical-align:1px;}
+.cpill.active .cpill-count{background:rgba(255,255,255,.28);color:#fff;}

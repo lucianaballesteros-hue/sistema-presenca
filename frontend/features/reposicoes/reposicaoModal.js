@@ -1,5 +1,6 @@
 import { state } from '../../state/store.js';
 import { aulasDaTurma, calcAluno, ultimaAulaRegistrada, proximaAula, proximaDataTurma } from '../../../backend/domain/attendance.js';
+import { professorNome } from '../../../backend/domain/status.js';
 import { escapeHtml, escapeAttr, showToast, fecharModal } from '../../shared/dom.js';
 import { criarReposicao } from '../../../backend/api/reposicoesRepo.js';
 import { renderReposicoes } from './reposicoesView.js';
@@ -61,7 +62,7 @@ export function renderSugestoesReposicao() {
     .sort((s1, s2) => s1.data.localeCompare(s2.data));
 
   if (!sugestoes.length) { wrap.innerHTML = ''; return; }
-  wrap.innerHTML = `<div class="rep-sugestoes-label">💡 Sugestões automáticas — turmas do mesmo curso que vão dar essa aula em breve</div>` +
+  wrap.innerHTML = `<div class="rep-sugestoes-label">Sugestões automáticas — turmas do mesmo curso que vão dar essa aula em breve</div>` +
     sugestoes.map(s => `<button type="button" class="rep-sugestao-chip" onclick="usarSugestaoReposicao(${s.turma.id},'${s.data}')">
       <span class="icon-mask icon-relogio"></span>${escapeHtml(s.turma.turma)} · ${formatDataCurta(s.data)}
     </button>`).join('');
@@ -85,7 +86,7 @@ export function usarSugestaoReposicao(turmaId, data) {
 
 function turmaOptionsHtml(selectedId) {
   return state.TURMAS.map(t =>
-    `<option value="${t.id}" ${String(t.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(t.professor)})</option>`
+    `<option value="${t.id}" ${String(t.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(professorNome(t))})</option>`
   ).join('');
 }
 
@@ -107,7 +108,7 @@ export function renderOpcoesReposicao() {
         <input type="date" value="${o.data}" onchange="atualizarOpcaoReposicao(${i},'data',this.value)"/>
         <input type="text" class="rep-opcao-obs" placeholder="Observação (opcional, ex: chegar 10 min antes)" value="${escapeAttr(o.observacao)}" onchange="atualizarOpcaoReposicao(${i},'observacao',this.value)"/>
       </div>
-      ${dica ? `<div class="rep-opcao-dica">💡 Essa turma já registrou presença até <strong>${dica}</strong></div>` : ''}
+      ${dica ? `<div class="rep-opcao-dica">Essa turma já registrou presença até <strong>${dica}</strong></div>` : ''}
     </div>`;
   }).join('');
 }

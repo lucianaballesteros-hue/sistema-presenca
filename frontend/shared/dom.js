@@ -36,8 +36,8 @@ export function fecharModal(id) {
 
 export function toggleSenha(inputId, btn) {
   const inp = document.getElementById(inputId);
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-  else { inp.type = 'password'; btn.textContent = '👁'; }
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Ocultar'; }
+  else { inp.type = 'password'; btn.textContent = 'Mostrar'; }
 }
 
 // Fecha o modal ao clicar no fundo escuro (fora do card).

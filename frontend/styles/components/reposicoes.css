@@ -1,15 +1,15 @@
 /* REPOSIÇÕES — sugestões automáticas de turma/data */
-.rep-sugestoes{margin-bottom:.875rem;}
+.rep-sugestoes{margin-bottom:var(--space-4);}
 .rep-sugestoes:empty{display:none;margin:0;}
-.rep-sugestoes-label{font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:6px;}
-.rep-sugestao-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:6px 12px;border:1px solid var(--primary-soft);border-radius:99px;background:var(--primary-soft);color:var(--primary-soft-text);cursor:pointer;margin:0 6px 6px 0;transition:all .12s;}
+.rep-sugestoes-label{font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:var(--space-2);}
+.rep-sugestao-chip{display:inline-flex;align-items:center;gap:var(--space-2);font-size:11px;font-weight:600;padding:6px 12px;border:1px solid var(--primary-soft);border-radius:99px;background:var(--primary-soft);color:var(--primary-soft-text);cursor:pointer;margin:0 var(--space-2) var(--space-2) 0;}
 .rep-sugestao-chip:hover{border-color:var(--primary);background:var(--primary);color:#fff;}
 
 /* REPOSIÇÕES — modal de criação (opções turma/data) */
-.rep-opcao-row{background:var(--surface-3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;transition:border-color .15s ease;}
+.rep-opcao-row{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;padding:var(--space-3);margin-bottom:var(--space-3);}
 .rep-opcao-row:focus-within{border-color:var(--primary-light-2);}
 
-.rep-opcao-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.rep-opcao-header{display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-2);}
 .rep-opcao-badge{
   flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;
   font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;
@@ -18,20 +18,20 @@
 .rep-opcao-remove{background:none;border:none;color:var(--text-faded);font-size:18px;line-height:1;cursor:pointer;padding:2px 6px;flex-shrink:0;border-radius:6px;}
 .rep-opcao-remove:hover{color:var(--red);background:var(--red-soft);}
 
-.rep-opcao-body{display:flex;gap:8px;margin-left:32px;}
+.rep-opcao-body{display:flex;gap:var(--space-2);margin-left:var(--space-8);}
 .rep-opcao-body input[type="date"]{flex:0 0 150px;padding:7px 9px;border:1px solid var(--border-input);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);}
 .rep-opcao-obs{flex:1;padding:7px 9px;border:1px solid var(--border-input);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);}
 
-.rep-opcao-dica{font-size:10.5px;color:var(--primary);margin:6px 0 0 32px;}
+.rep-opcao-dica{font-size:10.5px;color:var(--primary);margin:var(--space-2) 0 0 var(--space-8);}
 
 /* Link gerado (modal de sucesso) */
-.rep-link-sucesso{text-align:center;margin-bottom:1rem;}
-.rep-link-icone{font-size:34px;margin-bottom:6px;}
-.rep-link-box{display:flex;gap:6px;}
+.rep-link-sucesso{text-align:center;margin-bottom:var(--space-4);}
+.rep-link-icone{font-size:34px;margin-bottom:var(--space-2);}
+.rep-link-box{display:flex;gap:var(--space-2);}
 .rep-link-box input{flex:1;padding:8px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;background:var(--surface-3);color:var(--text);}
 
 /* Aba "Reposições" — nome do aluno + status/horário escolhido lado a lado */
-.rep-aluno-cell{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.rep-aluno-cell{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;}
 .rep-aluno-nome{font-weight:500;}
 
 .rep-pill{font-size:10.5px;padding:3px 9px;border-radius:99px;font-weight:600;white-space:nowrap;display:inline-block;}
@@ -46,8 +46,8 @@
 
 @media(max-width:480px){
   .rep-opcao-header select{min-width:0;}
-  .rep-opcao-body{flex-direction:column;gap:6px;margin-left:0;}
+  .rep-opcao-body{flex-direction:column;gap:var(--space-2);margin-left:0;}
   .rep-opcao-body input[type="date"]{flex:1 1 auto;}
   .rep-opcao-dica{margin-left:0;}
-  .rep-aluno-cell{flex-direction:column;align-items:flex-start;gap:4px;}
+  .rep-aluno-cell{flex-direction:column;align-items:flex-start;gap:var(--space-1);}
 }

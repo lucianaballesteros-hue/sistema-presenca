@@ -93,7 +93,7 @@ export function abrirModalEditarProf(id) {
   btnSalvar.textContent = 'Salvar alterações';
   const btnReset = document.getElementById('ep-btn-reset');
   btnReset.disabled = false;
-  btnReset.textContent = '✉ Enviar reset de senha';
+  btnReset.textContent = 'Enviar reset de senha';
   document.getElementById('modal-editar-prof').classList.add('open');
 }
 
@@ -142,5 +142,5 @@ export async function enviarResetSenha() {
     showToast(`E-mail de redefinição enviado para ${p.email}!`, 'blue');
   }
   btn.disabled = false;
-  btn.textContent = '✉ Enviar reset de senha';
+  btn.textContent = 'Enviar reset de senha';
 }

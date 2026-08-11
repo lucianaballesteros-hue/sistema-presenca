@@ -1,5 +1,6 @@
 import { state } from '../../state/store.js';
 import { calcAluno, aulasDaTurma } from '../../../backend/domain/attendance.js';
+import { professorNome } from '../../../backend/domain/status.js';
 import { showToast } from '../../shared/dom.js';
 
 // A biblioteca xlsx é carregada via <script> global no index.html (sem passo
@@ -7,7 +8,7 @@ import { showToast } from '../../shared/dom.js';
 // ao global `XLSX` isolado neste único arquivo.
 export async function exportarExcel() {
   const btn = document.getElementById('btn-exportar');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Gerando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
 
   try {
     const wb = XLSX.utils.book_new();
@@ -21,8 +22,8 @@ export async function exportarExcel() {
     state.TURMAS.forEach(t => {
       state.ALUNOS.filter(a => a.turma_id === t.id).forEach(a => {
         const c = calcAluno(a);
-        const situacao = !a.ativo ? 'Inativo' : c.emAlerta ? '⚠ Alerta' : c.freq === null ? 'Sem registro' : c.freq >= 70 ? 'Regular' : 'Atenção';
-        resumoRows.push([t.turma, t.curso, t.professor, a.nome, a.ativo ? 'Ativo' : 'Inativo', c.p, c.f, c.freq !== null ? c.freq / 100 : null, c.maxConsec, situacao]);
+        const situacao = !a.ativo ? 'Inativo' : c.emAlerta ? 'Alerta' : c.freq === null ? 'Sem registro' : c.freq >= 70 ? 'Regular' : 'Atenção';
+        resumoRows.push([t.turma, t.curso, professorNome(t), a.nome, a.ativo ? 'Ativo' : 'Inativo', c.p, c.f, c.freq !== null ? c.freq / 100 : null, c.maxConsec, situacao]);
       });
     });
 
@@ -46,7 +47,7 @@ export async function exportarExcel() {
       const aulasCols = aulasComDados.length > 0 ? aulasComDados : aulasTurma;
       const header = ['Aluno', 'Status', ...aulasCols, 'Presenças', 'Faltas', '% Freq.', 'Faltas Consec.'];
       const rows = [
-        [t.turma + ' — ' + t.curso + ' — Prof. ' + t.professor],
+        [t.turma + ' — ' + t.curso + ' — Prof. ' + professorNome(t)],
         ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
         [],
         header,
@@ -88,7 +89,7 @@ export async function exportarExcel() {
     state.TURMAS.forEach(t => {
       state.ALUNOS.filter(a => a.ativo && a.turma_id === t.id).forEach(a => {
         const c = calcAluno(a);
-        if (c.emAlerta) alertaRows.push([t.turma, t.curso, t.professor, a.nome, c.maxConsec, c.f, c.freq !== null ? c.freq / 100 : null]);
+        if (c.emAlerta) alertaRows.push([t.turma, t.curso, professorNome(t), a.nome, c.maxConsec, c.f, c.freq !== null ? c.freq / 100 : null]);
       });
     });
     const wsAlerta = XLSX.utils.aoa_to_sheet(alertaRows);
@@ -106,6 +107,6 @@ export async function exportarExcel() {
     console.error('Erro ao exportar Excel:', err);
     showToast('Erro ao gerar Excel. Veja o console.', 'red');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '⬇ Exportar Excel'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Exportar Excel'; }
   }
 }

@@ -1,37 +1,53 @@
-/* MODAL */
-.modal-bg{display:none;position:fixed;inset:0;z-index:500;background:var(--overlay);align-items:flex-start;justify-content:center;padding:60px 1rem 1rem;}
+/* MODAL — vidro translúcido, sem animação de entrada (só o material). */
+.modal-bg{
+  display:none;position:fixed;inset:0;z-index:500;background:var(--overlay);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  align-items:flex-start;justify-content:center;padding:60px var(--space-4) var(--space-4);
+}
 .modal-bg.open{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+.modal{
+  background:var(--glass-tint-strong);
+  -webkit-backdrop-filter:blur(var(--blur-lg)) saturate(180%);
+  backdrop-filter:blur(var(--blur-lg)) saturate(180%);
+  border:1px solid var(--glass-border);border-radius:18px;padding:var(--space-6);width:100%;max-width:500px;max-height:85vh;overflow-y:auto;
+  box-shadow:var(--glass-shadow);
+}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);}
 .modal-title{font-size:15px;font-weight:600;color:var(--text);}
-.modal-footer{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);}
+.modal-footer{display:flex;flex-wrap:wrap;gap:var(--space-2);justify-content:flex-end;margin-top:var(--space-5);padding-top:var(--space-4);border-top:1px solid var(--border);}
 
 /* CONTEÚDO DO MODAL DE ALUNO */
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;}
-.info-item{background:var(--surface-3);border-radius:7px;padding:.75rem;}
-.info-label{font-size:11px;color:var(--text-3);margin-bottom:3px;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-bottom:var(--space-4);}
+.info-item{background:var(--surface-3);border-radius:12px;padding:var(--space-3);}
+.info-label{font-size:11px;color:var(--text-3);margin-bottom:var(--space-1);}
 .info-val{font-size:13px;font-weight:600;color:var(--text);}
-.aulas-grid{display:flex;flex-wrap:wrap;gap:5px;}
+.aulas-grid{display:flex;flex-wrap:wrap;gap:var(--space-2);position:relative;}
+/* Anel de seleção da grade de aulas (só na tela de chamada — #ch-aulas-grid é
+   a que tem quadradinhos clicáveis; a mesma .aula-chip no histórico do aluno
+   é só leitura e não tem esse indicador). Fica num elemento fixo, fora do
+   HTML que é reconstruído a cada render, pra poder deslizar de verdade em
+   vez de só "aparecer" no lugar novo. */
+.aula-chip-indicator{position:absolute;left:0;top:0;width:var(--cw,0px);height:var(--ch,24px);transform:translate(var(--cx,0px),var(--cy,0px));border:2px solid var(--primary);border-radius:8px;background:transparent;transition:transform .28s var(--spring),width .22s var(--ease-glass),height .22s var(--ease-glass),opacity .15s;pointer-events:none;z-index:1;}
 .aula-chip{min-width:26px;height:24px;padding:0 5px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;line-height:1;}
-.hist-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-2);font-size:12px;}
+.hist-item{display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-2) 0;border-bottom:1px solid var(--border-2);font-size:12px;}
 .hist-item:last-child{border-bottom:none;}
 
 /* CAIXAS DE INFORMAÇÃO/AVISO */
-.info-box{background:var(--surface-soft);border-radius:7px;padding:.75rem 1rem;font-size:12px;color:var(--primary-soft-text);margin-bottom:1rem;}
-.hint-box{background:var(--warning-box-bg);border:1px solid var(--warning-box-border);border-radius:8px;padding:.75rem 1rem;font-size:12px;color:var(--warning-box-text);margin-bottom:1rem;}
+.info-box{background:var(--surface-soft);border-radius:7px;padding:var(--space-3) var(--space-4);font-size:12px;color:var(--primary-soft-text);margin-bottom:var(--space-4);}
+.hint-box{background:var(--warning-box-bg);border:1px solid var(--warning-box-border);border-radius:8px;padding:var(--space-3) var(--space-4);font-size:12px;color:var(--warning-box-text);margin-bottom:var(--space-4);}
 .hint-box code{background:var(--warning-code-bg);padding:1px 5px;border-radius:4px;font-family:monospace;}
-.horario-modal-info{background:var(--surface-soft);border-radius:7px;padding:.625rem 1rem;font-size:12px;color:var(--primary-soft-text);margin-bottom:1rem;border:1px solid var(--primary-soft);}
+.horario-modal-info{background:var(--surface-soft);border-radius:7px;padding:var(--space-3) var(--space-4);font-size:12px;color:var(--primary-soft-text);margin-bottom:var(--space-4);border:1px solid var(--primary-soft);}
 
 /* MODAL DE CONFIRMAÇÃO */
 .confirm-bg{align-items:center;}
-.confirm-modal{max-width:400px;padding:1.5rem;}
-.confirm-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:.5rem;}
+.confirm-modal{max-width:400px;padding:var(--space-6);}
+.confirm-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:var(--space-2);}
 .confirm-msg{font-size:13px;color:var(--text-2);line-height:1.5;}
-.confirm-modal .modal-footer{border-top:none;padding-top:0;margin-top:1.25rem;}
+.confirm-modal .modal-footer{border-top:none;padding-top:0;margin-top:var(--space-5);}
 
 @media(max-width:768px){
-  .modal-bg{padding:20px .75rem .75rem;}
-  .modal{padding:1.25rem;}
+  .modal-bg{padding:20px var(--space-3) var(--space-3);}
+  .modal{padding:var(--space-5);}
   .info-grid{grid-template-columns:1fr;}
-  .confirm-bg{padding:1rem;}
+  .confirm-bg{padding:var(--space-4);}
 }

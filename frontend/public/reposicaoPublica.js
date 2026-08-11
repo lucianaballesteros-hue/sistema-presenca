@@ -42,7 +42,7 @@ function renderLoading() {
 
 function renderErro(msg) {
   app.innerHTML = `<div class="card fade-in">
-    <div class="icon-badge icon-badge-red">⚠️</div>
+    <div class="icon-badge icon-badge-red">⚠</div>
     <h1>Não foi possível abrir</h1>
     <p class="sub">${msg}</p>
   </div>`;
@@ -63,7 +63,7 @@ function opcaoCardHtml(o, { clicavel, marcada }) {
       <div class="opcao-semana">${escapeHtml(semana)}</div>
       <div class="opcao-turma">${escapeHtml(o.turma)}${o.horario ? ' · ' + formatHorario(o.horario) : ''}</div>
       ${o.professor ? `<div class="opcao-prof">Prof. ${escapeHtml(o.professor)}</div>` : ''}
-      ${o.observacao ? `<div class="opcao-obs">💬 ${escapeHtml(o.observacao)}</div>` : ''}
+      ${o.observacao ? `<div class="opcao-obs">${escapeHtml(o.observacao)}</div>` : ''}
     </div>
     <div class="opcao-check">✓</div>
   </${tag}>`;
@@ -78,7 +78,7 @@ function renderEstado() {
 
   if (d.status === 'cancelada') {
     app.innerHTML = `<div class="card fade-in">
-      <div class="icon-badge icon-badge-gray">🚫</div>
+      <div class="icon-badge icon-badge-gray">✕</div>
       <h1>Reposição cancelada</h1>
       <p class="sub">Este link foi cancelado pela equipe. Fale com a equipe para reagendar.</p>
     </div>`;
@@ -87,7 +87,7 @@ function renderEstado() {
 
   if (d.status === 'concluida') {
     app.innerHTML = `<div class="card fade-in">
-      <div class="icon-badge icon-badge-green">✅</div>
+      <div class="icon-badge icon-badge-green">✓</div>
       <h1>Reposição já realizada</h1>
       <p class="sub">A reposição de <strong>${escapeHtml(d.aula)}</strong> de ${escapeHtml(d.aluno_nome)} já foi concluída.</p>
     </div>`;
@@ -97,7 +97,7 @@ function renderEstado() {
   if (d.status === 'agendada') {
     const opc = d.opcoes.find(o => o.id === d.opcao_escolhida_id);
     app.innerHTML = `<div class="card fade-in">
-      <div class="icon-badge icon-badge-green">📅</div>
+      <div class="icon-badge icon-badge-green">✓</div>
       <h1>Reposição confirmada!</h1>
       <p class="sub">${escapeHtml(d.aluno_nome)} · <strong>${escapeHtml(d.aula)}</strong> (${escapeHtml(d.turma_origem)})</p>
       ${opc ? `<div class="opcoes">${opcaoCardHtml(opc, { clicavel: false, marcada: true })}</div>` : ''}
@@ -108,7 +108,7 @@ function renderEstado() {
 
   // status === 'aberta'
   app.innerHTML = `<div class="card fade-in">
-    <div class="icon-badge icon-badge-blue">📚</div>
+    <div class="icon-badge icon-badge-blue"></div>
     <h1>Marcar reposição</h1>
     <p class="sub">${escapeHtml(d.aluno_nome)} faltou em <strong>${escapeHtml(d.aula)}</strong>${d.curso ? ' · ' + escapeHtml(d.curso) : ''}</p>
     <p class="instrucao">Escolha um dos horários abaixo para repor essa aula:</p>

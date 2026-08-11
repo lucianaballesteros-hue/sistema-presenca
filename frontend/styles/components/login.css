@@ -1,12 +1,15 @@
 /* LOGIN */
-#login-page,#recover-request-page,#recovery-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--login-bg);padding:1rem;}
-.login-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;width:320px;box-shadow:var(--shadow-sm);}
-.logo-box{text-align:center;margin-bottom:1.5rem;}
-.logo-icon{width:44px;height:44px;background:var(--primary-soft);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;}
+#login-page,#recover-request-page,#recovery-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:var(--space-4);}
+.login-card{
+  background:var(--glass-tint-strong);-webkit-backdrop-filter:blur(var(--blur-lg)) saturate(180%);backdrop-filter:blur(var(--blur-lg)) saturate(180%);
+  border:1px solid var(--glass-border);border-radius:20px;padding:var(--space-8);width:320px;box-shadow:var(--glass-shadow);
+}
+.logo-box{text-align:center;margin-bottom:var(--space-6);}
+.logo-icon{width:44px;height:44px;background:var(--primary-soft);border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-3);}
 .logo-box h1{font-size:17px;font-weight:600;color:var(--text);}
-.logo-box p{font-size:12px;color:var(--text-3);margin-top:3px;}
-.err{font-size:11px;color:var(--red);margin-top:5px;display:none;}
+.logo-box p{font-size:12px;color:var(--text-3);margin-top:var(--space-1);}
+.err{font-size:11px;color:var(--red);margin-top:var(--space-2);display:none;}
 
 @media(max-width:480px){
-  .login-card{width:100%;max-width:320px;padding:1.5rem;}
+  .login-card{width:100%;max-width:320px;padding:var(--space-6);}
 }

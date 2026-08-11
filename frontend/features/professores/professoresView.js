@@ -33,7 +33,7 @@ export function renderProfessores() {
   }
 
   document.getElementById('prof-grid').innerHTML = lista.map(p => {
-    const turmasDoProf = state.TURMAS.filter(t => t.professor === p.nome);
+    const turmasDoProf = state.TURMAS.filter(t => t.professor_id === p.id);
     const cor = profColor(p.id);
     const ini = profIniciais(p.nome);
     const papelBadge = p.papel === 'admin'
@@ -55,7 +55,7 @@ export function renderProfessores() {
           </div>
         </div>
         <div class="prof-actions">
-          <button class="btn-edit-prof" onclick="abrirModalEditarProf(${p.id})" aria-label="Editar professor">✏ Editar</button>
+          <button class="btn-edit-prof" onclick="abrirModalEditarProf(${p.id})" aria-label="Editar professor"><span class="icon-mask icon-editar"></span> Editar</button>
         </div>
       </div>`;
   }).join('');

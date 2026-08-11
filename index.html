@@ -19,6 +19,7 @@
   </script>
   <link rel="stylesheet" href="frontend/styles/base/reset.css"/>
   <link rel="stylesheet" href="frontend/styles/base/theme-tokens.css"/>
+  <link rel="stylesheet" href="frontend/styles/base/liquid-glass.css"/>
   <link rel="stylesheet" href="frontend/styles/layout/header.css"/>
   <link rel="stylesheet" href="frontend/styles/layout/nav.css"/>
   <link rel="stylesheet" href="frontend/styles/layout/content.css"/>
@@ -119,14 +120,14 @@
       <label>Nova senha</label>
       <div class="senha-wrap">
         <input type="password" id="rec-nova-senha" placeholder="Nova senha" onkeydown="if(event.key==='Enter')document.getElementById('rec-confirma-senha').focus()"/>
-        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-nova-senha',this)" aria-label="Mostrar ou ocultar senha">👁</button>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-nova-senha',this)" aria-label="Mostrar ou ocultar senha">Mostrar</button>
       </div>
     </div>
     <div class="field">
       <label>Confirmar nova senha</label>
       <div class="senha-wrap">
         <input type="password" id="rec-confirma-senha" placeholder="Repita a nova senha" onkeydown="if(event.key==='Enter')salvarNovaSenhaRecuperacao()"/>
-        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-confirma-senha',this)" aria-label="Mostrar ou ocultar senha">👁</button>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-confirma-senha',this)" aria-label="Mostrar ou ocultar senha">Mostrar</button>
       </div>
     </div>
     <div id="rec-nova-erro" class="field-error" style="margin-top:-4px;"></div>
@@ -151,7 +152,8 @@
       <button class="logout-btn" onclick="doLogout()">Sair</button>
     </div>
   </div>
-  <div class="nav">
+  <div class="nav" id="nav-bar">
+    <div class="nav-indicator" id="nav-indicator"></div>
     <button class="nav-btn active" onclick="goTab('turmas')">Turmas</button>
     <button class="nav-btn" onclick="goTab('alunos')">Alunos</button>
     <button class="nav-btn" onclick="goTab('relatorio')">Relatórios</button>
@@ -186,7 +188,10 @@
             <span id="chamada-status" style="font-size:12px;color:var(--green);font-weight:500;"></span>
           </div>
         </div>
-        <div class="aulas-grid" id="ch-aulas-grid" style="margin-bottom:.75rem;"></div>
+        <div style="position:relative;margin-bottom:.75rem;">
+          <div class="aula-chip-indicator" id="aula-chip-indicator"></div>
+          <div class="aulas-grid" id="ch-aulas-grid"></div>
+        </div>
         <div class="chamada-counters" id="ch-counters"></div>
         <div class="alunos-list" id="alunos-list"></div>
       </div>
@@ -284,11 +289,11 @@
           <div class="multi-select-panel" id="status-multi-panel">
             <label class="multi-check"><input type="checkbox" value="regular" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Regular</label>
             <label class="multi-check"><input type="checkbox" value="atencao" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Atenção</label>
-            <label class="multi-check"><input type="checkbox" value="alerta-status" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> ⚠ Alerta</label>
+            <label class="multi-check"><input type="checkbox" value="alerta-status" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Alerta</label>
             <label class="multi-check"><input type="checkbox" value="cancelado" onchange="onMultiCheck('status-multi-panel','status-multi-btn','status-multi-label')"> Cancelados</label>
           </div>
         </div>
-        <button onclick="exportarExcel()" id="btn-exportar" style="margin-left:auto;padding:7px 16px;background:var(--green);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">⬇ Exportar Excel</button>
+        <button onclick="exportarExcel()" id="btn-exportar" style="margin-left:auto;padding:7px 16px;background:var(--green);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">Exportar Excel</button>
       </div>
       <div id="rel-area"></div>
     </div>
@@ -299,7 +304,6 @@
       <!-- VISÃO GERAL -->
       <div class="metr-section">
         <div class="metr-section-header">
-          <span class="metr-section-icon">📊</span>
           <span class="metr-section-title">Visão Geral</span>
         </div>
         <div class="metr-table-wrap">
@@ -310,7 +314,6 @@
       <!-- DIMENSIONAMENTO POR CURSO -->
       <div class="metr-section">
         <div class="metr-section-header">
-          <span class="metr-section-icon">≡</span>
           <span class="metr-section-title">Dimensionamento por Curso</span>
         </div>
         <div class="metr-table-wrap">
@@ -321,7 +324,6 @@
       <!-- FREQUÊNCIA E DESEMPENHO -->
       <div class="metr-section">
         <div class="metr-section-header">
-          <span class="metr-section-icon">📈</span>
           <span class="metr-section-title">Frequência e Desempenho</span>
         </div>
         <div class="metr-table-wrap">
@@ -332,7 +334,6 @@
       <!-- EVASÃO E MOVIMENTAÇÃO -->
       <div class="metr-section">
         <div class="metr-section-header">
-          <span class="metr-section-icon">↔</span>
           <span class="metr-section-title">Evasão e Movimentação</span>
         </div>
         <div class="metr-table-wrap">
@@ -351,7 +352,7 @@
         </div>
       </div>
       <div class="hint-box">
-        💡 Para criar uma reposição, abra o aluno na aba <strong>Alunos</strong> e clique em <strong>"Criar reposição"</strong>. Aqui você acompanha os links já enviados.
+        Para criar uma reposição, abra o aluno na aba <strong>Alunos</strong> e clique em <strong>"Criar reposição"</strong>. Aqui você acompanha os links já enviados.
       </div>
       <div class="flex-row" style="gap:10px;margin:1rem 0;">
         <div class="filter-bar" style="margin:0;flex:1;">
@@ -390,7 +391,7 @@
       </div>
 
       <div class="hint-box">
-        💡 <strong>Senha padrão:</strong> ao criar um professor, a senha inicial é <code>Teste1234</code>. O professor pode alterá-la após o primeiro acesso.
+        <strong>Senha padrão:</strong> ao criar um professor, a senha inicial é <code>Teste1234</code>. O professor pode alterá-la após o primeiro acesso.
       </div>
 
       <div class="stats-row" style="grid-template-columns:repeat(3,1fr);" id="prof-stats"></div>
@@ -477,12 +478,12 @@
       <button class="close-btn" onclick="fecharModal('modal-reposicao-link')" aria-label="Fechar">×</button>
     </div>
     <div class="rep-link-sucesso">
-      <div class="rep-link-icone">✅</div>
+      <div class="rep-link-icone">✓</div>
       <div style="font-size:13px;color:var(--text-2);" id="rep-link-desc"></div>
     </div>
     <div class="rep-link-box">
       <input type="text" id="rep-link-input" readonly onclick="this.select()"/>
-      <button class="btn-sec" onclick="copiarLinkReposicao()" title="Copiar link">📋 Copiar</button>
+      <button class="btn-sec" onclick="copiarLinkReposicao()" title="Copiar link">Copiar</button>
     </div>
     <div class="info-box" style="margin-top:1rem;">Esse link não exige login — envie por WhatsApp ou e-mail. Ele acompanha só este caso de reposição.</div>
     <div class="modal-footer">
@@ -593,7 +594,7 @@
       <label>Senha inicial</label>
       <div class="senha-wrap">
         <input type="password" id="np-senha" value="Teste1234" onkeydown="if(event.key==='Enter')salvarNovoProf()"/>
-        <button class="senha-toggle" type="button" onclick="toggleSenha('np-senha',this)" aria-label="Mostrar ou ocultar senha">👁</button>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('np-senha',this)" aria-label="Mostrar ou ocultar senha">Mostrar</button>
       </div>
     </div>
     <div class="field">
@@ -635,7 +636,7 @@
     </div>
     <div id="ep-erro" class="field-error"></div>
     <div class="modal-footer">
-      <button class="btn-warning" id="ep-btn-reset" onclick="enviarResetSenha()" style="margin-right:auto;" title="Envia e-mail de redefinição de senha para o professor">✉ Enviar reset de senha</button>
+      <button class="btn-warning" id="ep-btn-reset" onclick="enviarResetSenha()" style="margin-right:auto;" title="Envia e-mail de redefinição de senha para o professor">Enviar reset de senha</button>
       <button class="btn-sec" onclick="fecharModal('modal-editar-prof')">Cancelar</button>
       <button class="btn-save" id="ep-btn-salvar" onclick="salvarEdicaoProf()">Salvar alterações</button>
     </div>
@@ -655,8 +656,10 @@
     </div>
     <div class="field">
       <label>Curso</label>
-      <input type="text" id="nt-curso" list="nt-curso-list" placeholder="Ex: Elas Investem" onkeydown="if(event.key==='Enter')salvarNovaTurma()"/>
-      <datalist id="nt-curso-list"></datalist>
+      <div class="curso-select-row">
+        <select id="nt-curso"></select>
+        <button type="button" class="select-add-btn" title="Criar novo curso" aria-label="Criar novo curso" onclick="abrirModalNovoCurso('nt')">+</button>
+      </div>
     </div>
     <div class="field">
       <label>Professor(a)</label>
@@ -724,12 +727,14 @@
     </div>
     <div class="field">
       <label>Curso</label>
-      <input type="text" id="et-curso" list="et-curso-list" placeholder="Ex: Elas Investem" onkeydown="if(event.key==='Enter')salvarEditarTurma()"/>
-      <datalist id="et-curso-list"></datalist>
+      <div class="curso-select-row">
+        <select id="et-curso"></select>
+        <button type="button" class="select-add-btn" title="Criar novo curso" aria-label="Criar novo curso" onclick="abrirModalNovoCurso('et')">+</button>
+      </div>
     </div>
     <div class="field">
       <label>Professor(a)</label>
-      <input type="text" id="et-professor" placeholder="Nome do professor" onkeydown="if(event.key==='Enter')salvarEditarTurma()"/>
+      <select id="et-professor"></select>
     </div>
     <div class="field">
       <label>Quantidade de aulas</label>
@@ -781,6 +786,25 @@
       <button class="btn-sec" onclick="limparHorario('et')" style="margin-right:auto;">Limpar horário</button>
       <button class="btn-sec" onclick="fecharModal('modal-editar-turma')">Cancelar</button>
       <button class="btn-save" id="et-btn-salvar" onclick="salvarEditarTurma()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO CURSO -->
+<div class="modal-bg" id="modal-novo-curso">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header">
+      <div class="modal-title">Criar novo curso</div>
+      <button class="close-btn" onclick="fecharModal('modal-novo-curso')" aria-label="Fechar">×</button>
+    </div>
+    <div class="field">
+      <label>Nome do curso</label>
+      <input type="text" id="nc-nome" placeholder="Ex: Master 2/2026" onkeydown="if(event.key==='Enter')salvarNovoCurso()"/>
+    </div>
+    <div id="nc-erro" class="field-error"></div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-novo-curso')">Cancelar</button>
+      <button class="btn-save" id="nc-btn-salvar" onclick="salvarNovoCurso()">Criar curso</button>
     </div>
   </div>
 </div>

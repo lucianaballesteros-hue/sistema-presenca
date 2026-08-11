@@ -23,6 +23,7 @@ import {
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
   toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario,
 } from './features/dashboard/turmaModals.js';
+import { abrirModalNovoCurso, salvarNovoCurso } from './features/dashboard/cursoModals.js';
 
 import { abrirChamada, voltarDash, renderChamada, selecionarAula, marcar } from './features/chamada/chamadaView.js';
 
@@ -70,6 +71,7 @@ Object.assign(window, {
   abrirModalNovaTurma, selecionarCorNovaTurma, salvarNovaTurma,
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
   toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario,
+  abrirModalNovoCurso, salvarNovoCurso,
   abrirChamada, voltarDash, renderChamada, selecionarAula, marcar,
   renderTabelaAlunos, atualizarTurmasAlunos, mostrarMaisAlunos,
   abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,

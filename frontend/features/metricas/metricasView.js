@@ -39,12 +39,12 @@ export function renderMetricas() {
   document.getElementById('metr-visao-geral').innerHTML = `
     <thead><tr><th>Métrica</th><th style="text-align:center;">Valor</th><th>Descrição</th></tr></thead>
     <tbody>
-      <tr><td style="font-weight:500;">🏫 Total de turmas</td><td style="text-align:center;font-weight:700;font-size:15px;">${state.TURMAS.length}</td><td style="color:var(--text-3);font-size:11px;">Turmas cadastradas no sistema</td></tr>
-      <tr><td style="font-weight:500;">👥 Alunos ativos</td><td style="text-align:center;font-weight:700;font-size:15px;">${ativos.length}</td><td style="color:var(--text-3);font-size:11px;">Matrículas ativas no momento</td></tr>
-      <tr><td style="font-weight:500;">📊 Frequência média</td><td style="text-align:center;">${fbar(freqMedia, fColor)}</td><td style="color:var(--text-3);font-size:11px;">Média geral de presença dos alunos ativos com registro</td></tr>
-      <tr><td style="font-weight:500;">⚠️ Em alerta</td><td style="text-align:center;">${numBadge(alertas, 'badge-red')}</td><td style="color:var(--text-3);font-size:11px;">3 faltas seguidas nas últimas 8 aulas com registro (${pct(alertas)}% dos ativos)</td></tr>
-      <tr><td style="font-weight:500;">❌ Matrículas canceladas</td><td style="text-align:center;">${numBadge(cancelados.length, 'badge-red')}</td><td style="color:var(--text-3);font-size:11px;">Alunos que encerraram o curso definitivamente</td></tr>
-      <tr><td style="font-weight:500;">⏸ Inativos (temporários)</td><td style="text-align:center;">${numBadge(soInativos.length, 'badge-amber')}</td><td style="color:var(--text-3);font-size:11px;">Alunos afastados temporariamente, podem retornar</td></tr>
+      <tr><td style="font-weight:500;">Total de turmas</td><td style="text-align:center;font-weight:700;font-size:15px;">${state.TURMAS.length}</td><td style="color:var(--text-3);font-size:11px;">Turmas cadastradas no sistema</td></tr>
+      <tr><td style="font-weight:500;">Alunos ativos</td><td style="text-align:center;font-weight:700;font-size:15px;">${ativos.length}</td><td style="color:var(--text-3);font-size:11px;">Matrículas ativas no momento</td></tr>
+      <tr><td style="font-weight:500;">Frequência média</td><td style="text-align:center;">${fbar(freqMedia, fColor)}</td><td style="color:var(--text-3);font-size:11px;">Média geral de presença dos alunos ativos com registro</td></tr>
+      <tr><td style="font-weight:500;">Em alerta</td><td style="text-align:center;">${numBadge(alertas, 'badge-red')}</td><td style="color:var(--text-3);font-size:11px;">3 faltas seguidas nas últimas 8 aulas com registro (${pct(alertas)}% dos ativos)</td></tr>
+      <tr><td style="font-weight:500;">Matrículas canceladas</td><td style="text-align:center;">${numBadge(cancelados.length, 'badge-red')}</td><td style="color:var(--text-3);font-size:11px;">Alunos que encerraram o curso definitivamente</td></tr>
+      <tr><td style="font-weight:500;">Inativos (temporários)</td><td style="text-align:center;">${numBadge(soInativos.length, 'badge-amber')}</td><td style="color:var(--text-3);font-size:11px;">Alunos afastados temporariamente, podem retornar</td></tr>
     </tbody>`;
 
   // ── DIMENSIONAMENTO POR CURSO ────────────────────────────────
@@ -87,22 +87,22 @@ export function renderMetricas() {
   document.getElementById('metr-frequencia').innerHTML = `
     <thead><tr><th>Status</th><th style="text-align:center;">Alunos</th><th style="text-align:center;">% dos ativos</th><th>Critério</th></tr></thead>
     <tbody>
-      <tr><td style="font-weight:500;">✅ Presença física (P)</td><td style="text-align:center;">${numBadge(dadosAtivos.filter(d => d.p - d.r > 0 || d.r === 0 && d.p > 0).length, 'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares), 'var(--green)')}</td><td style="color:var(--text-3);font-size:11px;">Presença registrada normalmente na aula</td></tr>
-      <tr><td style="font-weight:500;">🟡 Gravações (R)</td><td style="text-align:center;">${alunosRep > 0 ? `<span class="badge badge-amber">${alunosRep}</span>` : dash}</td><td style="text-align:center;">${fbar(pct(alunosRep), 'var(--amber)')}</td><td style="color:var(--text-3);font-size:11px;">Assistiram via plataforma · conta como presença · ${totalRep} registros no total</td></tr>
-      <tr><td style="font-weight:500;">✅ Regulares (≥70%)</td><td style="text-align:center;">${numBadge(regulares, 'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares), 'var(--green)')}</td><td style="color:var(--text-3);font-size:11px;">freq ≥ 70% (P+R) e sem alerta</td></tr>
-      <tr><td style="font-weight:500;">🟠 Atenção (&lt;70%)</td><td style="text-align:center;">${numBadge(atencao, 'badge-amber')}</td><td style="text-align:center;">${fbar(pct(atencao), 'var(--amber)')}</td><td style="color:var(--text-3);font-size:11px;">freq &lt; 70% e sem 3 faltas seguidas</td></tr>
-      <tr><td style="font-weight:500;">🔴 Em alerta</td><td style="text-align:center;">${numBadge(alertas, 'badge-red')}</td><td style="text-align:center;">${fbar(pct(alertas), 'var(--red)')}</td><td style="color:var(--text-3);font-size:11px;">3 faltas seguidas nas últimas 8 aulas com registro</td></tr>
-      <tr><td style="font-weight:500;">⬜ Sem registro</td><td style="text-align:center;">${semReg > 0 ? `<span class="badge badge-gray">${semReg}</span>` : dash}</td><td style="text-align:center;">${fbar(pct(semReg), 'var(--text-faded)')}</td><td style="color:var(--text-3);font-size:11px;">Nenhuma aula lançada ainda</td></tr>
+      <tr><td style="font-weight:500;">Presença física (P)</td><td style="text-align:center;">${numBadge(dadosAtivos.filter(d => d.p - d.r > 0 || d.r === 0 && d.p > 0).length, 'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares), 'var(--green)')}</td><td style="color:var(--text-3);font-size:11px;">Presença registrada normalmente na aula</td></tr>
+      <tr><td style="font-weight:500;">Gravações (R)</td><td style="text-align:center;">${alunosRep > 0 ? `<span class="badge badge-amber">${alunosRep}</span>` : dash}</td><td style="text-align:center;">${fbar(pct(alunosRep), 'var(--amber)')}</td><td style="color:var(--text-3);font-size:11px;">Assistiram via plataforma · conta como presença · ${totalRep} registros no total</td></tr>
+      <tr><td style="font-weight:500;">Regulares (≥70%)</td><td style="text-align:center;">${numBadge(regulares, 'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares), 'var(--green)')}</td><td style="color:var(--text-3);font-size:11px;">freq ≥ 70% (P+R) e sem alerta</td></tr>
+      <tr><td style="font-weight:500;">Atenção (&lt;70%)</td><td style="text-align:center;">${numBadge(atencao, 'badge-amber')}</td><td style="text-align:center;">${fbar(pct(atencao), 'var(--amber)')}</td><td style="color:var(--text-3);font-size:11px;">freq &lt; 70% e sem 3 faltas seguidas</td></tr>
+      <tr><td style="font-weight:500;">Em alerta</td><td style="text-align:center;">${numBadge(alertas, 'badge-red')}</td><td style="text-align:center;">${fbar(pct(alertas), 'var(--red)')}</td><td style="color:var(--text-3);font-size:11px;">3 faltas seguidas nas últimas 8 aulas com registro</td></tr>
+      <tr><td style="font-weight:500;">Sem registro</td><td style="text-align:center;">${semReg > 0 ? `<span class="badge badge-gray">${semReg}</span>` : dash}</td><td style="text-align:center;">${fbar(pct(semReg), 'var(--text-faded)')}</td><td style="color:var(--text-3);font-size:11px;">Nenhuma aula lançada ainda</td></tr>
     </tbody>`;
 
   // ── EVASÃO E MOVIMENTAÇÃO ────────────────────────────────────
   document.getElementById('metr-movimentacao').innerHTML = `
     <thead><tr><th>Evento</th><th style="text-align:center;">Quantidade</th><th>Descrição</th></tr></thead>
     <tbody>
-      <tr><td style="font-weight:500;">➕ Novos alunos</td><td style="text-align:center;font-weight:700;font-size:15px;">${novos}</td><td style="color:var(--text-3);font-size:11px;">Total de alunos adicionados ao sistema</td></tr>
-      <tr><td style="font-weight:500;">🔄 Transferências</td><td style="text-align:center;font-weight:700;font-size:15px;">${transferidos}</td><td style="color:var(--text-3);font-size:11px;">Movimentações internas entre turmas ou cursos</td></tr>
-      <tr><td style="font-weight:500;">❌ Matrículas canceladas</td><td style="text-align:center;">${numBadge(cancelados.length, 'badge-red')}</td><td style="color:var(--text-3);font-size:11px;">Alunos que encerraram o curso · taxa de evasão: ${txEvasao}% do total</td></tr>
-      <tr><td style="font-weight:500;">⏸ Inativos (temporários)</td><td style="text-align:center;">${numBadge(soInativos.length, 'badge-amber')}</td><td style="color:var(--text-3);font-size:11px;">Alunos afastados temporariamente, podem retornar</td></tr>
-      <tr><td style="font-weight:500;">↩️ Reativações</td><td style="text-align:center;">${reativacoes > 0 ? `<span class="badge badge-green">${reativacoes}</span>` : dash}</td><td style="color:var(--text-3);font-size:11px;">Alunos que retornaram após afastamento ou cancelamento</td></tr>
+      <tr><td style="font-weight:500;">Novos alunos</td><td style="text-align:center;font-weight:700;font-size:15px;">${novos}</td><td style="color:var(--text-3);font-size:11px;">Total de alunos adicionados ao sistema</td></tr>
+      <tr><td style="font-weight:500;">Transferências</td><td style="text-align:center;font-weight:700;font-size:15px;">${transferidos}</td><td style="color:var(--text-3);font-size:11px;">Movimentações internas entre turmas ou cursos</td></tr>
+      <tr><td style="font-weight:500;">Matrículas canceladas</td><td style="text-align:center;">${numBadge(cancelados.length, 'badge-red')}</td><td style="color:var(--text-3);font-size:11px;">Alunos que encerraram o curso · taxa de evasão: ${txEvasao}% do total</td></tr>
+      <tr><td style="font-weight:500;">Inativos (temporários)</td><td style="text-align:center;">${numBadge(soInativos.length, 'badge-amber')}</td><td style="color:var(--text-3);font-size:11px;">Alunos afastados temporariamente, podem retornar</td></tr>
+      <tr><td style="font-weight:500;">Reativações</td><td style="text-align:center;">${reativacoes > 0 ? `<span class="badge badge-green">${reativacoes}</span>` : dash}</td><td style="color:var(--text-3);font-size:11px;">Alunos que retornaram após afastamento ou cancelamento</td></tr>
     </tbody>`;
 }

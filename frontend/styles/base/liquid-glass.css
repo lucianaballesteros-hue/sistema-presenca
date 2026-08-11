@@ -1,0 +1,27 @@
+/* LIQUID GLASS — camada transversal de interação e movimento.
+   As superfícies (header, nav, modais, menus, cards) recebem o material
+   translúcido/blur diretamente nos seus próprios arquivos de componente,
+   usando os tokens --glass-* de theme-tokens.css. Este arquivo cobre o que é
+   verdadeiramente global: resposta tátil ao toque em qualquer elemento
+   clicável e transições suaves em vez de mudanças abruptas, aplicadas uma
+   única vez em vez de repetidas em cada componente. */
+
+button:not(:disabled),
+.dot-menu-item, .multi-check, .cor-swatch, .dia-check, .obs-cat-btn,
+tr.clickable, .rep-opcao-item, .horario-tag, .aula-chip,
+.turma-card, .prof-card, .metr-card, .rep-opcao-row {
+  transition: transform .16s var(--ease-glass), background-color .18s var(--ease-glass),
+              color .18s var(--ease-glass), border-color .18s var(--ease-glass),
+              box-shadow .2s var(--ease-glass), opacity .18s var(--ease-glass);
+}
+
+button:not(:disabled):active{transform:scale(.96);}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+    scroll-behavior:auto!important;
+  }
+}

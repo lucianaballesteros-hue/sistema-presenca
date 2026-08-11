@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { calcAluno, ultimaAulaRegistrada } from '../../../backend/domain/attendance.js';
-import { ordemDia, corBadge } from '../../../backend/domain/status.js';
+import { ordemDia, corBadge, professorNome } from '../../../backend/domain/status.js';
 import { escapeHtml, escapeAttr } from '../../shared/dom.js';
 import { goTab } from '../../shared/navigation.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
@@ -27,15 +27,17 @@ export function renderDash(resetPagina = true) {
   // Professores não precisam acompanhar turmas encerradas — só admin vê essa pill/filtro.
   if (!ehAdmin && state.filtroCurso === '__inativas__') state.filtroCurso = '';
 
-  const minhasTurmas = turmasAtivas.filter(t => t.professor_id === state.perfilLogado?.id || t.professor === state.perfilLogado?.nome);
+  // Vínculo de posse é sempre por professor_id (nunca por nome) — ver
+  // professorNome() em backend/domain/status.js para o motivo.
+  const minhasTurmas = turmasAtivas.filter(t => t.professor_id === state.perfilLogado?.id);
   document.getElementById('curso-pills').innerHTML =
     `<button class="cpill ${state.filtroCurso === '' ? 'active' : ''}" onclick="setCurso('')">Todos</button>` +
     (minhasTurmas.length > 0
-      ? `<button class="cpill ${state.filtroCurso === '__minhas__' ? 'active' : ''}" onclick="setCurso('__minhas__')"> Suas Turmas <span style="background:rgba(255,255,255,.25);font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">${minhasTurmas.length}</span></button>`
+      ? `<button class="cpill ${state.filtroCurso === '__minhas__' ? 'active' : ''}" onclick="setCurso('__minhas__')">Suas Turmas<span class="cpill-count">${minhasTurmas.length}</span></button>`
       : '') +
     cursos.map(c => `<button class="cpill ${state.filtroCurso === c ? 'active' : ''}" onclick="setCurso('${escapeAttr(c)}')">${escapeHtml(c)}</button>`).join('') +
     (ehAdmin
-      ? `<button class="cpill ${state.filtroCurso === '__inativas__' ? 'active' : ''}" onclick="setCurso('__inativas__')">Turmas inativas <span style="background:rgba(255,255,255,.25);font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">${turmasInativas.length}</span></button>`
+      ? `<button class="cpill ${state.filtroCurso === '__inativas__' ? 'active' : ''}" onclick="setCurso('__inativas__')">Turmas inativas<span class="cpill-count">${turmasInativas.length}</span></button>`
       : '');
 
   const buscaTurma = (document.getElementById('busca-turmas')?.value || '').toLowerCase();
@@ -46,7 +48,7 @@ export function renderDash(resetPagina = true) {
       : state.filtroCurso
         ? turmasAtivas.filter(t => t.curso === state.filtroCurso)
         : turmasAtivas;
-  if (buscaTurma) filtradas = filtradas.filter(t => t.turma.toLowerCase().includes(buscaTurma) || t.professor.toLowerCase().includes(buscaTurma));
+  if (buscaTurma) filtradas = filtradas.filter(t => t.turma.toLowerCase().includes(buscaTurma) || professorNome(t).toLowerCase().includes(buscaTurma));
   filtradas = filtradas.slice().sort((a, b) => {
     const da = ordemDia(a.turma), db = ordemDia(b.turma);
     if (da !== db) return da - db;
@@ -76,7 +78,7 @@ export function renderDash(resetPagina = true) {
       </div>
       <div style="font-size:12px;color:var(--text-3);display:flex;flex-direction:column;gap:6px;">
         <span><span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso)}</span>${inativa ? ' <span class="badge badge-gray">Inativa</span>' : ''}</span>
-        <span>Prof. ${escapeHtml(t.professor)}</span>
+        <span>Prof. ${escapeHtml(professorNome(t))}</span>
         <span>${al.length} alunos${at > 0 ? ` · <span style="color:var(--red);font-weight:600;cursor:pointer;border-bottom:1.5px dashed var(--red);padding-bottom:1px;" onclick="irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
         <span>${ultimaAula ? `<span class="badge badge-blue" title="Última aula com presença registrada">Ultima Aula: ${ultimaAula}</span>` : `<span class="badge badge-gray" title="Nenhuma presença registrada ainda">Sem aulas registradas</span>`}</span>
         <div>${horarioTag}</div>

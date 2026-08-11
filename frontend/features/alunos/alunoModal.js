@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { AULAS, calcAluno } from '../../../backend/domain/attendance.js';
-import { statusBadge } from '../../../backend/domain/status.js';
+import { statusBadge, professorNome } from '../../../backend/domain/status.js';
 import { escapeHtml, showToast, fecharModal } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
 import { inserirAluno, atualizarAluno } from '../../../backend/api/alunosRepo.js';
@@ -21,7 +21,7 @@ export function abrirModalAluno(id) {
   document.getElementById('ma-info').innerHTML = `
     <div class="info-item"><div class="info-label">Curso</div><div class="info-val">${escapeHtml(t?.curso) || '—'}</div></div>
     <div class="info-item"><div class="info-label">Turma</div><div class="info-val">${escapeHtml(t?.turma) || '—'}</div></div>
-    <div class="info-item"><div class="info-label">Professor(a)</div><div class="info-val">${escapeHtml(t?.professor) || '—'}</div></div>
+    <div class="info-item"><div class="info-label">Professor(a)</div><div class="info-val">${escapeHtml(professorNome(t))}</div></div>
     <div class="info-item"><div class="info-label">Frequência</div><div class="info-val">${c.freq !== null ? c.freq + '%' : '—'}</div></div>
     <div class="info-item"><div class="info-label">Presenças</div><div class="info-val" style="color:var(--green);">${c.p}</div></div>
     <div class="info-item"><div class="info-label">Faltas</div><div class="info-val" style="color:var(--red);">${c.f}</div></div>`;
@@ -159,9 +159,9 @@ export async function salvarEdicao() {
 export function abrirModalTransferir() {
   const a = state.ALUNOS.find(x => x.id === state.alunoSelecionadoId);
   const t = state.TURMAS.find(x => x.id === a.turma_id);
-  document.getElementById('transf-info').innerHTML = `<strong>${escapeHtml(a.nome)}</strong><br><span style="color:var(--text-3);">Turma atual: ${escapeHtml(t?.turma)} · ${escapeHtml(t?.curso)} · Prof. ${escapeHtml(t?.professor)}</span>`;
+  document.getElementById('transf-info').innerHTML = `<strong>${escapeHtml(a.nome)}</strong><br><span style="color:var(--text-3);">Turma atual: ${escapeHtml(t?.turma)} · ${escapeHtml(t?.curso)} · Prof. ${escapeHtml(professorNome(t))}</span>`;
   const outras = state.TURMAS.filter(x => x.id !== a.turma_id);
-  document.getElementById('transf-sel').innerHTML = outras.map(x => `<option value="${x.id}">${escapeHtml(x.turma)} — ${escapeHtml(x.curso)} (Prof. ${escapeHtml(x.professor)})</option>`).join('');
+  document.getElementById('transf-sel').innerHTML = outras.map(x => `<option value="${x.id}">${escapeHtml(x.turma)} — ${escapeHtml(x.curso)} (Prof. ${escapeHtml(professorNome(x))})</option>`).join('');
   const btnConfirmar = document.getElementById('transf-btn-confirmar');
   btnConfirmar.disabled = false;
   btnConfirmar.textContent = 'Confirmar transferência';
@@ -221,7 +221,7 @@ export async function confirmarTransferencia() {
 
 export function abrirModalNovoAluno() {
   document.getElementById('novo-nome').value = '';
-  document.getElementById('novo-turma').innerHTML = state.TURMAS.filter(t => t.ativa !== false).map(t => `<option value="${t.id}">${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(t.professor)})</option>`).join('');
+  document.getElementById('novo-turma').innerHTML = state.TURMAS.filter(t => t.ativa !== false).map(t => `<option value="${t.id}">${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(professorNome(t))})</option>`).join('');
   document.getElementById('novo-experimental-btn').classList.remove('active');
   const btnAdicionar = document.getElementById('novo-btn-adicionar');
   btnAdicionar.disabled = false;

@@ -8,6 +8,7 @@ export const state = {
   PRESENCAS: {},
   HISTORICO: [],
   PROFESSORES: [],
+  CURSOS: [],
 
   usuarioLogado: null,
   perfilLogado: null,

@@ -43,7 +43,7 @@ export function iniciarNotificacoesReposicoes() {
     const opcao = repAtualizada.opcao_escolhida_id ? await buscarOpcaoReposicao(repAtualizada.opcao_escolhida_id) : null;
     const turma = opcao ? state.TURMAS.find(t => t.id === opcao.turma_destino_id) : null;
 
-    showToast(`📅 ${aluno?.nome || 'Um aluno'} marcou reposição: ${formatData(opcao?.data)}${turma ? ' — ' + turma.turma : ''}`, 'blue');
+    showToast(`${aluno?.nome || 'Um aluno'} marcou reposição: ${formatData(opcao?.data)}${turma ? ' — ' + turma.turma : ''}`, 'blue');
 
     const cache = (state.REPOSICOES || []).find(r => r.id === repAtualizada.id);
     if (cache) {
@@ -76,7 +76,7 @@ export function aplicarFiltroReposicoes() {
     // A informação mais importante (o que o aluno escolheu, ou se ainda não
     // escolheu) fica logo ao lado do nome — não escondida numa coluna à parte.
     const pill = r.status === 'agendada' && opcaoEscolhida
-      ? `<span class="rep-pill ${st.cls}">📅 ${formatData(opcaoEscolhida.data)} · ${escapeHtml(turmaEscolhida?.turma) || '?'}</span>`
+      ? `<span class="rep-pill ${st.cls}">${formatData(opcaoEscolhida.data)} · ${escapeHtml(turmaEscolhida?.turma) || '?'}</span>`
       : `<span class="rep-pill ${st.cls}">${st.label}</span>`;
 
     const opcoesTxt = opcoes.length ? opcoes.map(o => {
@@ -97,7 +97,7 @@ export function aplicarFiltroReposicoes() {
       <td style="font-size:11px;color:var(--text-3);">${new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
       <td>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="btn-sec" onclick="copiarLinkReposicaoLista('${r.token}')" title="Copiar link de agendamento">🔗 Link</button>
+          <button class="btn-sec" onclick="copiarLinkReposicaoLista('${r.token}')" title="Copiar link de agendamento">Link</button>
           ${r.status === 'agendada' ? `<button class="btn-save" onclick="concluirReposicaoAcao(event, ${r.id})" title="Marcar a aula de origem como reposição (R) feita">Concluir</button>` : ''}
           ${(r.status === 'aberta' || r.status === 'agendada') ? `<button class="btn-danger" onclick="cancelarReposicaoAcao(event, ${r.id})">Cancelar</button>` : ''}
         </div>

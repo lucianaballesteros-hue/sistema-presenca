@@ -1,41 +1,45 @@
 /* CAMPOS DE FORMULÁRIO */
-.field{margin-bottom:.875rem;}
-.field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:4px;font-weight:500;}
-.field input,.field select{width:100%;padding:8px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);outline:none;}
+.field{margin-bottom:var(--space-4);}
+.field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:var(--space-1);font-weight:500;}
+.field input,.field select{width:100%;padding:8px 10px;border:1px solid var(--border-input);border-radius:10px;font-size:13px;background:var(--surface);color:var(--text);outline:none;transition:border-color .18s var(--ease-glass),box-shadow .18s var(--ease-glass);}
 .field input:focus,.field select:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);}
-.modal .field{margin-bottom:.875rem;}
-.modal .field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:4px;font-weight:500;}
-.modal .field input,.modal .field select{width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);outline:none;}
+.modal .field{margin-bottom:var(--space-4);}
+.modal .field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:var(--space-1);font-weight:500;}
+.modal .field input,.modal .field select{width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:10px;font-size:13px;background:var(--surface);color:var(--text);outline:none;transition:border-color .18s var(--ease-glass),box-shadow .18s var(--ease-glass);}
 
 /* MOSTRAR/OCULTAR SENHA (wrapper — botão está em buttons.css) */
 .senha-wrap{position:relative;}
-.senha-wrap input{padding-right:36px;}
+.senha-wrap input{padding-right:58px;}
 
 /* CAMPO DE BUSCA AVULSO (fora de .filter-bar) */
 .search-input{font-size:13px;padding:6px 10px;border:1px solid var(--border-input);border-radius:6px;outline:none;background:var(--surface);color:var(--text);}
 
 /* MENSAGEM DE ERRO ABAIXO DE UM CAMPO/FORMULÁRIO */
-.field-error{font-size:12px;color:var(--red);display:none;margin-bottom:8px;}
+.field-error{font-size:12px;color:var(--red);display:none;margin-bottom:var(--space-2);}
 
 /* HORÁRIO DA TURMA */
-.horario-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-3);background:var(--surface-3);border:1px solid var(--border-2);border-radius:5px;padding:2px 7px;margin-top:4px;}
+.horario-tag{display:inline-flex;align-items:center;gap:var(--space-1);font-size:11px;color:var(--text-3);background:var(--surface-3);border:1px solid var(--border-2);border-radius:5px;padding:2px 7px;margin-top:var(--space-1);}
 .horario-tag.sem-horario{color:var(--text-very-faded);border-style:dashed;cursor:pointer;}
 .horario-tag.sem-horario:hover{border-color:var(--primary-light);color:var(--primary);}
-.dias-check-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px;}
-.dia-check{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;padding:8px 4px;border:1px solid var(--border-input);border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text-2);background:var(--surface);transition:all .12s;user-select:none;}
+.dias-check-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2);margin-top:var(--space-1);}
+.dia-check{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:var(--space-1);padding:8px 4px;border:1px solid var(--border-input);border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text-2);background:var(--surface);user-select:none;}
 .dia-check:hover{border-color:var(--primary-light);color:var(--primary);}
 .dia-check.selecionado{background:var(--primary-soft);color:var(--primary-soft-text);border-color:var(--primary);}
 .dia-check input{display:none;}
 
 /* SELETOR DE HORÁRIO */
-.horario-selects{display:flex;align-items:center;gap:8px;}
+.horario-selects{display:flex;align-items:center;gap:var(--space-2);}
 .horario-selects select{flex:1;padding:8px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:15px;font-weight:600;background:var(--surface);color:var(--text);outline:none;text-align:center;cursor:pointer;}
 .horario-selects select:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);}
 .horario-selects .sep{font-size:18px;font-weight:700;color:var(--text-3);}
-.horario-presets{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.horario-presets{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-2);}
+
+/* SELETOR DE CURSO (select + botão de criar novo curso) */
+.curso-select-row{display:flex;gap:var(--space-2);}
+.curso-select-row select{flex:1;min-width:0;}
 
 /* SELETOR DE COR DA TURMA */
-.cor-picker{display:flex;gap:8px;flex-wrap:wrap;}
+.cor-picker{display:flex;gap:var(--space-2);flex-wrap:wrap;}
 .cor-swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;}
 .cor-swatch.selected{border-color:var(--text);box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--text);}
 

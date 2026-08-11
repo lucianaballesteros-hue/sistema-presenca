@@ -8,6 +8,7 @@ import { renderDash } from './dashboardView.js';
 import { renderRel, popularFiltros } from '../relatorios/relatoriosView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
 import { AULAS } from '../../../backend/domain/attendance.js';
+import { renderOpcoesCurso } from './cursoModals.js';
 
 export const TURMA_CORES = ['#3b82f6', '#059669', '#7c3aed', '#db2777', '#d97706', '#0891b2', '#dc2626', '#65a30d'];
 
@@ -168,8 +169,7 @@ export function abrirModalNovaTurma() {
   document.getElementById('nt-cor-picker').innerHTML = TURMA_CORES.map((cor, i) =>
     `<button type="button" class="cor-swatch ${i === 0 ? 'selected' : ''}" style="background:${cor};" title="${cor}" aria-label="Cor ${cor}" onclick="selecionarCorNovaTurma('${cor}', this)"></button>`
   ).join('');
-  const cursos = [...new Set(state.TURMAS.map(t => t.curso))].sort();
-  document.getElementById('nt-curso-list').innerHTML = cursos.map(c => `<option value="${escapeHtml(c)}">`).join('');
+  renderOpcoesCurso('nt');
   document.getElementById('nt-professor').innerHTML = state.PROFESSORES.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
   preencherSelectTotalAulas('nt', 20);
   preencherSelectsHorario('nt', null);
@@ -193,7 +193,7 @@ export async function salvarNovaTurma() {
   erroEl.style.display = 'none';
 
   if (!nome) { erroEl.textContent = 'Digite o nome da turma.'; erroEl.style.display = 'block'; return; }
-  if (!curso) { erroEl.textContent = 'Digite o curso.'; erroEl.style.display = 'block'; return; }
+  if (!curso) { erroEl.textContent = 'Selecione um curso.'; erroEl.style.display = 'block'; return; }
   const prof = state.PROFESSORES.find(p => p.id === profId);
   if (!prof) { erroEl.textContent = 'Selecione um professor.'; erroEl.style.display = 'block'; return; }
 
@@ -233,15 +233,13 @@ export function abrirModalEditarTurma(tId) {
   state.turmaEmEdicaoId = tId;
 
   document.getElementById('et-nome').value = t.turma;
-  document.getElementById('et-curso').value = t.curso;
-  document.getElementById('et-professor').value = t.professor;
+  renderOpcoesCurso('et', t.curso);
+  document.getElementById('et-professor').innerHTML = state.PROFESSORES.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
+  document.getElementById('et-professor').value = t.professor_id;
   document.getElementById('et-erro').style.display = 'none';
   const btnSalvarEt = document.getElementById('et-btn-salvar');
   btnSalvarEt.disabled = false;
   btnSalvarEt.textContent = 'Salvar';
-
-  const cursos = [...new Set(state.TURMAS.map(x => x.curso))].sort();
-  document.getElementById('et-curso-list').innerHTML = cursos.map(c => `<option value="${escapeHtml(c)}">`).join('');
 
   const corAtual = t.cor || TURMA_CORES[0];
   document.getElementById('et-cor').value = corAtual;
@@ -268,22 +266,28 @@ export async function salvarEditarTurma() {
 
   const nome = document.getElementById('et-nome').value.trim();
   const curso = document.getElementById('et-curso').value.trim();
-  const professor = document.getElementById('et-professor').value.trim();
+  const profId = parseInt(document.getElementById('et-professor').value);
   const cor = document.getElementById('et-cor').value || TURMA_CORES[0];
   const erroEl = document.getElementById('et-erro');
   erroEl.style.display = 'none';
 
   if (!nome) { erroEl.textContent = 'Digite o nome da turma.'; erroEl.style.display = 'block'; return; }
-  if (!curso) { erroEl.textContent = 'Digite o curso.'; erroEl.style.display = 'block'; return; }
-  if (!professor) { erroEl.textContent = 'Digite o professor.'; erroEl.style.display = 'block'; return; }
+  if (!curso) { erroEl.textContent = 'Selecione um curso.'; erroEl.style.display = 'block'; return; }
+  const prof = state.PROFESSORES.find(p => p.id === profId);
+  if (!prof) { erroEl.textContent = 'Selecione um professor.'; erroEl.style.display = 'block'; return; }
 
   const diasSelecionados = lerDiasSelecionados('et');
   const horario = lerHorarioSelecionado('et');
   const totalAulas = lerTotalAulas('et');
+  // professor (texto) e professor_id (vínculo real) são sempre gravados juntos,
+  // a partir do mesmo registro selecionado — nunca de forma independente.
+  // É o vínculo por professor_id que decide o que cada professor vê ao logar
+  // (carregarTurmas), então os dois nunca podem ficar dessincronizados.
   const updates = {
     turma: nome,
     curso,
-    professor,
+    professor: prof.nome,
+    professor_id: prof.id,
     cor,
     total_aulas: totalAulas,
     horario_inicio: diasSelecionados.length ? horario + ':00' : null,

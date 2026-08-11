@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { calcAluno, aulasDaTurma } from '../../../backend/domain/attendance.js';
-import { statusInativo, freqBar, statusBadge } from '../../../backend/domain/status.js';
+import { statusInativo, freqBar, statusBadge, professorNome } from '../../../backend/domain/status.js';
 import { escapeHtml, showToast } from '../../shared/dom.js';
 import { salvarPresenca, removerPresenca } from '../../../backend/api/presencasRepo.js';
 import { renderDash } from '../dashboard/dashboardView.js';
@@ -12,7 +12,7 @@ import { renderTabelaAlunos, atualizarTurmasAlunos } from '../alunos/alunosTable
 export function popularFiltros() {
   atualizarTurmasAlunos();
   const cursos = [...new Set(state.TURMAS.map(t => t.curso))].sort();
-  const profs = [...new Set(state.TURMAS.map(t => t.professor))].sort();
+  const profs = [...new Set(state.TURMAS.map(t => professorNome(t)))].sort();
 
   const elCursoAlunos = document.getElementById('f-curso-alunos');
   if (elCursoAlunos) {
@@ -73,7 +73,7 @@ export function renderRel() {
   const fStatus = getMultiSelecionados('status-multi-panel');
   let turmas = state.TURMAS;
   if (fCursos.length > 0) turmas = turmas.filter(t => fCursos.includes(t.curso));
-  if (fProfs.length > 0) turmas = turmas.filter(t => fProfs.includes(t.professor));
+  if (fProfs.length > 0) turmas = turmas.filter(t => fProfs.includes(professorNome(t)));
   if (fTurmasRel.length > 0) turmas = turmas.filter(t => fTurmasRel.includes(String(t.id)));
 
   let html = '';
@@ -106,7 +106,7 @@ export function renderRel() {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
         <div style="width:9px;height:9px;border-radius:50%;background:${t.cor || '#3b82f6'};flex-shrink:0;"></div>
         <span style="font-size:14px;font-weight:600;color:var(--text);">${escapeHtml(t.turma)}</span>
-        <span style="font-size:12px;color:var(--text-3);">· ${escapeHtml(t.curso)} · Prof. ${escapeHtml(t.professor)} · ${ativos.length} ativos · freq. média ${fMedia !== null ? fMedia + '%' : '—'}${at > 0 ? ` · <span style="color:var(--red);font-weight:600;">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
+        <span style="font-size:12px;color:var(--text-3);">· ${escapeHtml(t.curso)} · Prof. ${escapeHtml(professorNome(t))} · ${ativos.length} ativos · freq. média ${fMedia !== null ? fMedia + '%' : '—'}${at > 0 ? ` · <span style="color:var(--red);font-weight:600;">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
       </div>
       <div class="table-wrap"><table>
         <thead><tr>

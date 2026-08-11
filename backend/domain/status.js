@@ -8,7 +8,7 @@ export function freqBar(freq) {
 
 export function statusBadge(freq, emAlerta, ativo) {
   if (!ativo) return `<span class="badge badge-gray">Inativo</span>`;
-  if (emAlerta) return `<span class="badge badge-red">⚠ Alerta</span>`;
+  if (emAlerta) return `<span class="badge badge-red">Alerta</span>`;
   if (freq === null) return `<span class="badge badge-gray">Sem registro</span>`;
   if (freq >= 70) return `<span class="badge badge-green">Regular</span>`;
   return `<span class="badge badge-amber">Atenção</span>`;
@@ -35,4 +35,14 @@ export function ordemDia(nomeTurma) {
   const dias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   const idx = dias.findIndex(d => (nomeTurma || '').includes(d));
   return idx === -1 ? 99 : idx;
+}
+
+// Nome do professor de uma turma, sempre resolvido pelo vínculo real
+// (turma.professor_id -> professores.id), nunca pelo texto solto salvo em
+// turma.professor. Isso evita nomes desatualizados quando um professor é
+// renomeado, e nunca deve ser usado para decidir permissão/posse — só para
+// exibição. O texto salvo em turma.professor só serve de fallback caso o
+// vínculo esteja ausente.
+export function professorNome(turma) {
+  return state.PROFESSORES.find(p => p.id === turma?.professor_id)?.nome || turma?.professor || '—';
 }

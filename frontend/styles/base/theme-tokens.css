@@ -97,6 +97,29 @@
 
   /* Login background */
   --login-bg: #f5f5f5;
+
+  /* Escala de espaçamento — todo gap/margin entre elementos (não o padding
+     interno que define o tamanho de um botão/input) usa um destes valores,
+     pra não ter medidas soltas e diferentes por todo canto. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Liquid Glass — material translúcido usado em barras, modais, menus e cards */
+  --glass-tint: rgba(255,255,255,.55);
+  --glass-tint-strong: rgba(255,255,255,.72);
+  --glass-border: rgba(255,255,255,.6);
+  --glass-shine: rgba(255,255,255,.85);
+  --glass-shadow: 0 8px 32px rgba(31,41,55,.12);
+  --blur-sm: 12px;
+  --blur-md: 20px;
+  --blur-lg: 28px;
+  --ease-glass: cubic-bezier(.16,1,.3,1);
+  --spring: cubic-bezier(.3,1.05,.64,1);
 }
 
 /* ============================================
@@ -198,4 +221,11 @@
 
   /* Login background */
   --login-bg: #0f172a;
+
+  /* Liquid Glass — mesmas variáveis, ajustadas para o material translúcido no escuro */
+  --glass-tint: rgba(30,41,59,.55);
+  --glass-tint-strong: rgba(23,32,51,.72);
+  --glass-border: rgba(255,255,255,.08);
+  --glass-shine: rgba(255,255,255,.12);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,.5);
 }

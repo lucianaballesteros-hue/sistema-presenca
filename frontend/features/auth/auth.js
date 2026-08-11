@@ -1,11 +1,13 @@
 import { sb } from '../../../backend/api/supabaseClient.js';
 import { state } from '../../state/store.js';
 import { estaEmRecuperacaoSenha } from './recovery.js';
+import { moverIndicadorNav } from '../../shared/navigation.js';
 import { carregarTurmas } from '../../../backend/api/turmasRepo.js';
 import { carregarAlunos } from '../../../backend/api/alunosRepo.js';
 import { carregarPresencas } from '../../../backend/api/presencasRepo.js';
 import { carregarHistorico } from '../../../backend/api/historicoRepo.js';
 import { carregarProfessores } from '../../../backend/api/professoresRepo.js';
+import { carregarCursos } from '../../../backend/api/cursosRepo.js';
 import { popularFiltros, renderRel } from '../relatorios/relatoriosView.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
@@ -89,7 +91,7 @@ export async function inicializarApp() {
   try {
     await carregarTurmas();
     await carregarAlunos();
-    await Promise.all([carregarPresencas(), carregarHistorico(), carregarProfessores()]);
+    await Promise.all([carregarPresencas(), carregarHistorico(), carregarProfessores(), carregarCursos()]);
 
     popularFiltros();
     renderDash();
@@ -99,6 +101,7 @@ export async function inicializarApp() {
   } finally {
     document.getElementById('app-loading').classList.remove('visible');
     document.getElementById('app').classList.remove('hidden');
+    moverIndicadorNav();
   }
 }
 
