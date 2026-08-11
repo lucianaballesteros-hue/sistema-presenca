@@ -7,7 +7,7 @@ import { carregarAlunos } from '../../../backend/api/alunosRepo.js';
 import { carregarPresencas } from '../../../backend/api/presencasRepo.js';
 import { carregarHistorico } from '../../../backend/api/historicoRepo.js';
 import { carregarProfessores } from '../../../backend/api/professoresRepo.js';
-import { carregarCursos } from '../../../backend/api/cursosRepo.js';
+import { carregarCursos, sincronizarCursosComTurmas } from '../../../backend/api/cursosRepo.js';
 import { popularFiltros, renderRel } from '../relatorios/relatoriosView.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
@@ -92,6 +92,7 @@ export async function inicializarApp() {
     await carregarTurmas();
     await carregarAlunos();
     await Promise.all([carregarPresencas(), carregarHistorico(), carregarProfessores(), carregarCursos()]);
+    await sincronizarCursosComTurmas();
 
     popularFiltros();
     renderDash();

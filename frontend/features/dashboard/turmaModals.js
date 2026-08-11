@@ -32,14 +32,13 @@ export async function toggleTurmaAtiva(e, tId) {
     if (!ok) return;
   }
   const novoStatus = !estaAtiva;
-  const textoOriginal = btn.textContent;
   btn.disabled = true;
-  btn.textContent = novoStatus ? 'Reativando…' : 'Inativando…';
+  btn.style.opacity = '.4';
 
   const { error } = await atualizarTurma(tId, { ativa: novoStatus });
   if (error) {
     showToast('Erro ao atualizar turma.', 'red'); console.error(error);
-    btn.disabled = false; btn.textContent = textoOriginal;
+    btn.disabled = false; btn.style.opacity = '';
     return;
   }
   t.ativa = novoStatus;

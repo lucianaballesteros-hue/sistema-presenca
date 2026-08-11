@@ -99,7 +99,7 @@ export function renderChamada() {
   document.getElementById('alunos-list').innerHTML = alunos.map((a, i) => {
     return `<div class="aluno-row ${a.experimental ? 'experimental' : ''}" data-aluno-id="${a.id}">
       <div class="aluno-num">${i + 1}</div>
-      <div class="aluno-nome">${escapeHtml(a.nome)}</div>
+      <div class="aluno-nome">${escapeHtml(a.nome)}${a.experimental ? '<span class="aluno-status-experimental"><span class="status-dot-exp"></span>Experimental</span>' : ''}</div>
       <div class="pbtns">
         <div class="pbtn-indicator"></div>
         <button class="pbtn pbtn-p" data-val="P" onclick="marcar(${a.id},'P')">✓ Presente</button>
