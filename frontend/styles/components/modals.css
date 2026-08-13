@@ -36,6 +36,7 @@
 .info-box{background:var(--surface-soft);border-radius:7px;padding:var(--space-3) var(--space-4);font-size:12px;color:var(--primary-soft-text);margin-bottom:var(--space-4);}
 .hint-box{background:var(--warning-box-bg);border:1px solid var(--warning-box-border);border-radius:8px;padding:var(--space-3) var(--space-4);font-size:12px;color:var(--warning-box-text);margin-bottom:var(--space-4);}
 .hint-box code{background:var(--warning-code-bg);padding:1px 5px;border-radius:4px;font-family:monospace;}
+.danger-box{background:var(--danger-btn-bg);border:1px solid var(--danger-btn-border);border-radius:8px;padding:var(--space-3) var(--space-4);font-size:12px;color:var(--danger-btn-text);margin-bottom:var(--space-4);}
 .horario-modal-info{background:var(--surface-soft);border-radius:7px;padding:var(--space-3) var(--space-4);font-size:12px;color:var(--primary-soft-text);margin-bottom:var(--space-4);border:1px solid var(--primary-soft);}
 
 /* MODAL DE CONFIRMAÇÃO */

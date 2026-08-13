@@ -16,6 +16,10 @@ export async function registrarMovimentacoesEmLote(entries) {
   return sb.from('historico').insert(entries);
 }
 
+export async function excluirHistoricoDeAluno(alunoId) {
+  return sb.from('historico').delete().eq('aluno_id', alunoId);
+}
+
 export async function carregarObservacoes(alunoId) {
   return sb.from('historico').select('*').eq('aluno_id', alunoId).eq('tipo', 'observacao').order('created_at', { ascending: false });
 }

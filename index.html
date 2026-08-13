@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="frontend/styles/components/modals.css"/>
   <link rel="stylesheet" href="frontend/styles/components/dots.css"/>
   <link rel="stylesheet" href="frontend/styles/components/multiselect.css"/>
+  <link rel="stylesheet" href="frontend/styles/components/metricas.css"/>
   <link rel="stylesheet" href="frontend/styles/components/toast.css"/>
   <link rel="stylesheet" href="frontend/styles/components/reposicoes.css"/>
 </head>
@@ -137,6 +138,7 @@
 
 <!-- APP -->
 <div id="app" class="hidden">
+  <div id="chart-tooltip" class="chart-tooltip"></div>
   <div class="header">
     <div class="header-logo" onclick="location.reload()" style="cursor:pointer;">
       <img class="logo-light" src="frontend/img/finexperts_pos%20preto.png" alt="Financial Experts" />
@@ -146,6 +148,9 @@
       <button class="theme-toggle" onclick="toggleTema()" title="Alternar tema claro/escuro" aria-label="Alternar tema">
         <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <button class="theme-toggle hidden" id="btn-config" onclick="abrirMenuConfig(event)" title="Configurações do sistema" aria-label="Configurações do sistema">
+        <span class="icon-mask icon-config"></span>
       </button>
       <div class="avatar" id="av">--</div>
       <span style="font-size:13px;color:var(--text-2);" id="hname"></span>
@@ -159,7 +164,6 @@
     <button class="nav-btn" onclick="goTab('relatorio')">Relatórios</button>
     <button class="nav-btn" onclick="goTab('metricas')">Métricas</button>
     <button class="nav-btn" onclick="goTab('reposicoes')">Reposições</button>
-    <button class="nav-btn hidden" id="nav-prof" onclick="goTab('professores')">Professores</button>
   </div>
   <div class="content">
 
@@ -299,43 +303,73 @@
     <!-- TAB MÉTRICAS -->
     <div id="tab-metricas" class="screen">
 
-      <!-- VISÃO GERAL -->
-      <div class="metr-section">
-        <div class="metr-section-header">
-          <span class="metr-section-title">Visão Geral</span>
+      <div class="metr-page-header">
+        <div>
+          <div class="metr-page-title">Métricas</div>
+          <div class="metr-page-sub" id="metr-page-sub">Visão geral do sistema, em tempo real</div>
         </div>
-        <div class="metr-table-wrap">
-          <table class="metr-table" id="metr-visao-geral"></table>
+        <div class="foco-switch" id="metr-foco"></div>
+      </div>
+
+      <!-- LINHA 1: KPIs principais -->
+      <div class="kpi-row" id="metr-heroes"></div>
+
+      <!-- LINHA 2: matrículas x cancelamentos + turmas por dia da semana -->
+      <div class="metr-row-charts">
+        <div class="metr-card">
+          <div class="chart-card-header">
+            <span class="chart-card-title">Novas Matrículas vs Cancelamentos</span>
+          </div>
+          <div id="metr-linha-matriculas"></div>
+        </div>
+        <div class="metr-card">
+          <div class="chart-card-header"><span class="chart-card-title">Turmas por Dia da Semana</span></div>
+          <div id="metr-barras-dias"></div>
         </div>
       </div>
 
-      <!-- DIMENSIONAMENTO POR CURSO -->
+      <!-- LINHA 3: distribuição + ação necessária -->
+      <div class="metr-row-3col">
+        <div class="metr-card">
+          <div class="chart-card-header"><span class="chart-card-title">Frequência dos Alunos</span></div>
+          <div class="donut-body" id="metr-donut-frequencia"></div>
+        </div>
+        <div class="metr-card">
+          <div class="chart-card-header"><span class="chart-card-title">Ativos vs Inativos</span></div>
+          <div class="donut-body" id="metr-donut-ativos"></div>
+        </div>
+        <div class="metr-card">
+          <div class="chart-card-header"><span class="chart-card-title">Ação Necessária</span></div>
+          <div id="metr-alertas"></div>
+        </div>
+      </div>
+
+      <!-- COMPARAÇÃO POR CURSO -->
       <div class="metr-section">
         <div class="metr-section-header">
-          <span class="metr-section-title">Dimensionamento por Curso</span>
+          <span class="metr-section-title">Comparação por Curso</span>
         </div>
         <div class="metr-table-wrap">
           <table class="metr-table" id="metr-tabela-curso"></table>
         </div>
       </div>
 
-      <!-- FREQUÊNCIA E DESEMPENHO -->
-      <div class="metr-section">
-        <div class="metr-section-header">
-          <span class="metr-section-title">Frequência e Desempenho</span>
+      <!-- LINHA 4: carga por professor + atividade recente -->
+      <div class="metr-row-2col">
+        <div class="metr-section">
+          <div class="metr-section-header">
+            <span class="metr-section-title">Carga por Professor</span>
+          </div>
+          <div class="metr-table-wrap">
+            <table class="metr-table" id="metr-tabela-professor"></table>
+          </div>
         </div>
-        <div class="metr-table-wrap">
-          <table class="metr-table" id="metr-frequencia"></table>
-        </div>
-      </div>
 
-      <!-- EVASÃO E MOVIMENTAÇÃO -->
-      <div class="metr-section">
-        <div class="metr-section-header">
-          <span class="metr-section-title">Evasão e Movimentação</span>
-        </div>
-        <div class="metr-table-wrap">
-          <table class="metr-table" id="metr-movimentacao"></table>
+        <div class="metr-section">
+          <div class="metr-section-header">
+            <span class="metr-section-title">Atividade Recente</span>
+          </div>
+          <div class="metr-card" id="metr-atividade"></div>
         </div>
       </div>
 
@@ -803,6 +837,45 @@
     <div class="modal-footer">
       <button class="btn-sec" onclick="fecharModal('modal-novo-curso')">Cancelar</button>
       <button class="btn-save" id="nc-btn-salvar" onclick="salvarNovoCurso()">Criar curso</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIGURAÇÕES (admin) — exclusão permanente de curso/turma/aluno -->
+<div class="modal-bg" id="modal-configuracoes">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">Configurações do sistema</div>
+      <button class="close-btn" onclick="fecharModal('modal-configuracoes')" aria-label="Fechar">×</button>
+    </div>
+
+    <div class="danger-box">Zona de risco: excluir um item aqui remove o registro permanentemente do banco de dados. Essa ação não pode ser desfeita.</div>
+
+    <div class="field">
+      <label>O que deseja excluir?</label>
+      <select id="cfg-tipo" onchange="atualizarTipoExclusao()">
+        <option value="curso">Curso</option>
+        <option value="turma">Turma</option>
+        <option value="aluno">Aluno</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label id="cfg-item-label">Curso</label>
+      <select id="cfg-item" onchange="atualizarItemExclusao()"></select>
+    </div>
+
+    <div id="cfg-bloqueio" class="field-error"></div>
+    <div id="cfg-info" class="text-caption" style="display:none;margin:-8px 0 var(--space-4);"></div>
+
+    <div class="field" id="cfg-confirm-field" style="display:none;">
+      <label id="cfg-confirm-label"></label>
+      <input type="text" id="cfg-confirm-input" oninput="verificarTextoExclusao()" autocomplete="off" placeholder="Digite o nome exato"/>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-configuracoes')">Cancelar</button>
+      <button class="btn-danger-solid" id="cfg-btn-excluir" onclick="confirmarExclusaoConfig()" disabled>Excluir permanentemente</button>
     </div>
   </div>
 </div>

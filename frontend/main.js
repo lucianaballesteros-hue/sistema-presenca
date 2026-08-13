@@ -13,6 +13,7 @@ import { responderConfirm } from './shared/confirm.js';
 import { goTab } from './shared/navigation.js';
 import { startUpdateNotifier } from './shared/updateNotifier.js';
 import { enhanceSelect } from './shared/customSelect.js';
+import { onLineChartMove, onLineChartLeave, onBarHover, onDonutHover, hideChartTooltip } from './shared/charts.js';
 
 import { toggleTema } from './features/theme/theme.js';
 import { doLogin, doLogout, restoreSession, wireAutoLogin } from './features/auth/auth.js';
@@ -50,7 +51,13 @@ import {
 } from './features/relatorios/relatoriosView.js';
 import { exportarExcel } from './features/relatorios/exportExcel.js';
 
-import { renderMetricas } from './features/metricas/metricasView.js';
+import { renderMetricas, setFocoMetricas } from './features/metricas/metricasView.js';
+
+import {
+  abrirMenuConfig, fecharMenuConfig, abrirModalConfiguracoes,
+  atualizarTipoExclusao, atualizarItemExclusao,
+  verificarTextoExclusao, confirmarExclusaoConfig,
+} from './features/configuracoes/configuracoesView.js';
 
 import {
   abrirModalReposicao, atualizarOpcaoReposicao, adicionarOpcaoReposicao,
@@ -85,7 +92,11 @@ Object.assign(window, {
   abrirModalNovoProf, salvarNovoProf, abrirModalEditarProf, salvarEdicaoProf, enviarResetSenha,
   renderRel, onMultiCheck, toggleMultiDropdown, abrirDotMenu, selecionarStatusDot,
   exportarExcel,
-  renderMetricas,
+  renderMetricas, setFocoMetricas,
+  abrirMenuConfig, fecharMenuConfig, abrirModalConfiguracoes,
+  atualizarTipoExclusao, atualizarItemExclusao,
+  verificarTextoExclusao, confirmarExclusaoConfig,
+  onLineChartMove, onLineChartLeave, onBarHover, onDonutHover, hideChartTooltip,
   abrirModalReposicao, atualizarOpcaoReposicao, adicionarOpcaoReposicao,
   removerOpcaoReposicao, salvarReposicao, copiarLinkReposicao, abrirPaginaReposicaoGerada,
   renderSugestoesReposicao, usarSugestaoReposicao,
@@ -110,6 +121,7 @@ document.addEventListener('click', (e) => {
     if (menu) { menu.remove(); state.dotMenuContext = null; }
   }
   if (!e.target.closest('#ma-acoes-menu')) fecharMenuAluno();
+  if (!e.target.closest('#config-menu')) fecharMenuConfig();
   document.querySelectorAll('.multi-select-panel.open').forEach(p => p.classList.remove('open'));
 });
 

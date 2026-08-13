@@ -16,6 +16,7 @@ export const state = {
   turmaAtual: null,
   turmaEmEdicaoId: null,
   filtroCurso: '',
+  metricasFoco: 'geral',
 
   alunoSelecionadoId: null,
   profSelecionadoId: null,

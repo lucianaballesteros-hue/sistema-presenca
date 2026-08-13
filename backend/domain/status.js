@@ -14,13 +14,28 @@ export function statusBadge(freq, emAlerta, ativo) {
   return `<span class="badge badge-amber">Atenção</span>`;
 }
 
-export function corBadge(curso) {
-  if (curso?.includes('Elas')) return 'badge-blue';
-  if (curso?.includes('Master')) return 'badge-amber';
-  if (curso?.includes('Evolution')) return 'badge-green';
-  if (curso?.includes('Clube')) return 'badge-purple';
-  return 'badge-gray';
+// Identidade visual de cada curso — fonte única usada tanto pelos badges
+// (tabelas, cards de turma) quanto pelo seletor de foco do dashboard de
+// Métricas, pra a mesma palavra-chave render sempre a mesma cor em todo canto
+// do sistema. `grad` só existe nos cursos com dashboard de foco dedicado.
+const TEMAS_CURSO = [
+  { chave: 'Elas', badge: 'badge-blue', cor: 'var(--primary)', corSoft: 'var(--primary-soft)', corSoftText: 'var(--primary-soft-text)', grad: 'var(--grad-blue)' },
+  { chave: 'Master', badge: 'badge-amber', cor: 'var(--amber)', corSoft: 'var(--amber-soft)', corSoftText: 'var(--amber-soft-text)', grad: 'var(--grad-amber)' },
+  { chave: 'Evolution', badge: 'badge-green', cor: 'var(--green)', corSoft: 'var(--green-soft)', corSoftText: 'var(--green-soft-text)', grad: 'var(--grad-green)' },
+  { chave: 'Clube', badge: 'badge-purple' },
+];
+
+export function temaCurso(curso) {
+  return TEMAS_CURSO.find(t => curso?.includes(t.chave));
 }
+
+export function corBadge(curso) {
+  return temaCurso(curso)?.badge || 'badge-gray';
+}
+
+// Cursos com dashboard de foco dedicado na página de Métricas (os que têm
+// uma cor "cheia" definida acima, não só um badge).
+export const FOCOS_METRICAS = TEMAS_CURSO.filter(t => t.grad);
 
 // 'cancelado' (encerramento definitivo) vs 'inativo' (afastamento temporário),
 // inferido a partir da última movimentação de histórico do aluno.

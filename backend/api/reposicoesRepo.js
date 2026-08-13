@@ -46,6 +46,21 @@ export async function criarReposicao({ alunoId, turmaOrigemId, aula, criadoPor, 
   return { data: { ...rep, reposicao_opcoes: opcoesInseridas } };
 }
 
+// Apaga TODAS as reposições (e respectivas opções) de um aluno — usado só na
+// exclusão permanente do aluno (configuracoesView.js). reposicao_opcoes não
+// tem aluno_id direto, então precisa passar por reposicoes primeiro.
+export async function excluirReposicoesDeAluno(alunoId) {
+  const { data: reps, error: errSel } = await sb.from('reposicoes').select('id').eq('aluno_id', alunoId);
+  if (errSel) return { error: errSel };
+  const ids = (reps || []).map(r => r.id);
+  if (!ids.length) return { error: null };
+
+  const { error: errOpc } = await sb.from('reposicao_opcoes').delete().in('reposicao_id', ids);
+  if (errOpc) return { error: errOpc };
+
+  return sb.from('reposicoes').delete().eq('aluno_id', alunoId);
+}
+
 export async function cancelarReposicao(id) {
   return sb.from('reposicoes').update({ status: 'cancelada' }).eq('id', id);
 }

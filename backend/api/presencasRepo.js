@@ -38,3 +38,7 @@ export async function removerPresenca(turmaId, alunoId, aula) {
 export async function moverPresencasDeTurma(alunoId, deTurmaId, paraTurmaId) {
   return sb.from('presencas').update({ turma_id: paraTurmaId }).eq('aluno_id', alunoId).eq('turma_id', deTurmaId);
 }
+
+export async function excluirPresencasDeAluno(alunoId) {
+  return sb.from('presencas').delete().eq('aluno_id', alunoId);
+}

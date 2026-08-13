@@ -1,0 +1,135 @@
+/* ============================================
+   DASHBOARD DE MÉTRICAS
+   ============================================ */
+
+/* A página de métricas é um dashboard largo por natureza (vários gráficos
+   lado a lado) — usa mais da largura da tela do que o restante do app, que
+   fica confortável em @1200px. */
+.content:has(#tab-metricas.active){max-width:1680px;}
+
+.metr-page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-5);flex-wrap:wrap;}
+.metr-page-title{font-size:20px;font-weight:700;color:var(--text);}
+.metr-page-sub{font-size:12px;color:var(--text-3);margin-top:2px;}
+
+/* ---- SELETOR DE FOCO (Geral / cursos) — mesma mecânica "líquida" da pílula
+   de navegação principal (nav.css): um único indicador desliza por baixo do
+   botão ativo em vez de cada botão ligar/desligar o próprio fundo. Aqui a
+   pílula também troca de cor conforme o curso selecionado. ---- */
+.foco-switch{position:relative;display:inline-flex;gap:var(--space-1);padding:5px;
+  background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));
+  border:1px solid var(--glass-border);border-radius:99px;box-shadow:var(--shadow-sm);max-width:100%;overflow-x:auto;}
+.foco-indicator{position:absolute;top:5px;bottom:5px;left:0;width:var(--foco-w,0px);
+  transform:translateX(var(--foco-x,0px));border-radius:99px;
+  transition:transform .32s var(--spring),width .28s var(--spring),background-color .25s var(--ease-glass);
+  pointer-events:none;z-index:0;}
+.foco-btn{position:relative;z-index:1;display:flex;align-items:center;gap:7px;padding:8px 16px;
+  font-size:12.5px;font-weight:600;white-space:nowrap;background:none;border:none;border-radius:99px;cursor:pointer;
+  color:var(--text-3);transition:color .2s var(--ease-glass);}
+.foco-btn-dot{width:7px;height:7px;border-radius:50%;background:var(--foco-dot);flex-shrink:0;}
+.foco-btn.active{color:var(--foco-dot);}
+@media(max-width:768px){.metr-page-header{align-items:flex-start;}.foco-switch{width:100%;}}
+
+/* Linhas do dashboard: cada uma ocupa a largura toda e empilha em telas
+   estreitas — em vez de duas colunas independentes (uma alta, outra baixa),
+   o conteúdo fica em fileiras curtas de altura parecida. */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);margin-bottom:var(--space-4);}
+@media(max-width:980px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:480px){.kpi-row{grid-template-columns:1fr;}}
+
+.metr-row-charts{display:grid;grid-template-columns:2fr 1fr;gap:var(--space-4);margin-bottom:var(--space-4);}
+@media(max-width:980px){.metr-row-charts{grid-template-columns:1fr;}}
+
+.metr-row-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4);margin-bottom:var(--space-6);}
+@media(max-width:980px){.metr-row-3col{grid-template-columns:1fr;}}
+
+.metr-row-2col{display:grid;grid-template-columns:1.15fr 1fr;gap:var(--space-4);align-items:start;margin-bottom:var(--space-6);}
+@media(max-width:980px){.metr-row-2col{grid-template-columns:1fr;}}
+.metr-row-2col > .metr-section{margin-bottom:0;}
+
+/* ---- CARDS "HERO" (gradiente, cabeçalho do dashboard) ---- */
+.hero-card{border-radius:18px;padding:var(--space-5);color:#fff;box-shadow:var(--shadow-md);position:relative;overflow:hidden;}
+.hero-card::after{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12);}
+.hero-label{font-size:12px;font-weight:500;opacity:.9;position:relative;}
+.hero-value{font-size:32px;font-weight:700;line-height:1.1;margin-top:var(--space-2);position:relative;}
+.hero-value small{font-size:15px;font-weight:600;opacity:.85;margin-left:3px;}
+.hero-desc{font-size:11px;opacity:.8;margin-top:var(--space-2);position:relative;}
+
+/* ---- CARDS DE KPI (vidro, mesma fileira dos heroes) ---- */
+.kpi-card{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:18px;padding:var(--space-5);box-shadow:var(--shadow-sm);}
+.kpi-card-label{font-size:12px;font-weight:500;color:var(--text-3);}
+.kpi-card-value{font-size:28px;font-weight:700;color:var(--text);line-height:1.1;margin-top:var(--space-2);}
+.kpi-card-foot{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-2);}
+.kpi-card-foot-text{font-size:11px;color:var(--text-faded);}
+
+/* ---- CARD GENÉRICO DE GRÁFICO (usa a base .metr-card já existente) ---- */
+.chart-card-header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-bottom:var(--space-3);flex-wrap:wrap;}
+.chart-card-title{font-size:13px;font-weight:600;color:var(--text);}
+.chart-card-link{font-size:11px;color:var(--primary);cursor:pointer;font-weight:500;}
+.chart-card-link:hover{text-decoration:underline;}
+
+.chart-legend{display:flex;gap:var(--space-4);margin-bottom:var(--space-2);flex-wrap:wrap;}
+.chart-legend-item{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2);}
+.chart-legend-key{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
+
+.chart-wrap{width:100%;}
+.chart-svg{width:100%;height:auto;display:block;overflow:visible;}
+.chart-grid{stroke:var(--border-2);stroke-width:1;}
+.chart-axis-label{font-size:9.5px;fill:var(--text-faded);font-family:inherit;}
+.chart-point-label{font-size:10.5px;font-weight:700;font-family:inherit;}
+.chart-crosshair{stroke:var(--text-very-faded);stroke-width:1;pointer-events:none;transition:opacity .1s;}
+.chart-bar{cursor:pointer;transition:opacity .1s;}
+.chart-bar:hover{opacity:.8;}
+.chart-bar-label{font-size:10px;font-weight:700;fill:var(--text-2);font-family:inherit;}
+
+/* ---- TOOLTIP FLUTUANTE COMPARTILHADO (fixed, único no documento) ---- */
+.chart-tooltip{position:fixed;z-index:400;display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lg);padding:8px 12px;pointer-events:none;min-width:120px;}
+.chart-tooltip-title{font-size:10.5px;font-weight:700;color:var(--text-3);margin-bottom:5px;text-transform:capitalize;}
+.chart-tooltip-row{display:flex;align-items:center;gap:7px;font-size:12px;padding:1.5px 0;white-space:nowrap;}
+.chart-tooltip-key{width:9px;height:3px;border-radius:2px;flex-shrink:0;}
+.chart-tooltip-label{color:var(--text-2);}
+.chart-tooltip-val{color:var(--text);font-weight:700;margin-left:auto;padding-left:10px;font-variant-numeric:tabular-nums;}
+
+/* ---- DONUT ---- */
+.donut-body{display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;justify-content:center;}
+.donut-wrap{position:relative;flex-shrink:0;}
+.donut-wrap svg{display:block;}
+.chart-donut-seg{cursor:pointer;transition:filter .1s;}
+.chart-donut-seg:hover{filter:brightness(1.12);}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 8px;}
+.donut-center-val{font-size:18px;font-weight:700;color:var(--text);line-height:1.1;}
+.donut-center-label{font-size:10px;color:var(--text-faded);margin-top:2px;}
+.donut-legend{display:flex;flex-direction:column;gap:var(--space-2);flex:1;min-width:110px;}
+.donut-legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2);}
+.donut-legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.donut-legend-item b{color:var(--text);font-weight:700;margin-left:auto;font-variant-numeric:tabular-nums;}
+.donut-legend-item small{color:var(--text-faded);font-size:10.5px;}
+
+/* ---- SELO DE VARIAÇÃO (usado no rodapé dos kpi-card) ---- */
+.delta-badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0;}
+.delta-badge.up{background:var(--green-soft);color:var(--green-soft-text);}
+.delta-badge.down{background:var(--red-soft);color:var(--red-soft-text);}
+.delta-badge.flat{background:var(--gray-soft);color:var(--gray-soft-text);}
+
+/* ---- LISTA DE ALERTAS (ação necessária) ---- */
+.alert-list{display:flex;flex-direction:column;gap:var(--space-1);max-height:280px;overflow-y:auto;}
+.alert-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:10px;cursor:pointer;}
+.alert-row:hover{background:var(--surface-hover);}
+.alert-row-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;box-shadow:0 0 0 3px var(--red-soft);}
+.alert-row-info{flex:1;min-width:0;}
+.alert-row-nome{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.alert-row-turma{font-size:11px;color:var(--text-faded);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.alert-row-meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;}
+
+/* ---- FEED DE ATIVIDADE RECENTE ---- */
+.activity-feed{display:flex;flex-direction:column;max-height:290px;overflow-y:auto;}
+.activity-row{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-2) var(--space-1);}
+.activity-row-rail{display:flex;flex-direction:column;align-items:center;align-self:stretch;flex-shrink:0;}
+.activity-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.activity-line{flex:1;width:1px;background:var(--border-2);margin-top:3px;}
+.activity-row:last-child .activity-line{display:none;}
+.activity-body{flex:1;min-width:0;padding-bottom:var(--space-3);}
+.activity-desc{font-size:12px;color:var(--text-2);line-height:1.4;}
+.activity-desc b{color:var(--text);font-weight:600;}
+.activity-time{font-size:10.5px;color:var(--text-faded);margin-top:2px;}
+
+.metr-empty{font-size:12px;color:var(--text-faded);text-align:center;padding:var(--space-6) var(--space-3);}

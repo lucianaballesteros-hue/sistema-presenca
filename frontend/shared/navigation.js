@@ -3,7 +3,7 @@ import { renderMetricas } from '../features/metricas/metricasView.js';
 import { renderProfessores } from '../features/professores/professoresView.js';
 import { renderReposicoes } from '../features/reposicoes/reposicoesView.js';
 
-const TABS = ['turmas', 'alunos', 'relatorio', 'metricas', 'reposicoes', 'professores'];
+const TABS = ['turmas', 'alunos', 'relatorio', 'metricas', 'reposicoes'];
 
 // Desliza a pílula de seleção do nav até embaixo do botão ativo — medindo a
 // posição real do botão em vez de recalcular por índice, então continua

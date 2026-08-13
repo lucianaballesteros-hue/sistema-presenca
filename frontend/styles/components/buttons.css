@@ -9,7 +9,7 @@
 /* TOGGLE TEMA */
 .theme-toggle{width:32px;height:32px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass-tint);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-2);padding:0;}
 .theme-toggle:hover{background:var(--surface-hover);color:var(--text);border-color:var(--primary-light);}
-.theme-toggle svg{width:16px;height:16px;}
+.theme-toggle svg,.theme-toggle .icon-mask{width:16px;height:16px;}
 .theme-toggle .sun-icon{display:none;}
 .theme-toggle .moon-icon{display:block;}
 [data-theme="dark"] .theme-toggle .sun-icon{display:block;}

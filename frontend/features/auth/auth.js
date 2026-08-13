@@ -83,9 +83,9 @@ export async function inicializarApp() {
   document.getElementById('av').textContent = ini;
   document.getElementById('hname').textContent = state.perfilLogado?.nome || state.usuarioLogado.email;
 
-  // Mostrar aba Professores apenas para admins
+  // Botão de Configurações (Geral / Professores) só aparece para admins
   if (state.perfilLogado?.papel === 'admin') {
-    document.getElementById('nav-prof').classList.remove('hidden');
+    document.getElementById('btn-config').classList.remove('hidden');
   }
 
   try {

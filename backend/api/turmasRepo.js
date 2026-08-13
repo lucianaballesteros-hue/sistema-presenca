@@ -18,3 +18,7 @@ export async function inserirTurma(payload) {
 export async function atualizarTurma(id, updates) {
   return sb.from('turmas').update(updates).eq('id', id);
 }
+
+export async function excluirTurma(id) {
+  return sb.from('turmas').delete().eq('id', id);
+}

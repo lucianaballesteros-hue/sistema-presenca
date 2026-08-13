@@ -37,3 +37,7 @@ export async function atualizarAluno(id, updates) {
 export async function atualizarAlunosEmLote(ids, updates) {
   return sb.from('alunos').update(updates).in('id', ids);
 }
+
+export async function excluirAluno(id) {
+  return sb.from('alunos').delete().eq('id', id);
+}

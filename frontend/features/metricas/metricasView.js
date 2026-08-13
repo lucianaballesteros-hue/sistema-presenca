@@ -1,53 +1,226 @@
 import { state } from '../../state/store.js';
 import { calcAluno } from '../../../backend/domain/attendance.js';
-import { statusInativo, corBadge } from '../../../backend/domain/status.js';
+import { statusInativo, corBadge, professorNome, temaCurso, FOCOS_METRICAS } from '../../../backend/domain/status.js';
+import { escapeHtml } from '../../shared/dom.js';
+import { lineChart, barChart, donutChart } from '../../shared/charts.js';
+
+const DIAS_SEMANA = [
+  { key: 'domingo', label: 'Dom' }, { key: 'segunda', label: 'Seg' }, { key: 'terca', label: 'Ter' },
+  { key: 'quarta', label: 'Qua' }, { key: 'quinta', label: 'Qui' }, { key: 'sexta', label: 'Sex' },
+  { key: 'sabado', label: 'Sáb' },
+];
+
+// ── HELPERS ─────────────────────────────────────────────────────
+function fbar(val, color) {
+  return `<div class="metr-bar-wrap"><div class="metr-bar"><div class="metr-bar-fill" style="width:${val || 0}%;background:${color};"></div></div><span style="font-weight:600;color:${color};font-size:11px;">${val !== null ? val + '%' : '—'}</span></div>`;
+}
+
+function numBadge(n, cls) {
+  return n > 0 ? `<span class="badge ${cls}">${n}</span>` : '<span style="color:var(--text-very-faded);">—</span>';
+}
+
+function freqColor(freq) {
+  return freq !== null ? (freq >= 75 ? 'var(--green)' : 'var(--amber)') : 'var(--text-faded)';
+}
+
+function capitalizar(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// Últimos `n` meses (mais antigo primeiro), cada um com uma chave "AAAA-M"
+// pra casar com created_at do histórico e um rótulo curto ("Mar", "Abr"...).
+function ultimosMeses(n) {
+  const hoje = new Date();
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - (n - 1 - i), 1);
+    return { chave: `${d.getFullYear()}-${d.getMonth()}`, label: capitalizar(d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')) };
+  });
+}
+
+// Variação percentual mês atual vs anterior — sem inventar % quando a base é 0.
+// `bomSeSubiu` separa o sinal numérico (sempre "subiu ou desceu") da cor do
+// selo: pra cancelamentos, subir é ruim, então a mesma alta aparece em
+// vermelho, não verde.
+function deltaBadge(atual, anterior, bomSeSubiu = true) {
+  if (anterior === 0) {
+    if (atual === 0) return { dir: 'flat', text: '—' };
+    return { dir: bomSeSubiu ? 'up' : 'down', text: 'novo' };
+  }
+  const pct = Math.round(((atual - anterior) / anterior) * 100);
+  if (pct === 0) return { dir: 'flat', text: '0%' };
+  const subiu = pct > 0;
+  return { dir: subiu === bomSeSubiu ? 'up' : 'down', text: `${subiu ? '+' : ''}${pct}%` };
+}
+
+function kpiCardHtml({ value, label, badge }) {
+  return `<div class="kpi-card">
+    <div class="kpi-card-label">${label}</div>
+    <div class="kpi-card-value">${value}</div>
+    <div class="kpi-card-foot">
+      <span class="delta-badge ${badge.dir}">${badge.text}</span>
+      <span class="kpi-card-foot-text">este mês</span>
+    </div>
+  </div>`;
+}
+
+// ── SELETOR DE FOCO (Geral / Evolution / Master / Elas) ────────────
+// Troca o "recorte" do dashboard inteiro: cada opção filtra turmas/alunos
+// pela palavra-chave do curso, usando a mesma cor que o curso já tem em
+// badges no resto do sistema (temaCurso, em backend/domain/status.js).
+function focoSwitchHtml(focoAtual) {
+  const geralAtivo = focoAtual === 'geral';
+  const botoes = [
+    `<button class="foco-btn ${geralAtivo ? 'active' : ''}" style="--foco-dot:var(--primary);" onclick="setFocoMetricas('geral')">
+      <span class="foco-btn-dot"></span>Geral
+    </button>`,
+    ...FOCOS_METRICAS.map(t => `<button class="foco-btn ${focoAtual === t.chave ? 'active' : ''}" style="--foco-dot:${t.cor};" onclick="setFocoMetricas('${t.chave}')">
+      <span class="foco-btn-dot"></span>${t.chave}
+    </button>`),
+  ];
+  const corIndicador = geralAtivo ? 'var(--primary-soft)' : FOCOS_METRICAS.find(t => t.chave === focoAtual)?.corSoft;
+  return `<div class="foco-indicator" id="metr-foco-indicator" style="background:${corIndicador};"></div>${botoes.join('')}`;
+}
+
+function moverIndicadorFoco() {
+  const wrap = document.getElementById('metr-foco');
+  const indicador = document.getElementById('metr-foco-indicator');
+  const ativo = wrap?.querySelector('.foco-btn.active');
+  if (!wrap || !indicador || !ativo) return;
+  indicador.style.setProperty('--foco-x', ativo.offsetLeft + 'px');
+  indicador.style.setProperty('--foco-w', ativo.offsetWidth + 'px');
+}
+
+export function setFocoMetricas(foco) {
+  state.metricasFoco = foco;
+  renderMetricas();
+}
 
 export function renderMetricas() {
-  const ativos = state.ALUNOS.filter(a => a.ativo);
-  const inativos = state.ALUNOS.filter(a => !a.ativo);
-  const cursos = [...new Set(state.TURMAS.map(t => t.curso))].sort();
-  const dash = '<span style="color:var(--text-very-faded);">—</span>';
+  const foco = state.metricasFoco || 'geral';
+  // Cada foco de curso mostra só as turmas cujo tema bate com a chave
+  // selecionada (mesma classificação usada nos badges — ver temaCurso) e os
+  // alunos que estão nelas hoje. "geral" usa os arrays inteiros, sem filtro.
+  const turmasFoco = foco === 'geral' ? state.TURMAS : state.TURMAS.filter(t => temaCurso(t.curso)?.chave === foco);
+  const turmaIdsFoco = new Set(turmasFoco.map(t => t.id));
+  const alunosFoco = foco === 'geral' ? state.ALUNOS : state.ALUNOS.filter(a => turmaIdsFoco.has(a.turma_id));
+  const alunoIdsFoco = new Set(alunosFoco.map(a => a.id));
+  const historicoFoco = foco === 'geral' ? state.HISTORICO : state.HISTORICO.filter(h => alunoIdsFoco.has(h.aluno_id));
+
+  document.getElementById('metr-foco').innerHTML = focoSwitchHtml(foco);
+  moverIndicadorFoco();
+  document.getElementById('metr-page-sub').textContent = foco === 'geral'
+    ? 'Visão geral do sistema, em tempo real'
+    : `Visão geral de ${foco}, em tempo real`;
+
+  const ativos = alunosFoco.filter(a => a.ativo);
+  const inativos = alunosFoco.filter(a => !a.ativo);
+  const turmasAtivas = turmasFoco.filter(t => t.ativa !== false);
+  // Só cursos com pelo menos 1 turma ativa aparecem na comparação — um curso
+  // 100% inativo não soma nada de útil pra visão "em tempo real" do dashboard.
+  const cursos = [...new Set(turmasAtivas.map(t => t.curso))].sort();
 
   const cancelados = inativos.filter(a => statusInativo(a.id) === 'cancelado');
   const soInativos = inativos.filter(a => statusInativo(a.id) === 'inativo');
 
-  const dadosAtivos = ativos.map(a => calcAluno(a));
+  const dadosAtivos = ativos.map(a => ({ ...a, ...calcAluno(a) }));
   const comFreq = dadosAtivos.filter(d => d.freq !== null);
   const freqMedia = comFreq.length > 0 ? Math.round(comFreq.reduce((s, d) => s + d.freq, 0) / comFreq.length) : null;
-  const regulares = dadosAtivos.filter(d => !d.emAlerta && d.freq !== null && d.freq >= 70).length;
-  const atencao = dadosAtivos.filter(d => !d.emAlerta && d.freq !== null && d.freq < 70).length;
-  const alertas = dadosAtivos.filter(d => d.emAlerta).length;
-  const semReg = dadosAtivos.filter(d => d.freq === null).length;
-  const totalRep = dadosAtivos.reduce((s, d) => s + d.r, 0);
-  const alunosRep = dadosAtivos.filter(d => d.r > 0).length;
+  const regulares = dadosAtivos.filter(d => !d.emAlerta && d.freq !== null && d.freq >= 70);
+  const atencao = dadosAtivos.filter(d => !d.emAlerta && d.freq !== null && d.freq < 70);
+  const emAlerta = dadosAtivos.filter(d => d.emAlerta);
+  const semReg = dadosAtivos.filter(d => d.freq === null);
 
-  const transferidos = state.HISTORICO.filter(h => h.descricao?.includes('Transferido')).length;
-  const novos = state.HISTORICO.filter(h => h.descricao?.includes('adicionado ao sistema')).length;
-  const reativacoes = state.HISTORICO.filter(h => h.descricao?.includes('reativado')).length;
+  // ── NOVAS MATRÍCULAS VS CANCELAMENTOS (últimos 6 meses) ────────
+  // Calculado antes dos KPIs porque o mês atual/anterior também alimenta os
+  // dois cards de variação na primeira linha do dashboard.
+  const meses = ultimosMeses(6);
+  const novosPorMes = meses.map(() => 0);
+  const cancelPorMes = meses.map(() => 0);
+  historicoFoco.forEach(h => {
+    const d = new Date(h.created_at);
+    const idx = meses.findIndex(m => m.chave === `${d.getFullYear()}-${d.getMonth()}`);
+    if (idx === -1) return;
+    if (h.descricao?.includes('adicionado ao sistema') || h.descricao?.includes('importado por planilha')) novosPorMes[idx]++;
+    else if (h.descricao?.includes('Matrícula cancelada')) cancelPorMes[idx]++;
+  });
+  const novosMesAtual = novosPorMes[novosPorMes.length - 1], novosMesAnterior = novosPorMes[novosPorMes.length - 2] ?? 0;
+  const cancelMesAtual = cancelPorMes[cancelPorMes.length - 1], cancelMesAnterior = cancelPorMes[cancelPorMes.length - 2] ?? 0;
 
-  const total = ativos.length + inativos.length;
-  const txEvasao = total > 0 ? ((inativos.length / total) * 100).toFixed(1) : '0';
+  // ── LINHA 1: KPIs (2 heroes + 2 cards de variação do mês) ──────
+  // Fora do foco "geral" os dois heroes assumem a cor do curso selecionado,
+  // reforçando visualmente qual recorte está ativo; no "geral" mantêm o
+  // azul/verde padrão do sistema.
+  const temaFoco = FOCOS_METRICAS.find(t => t.chave === foco);
+  const gradPrincipal = temaFoco?.grad || 'var(--grad-blue)';
+  const gradSecundario = temaFoco?.grad || 'var(--grad-green)';
+  document.getElementById('metr-heroes').innerHTML = `
+    <div class="hero-card" style="background:${gradPrincipal};">
+      <div class="hero-label">Frequência média</div>
+      <div class="hero-value">${freqMedia !== null ? freqMedia : '—'}${freqMedia !== null ? '<small>%</small>' : ''}</div>
+      <div class="hero-desc">Média geral (P+R) dos ativos com registro</div>
+    </div>
+    <div class="hero-card" style="background:${gradSecundario};">
+      <div class="hero-label">Alunos ativos</div>
+      <div class="hero-value">${ativos.length}</div>
+      <div class="hero-desc">${turmasAtivas.length} turma${turmasAtivas.length !== 1 ? 's' : ''} em andamento</div>
+    </div>
+    ${kpiCardHtml({ value: novosMesAtual, label: 'Novas matrículas', badge: deltaBadge(novosMesAtual, novosMesAnterior) })}
+    ${kpiCardHtml({ value: cancelMesAtual, label: 'Cancelamentos', badge: deltaBadge(cancelMesAtual, cancelMesAnterior, false) })}`;
 
-  function pct(n) { return ativos.length > 0 ? Math.round((n / ativos.length) * 100) : 0; }
-  function fbar(val, color) {
-    return `<div class="metr-bar-wrap"><div class="metr-bar"><div class="metr-bar-fill" style="width:${val || 0}%;background:${color};"></div></div><span style="font-weight:600;color:${color};font-size:11px;">${val !== null ? val + '%' : '—'}</span></div>`;
-  }
-  function numBadge(n, cls) { return n > 0 ? `<span class="badge ${cls}">${n}</span>` : dash; }
+  document.getElementById('metr-linha-matriculas').innerHTML = lineChart({
+    labels: meses.map(m => m.label),
+    series: [
+      { label: 'Novas matrículas', color: 'var(--green)', data: novosPorMes },
+      { label: 'Cancelamentos', color: 'var(--red)', data: cancelPorMes },
+    ],
+  });
 
-  // ── VISÃO GERAL ──────────────────────────────────────────────
-  const fColor = freqMedia !== null ? (freqMedia >= 75 ? 'var(--green)' : 'var(--amber)') : 'var(--text-faded)';
-  document.getElementById('metr-visao-geral').innerHTML = `
-    <thead><tr><th>Métrica</th><th style="text-align:center;">Valor</th><th>Descrição</th></tr></thead>
-    <tbody>
-      <tr><td style="font-weight:500;">Total de turmas</td><td style="text-align:center;font-weight:700;font-size:15px;">${state.TURMAS.length}</td><td style="color:var(--text-3);font-size:11px;">Turmas cadastradas no sistema</td></tr>
-      <tr><td style="font-weight:500;">Alunos ativos</td><td style="text-align:center;font-weight:700;font-size:15px;">${ativos.length}</td><td style="color:var(--text-3);font-size:11px;">Matrículas ativas no momento</td></tr>
-      <tr><td style="font-weight:500;">Frequência média</td><td style="text-align:center;">${fbar(freqMedia, fColor)}</td><td style="color:var(--text-3);font-size:11px;">Média geral de presença dos alunos ativos com registro</td></tr>
-      <tr><td style="font-weight:500;">Em alerta</td><td style="text-align:center;">${numBadge(alertas, 'badge-red')}</td><td style="color:var(--text-3);font-size:11px;">3 faltas seguidas nas últimas 8 aulas com registro (${pct(alertas)}% dos ativos)</td></tr>
-      <tr><td style="font-weight:500;">Matrículas canceladas</td><td style="text-align:center;">${numBadge(cancelados.length, 'badge-red')}</td><td style="color:var(--text-3);font-size:11px;">Alunos que encerraram o curso definitivamente</td></tr>
-      <tr><td style="font-weight:500;">Inativos (temporários)</td><td style="text-align:center;">${numBadge(soInativos.length, 'badge-amber')}</td><td style="color:var(--text-3);font-size:11px;">Alunos afastados temporariamente, podem retornar</td></tr>
-    </tbody>`;
+  // ── TURMAS POR DIA DA SEMANA ───────────────────────────────────
+  document.getElementById('metr-barras-dias').innerHTML = barChart({
+    labels: DIAS_SEMANA.map(d => d.label),
+    data: DIAS_SEMANA.map(d => turmasAtivas.filter(t => t.dias_semana?.includes(d.key)).length),
+    color: 'var(--primary)',
+    height: 240,
+  });
 
-  // ── DIMENSIONAMENTO POR CURSO ────────────────────────────────
+  // ── DONUT: FREQUÊNCIA DOS ALUNOS ───────────────────────────────
+  const segsFreq = [
+    { label: 'Regular', value: regulares.length, color: 'var(--green)' },
+    { label: 'Atenção', value: atencao.length, color: 'var(--amber)' },
+    { label: 'Alerta', value: emAlerta.length, color: 'var(--red)' },
+    { label: 'Sem registro', value: semReg.length, color: 'var(--text-very-faded)' },
+  ];
+  document.getElementById('metr-donut-frequencia').innerHTML =
+    donutChart({ segments: segsFreq, size: 148, thickness: 20 }) +
+    `<div class="donut-legend">${segsFreq.map(s => `<div class="donut-legend-item"><span class="donut-legend-dot" style="background:${s.color};"></span>${escapeHtml(s.label)}<b>${s.value}</b></div>`).join('')}</div>`;
+
+  // ── DONUT: ATIVOS VS INATIVOS ───────────────────────────────────
+  const segsAtivos = [
+    { label: 'Ativos', value: ativos.length, color: 'var(--green)' },
+    { label: 'Inativos/Cancelados', value: inativos.length, color: 'var(--text-very-faded)' },
+  ];
+  document.getElementById('metr-donut-ativos').innerHTML =
+    donutChart({ segments: segsAtivos, size: 148, thickness: 20, centerLabel: 'Ativos', centerValue: ativos.length }) +
+    `<div class="donut-legend">${segsAtivos.map(s => `<div class="donut-legend-item"><span class="donut-legend-dot" style="background:${s.color};"></span>${escapeHtml(s.label)}<b>${s.value}</b></div>`).join('')}</div>`;
+
+  // ── AÇÃO NECESSÁRIA (alunos em alerta, acionável) ──────────────
+  const emAlertaOrdenado = emAlerta.slice().sort((a, b) => b.maxConsec - a.maxConsec);
+  document.getElementById('metr-alertas').innerHTML = emAlertaOrdenado.length > 0
+    ? `<div class="alert-list">${emAlertaOrdenado.map(a => {
+        const t = turmasFoco.find(tt => tt.id === a.turma_id);
+        return `<div class="alert-row" onclick="abrirModalAluno(${a.id})">
+          <div class="alert-row-dot"></div>
+          <div class="alert-row-info">
+            <div class="alert-row-nome">${escapeHtml(a.nome)}</div>
+            <div class="alert-row-turma">${escapeHtml(t?.turma) || '—'}${t ? ' · ' + escapeHtml(t.curso) : ''}</div>
+          </div>
+          <div class="alert-row-meta">
+            <span class="badge badge-red">${a.maxConsec} faltas</span>
+            <span style="font-size:10px;color:var(--text-faded);">freq ${a.freq !== null ? a.freq + '%' : '—'}</span>
+          </div>
+        </div>`;
+      }).join('')}</div>`
+    : `<div class="metr-empty">Nenhum aluno em alerta no momento.</div>`;
+
+  // ── COMPARAÇÃO POR CURSO ──────────────────────────────────────
   document.getElementById('metr-tabela-curso').innerHTML = `
     <thead><tr>
       <th>Curso</th><th style="text-align:center;">Turmas</th><th style="text-align:center;">Alunos ativos</th>
@@ -56,8 +229,8 @@ export function renderMetricas() {
       <th style="text-align:center;">Alerta</th><th style="text-align:center;">Cancelados</th><th style="text-align:center;">Inativos</th>
     </tr></thead>
     <tbody>${cursos.map(c => {
-      const tC = state.TURMAS.filter(t => t.curso === c);
-      const aC = state.ALUNOS.filter(a => a.ativo && tC.some(t => t.id === a.turma_id));
+      const tC = turmasFoco.filter(t => t.curso === c);
+      const aC = alunosFoco.filter(a => a.ativo && tC.some(t => t.id === a.turma_id));
       const iC = inativos.filter(a => tC.some(t => t.id === a.turma_id));
       const canC = iC.filter(a => statusInativo(a.id) === 'cancelado');
       const inaC = iC.filter(a => statusInativo(a.id) === 'inativo');
@@ -68,41 +241,70 @@ export function renderMetricas() {
       const reg = dc.filter(d => !d.emAlerta && d.freq !== null && d.freq >= 70).length;
       const at = dc.filter(d => !d.emAlerta && d.freq !== null && d.freq < 70).length;
       const al = dc.filter(d => d.emAlerta).length;
-      const fc = fM !== null ? (fM >= 75 ? 'var(--green)' : 'var(--amber)') : 'var(--text-faded)';
       return `<tr>
-        <td><span class="badge ${corBadge(c)}">${c}</span></td>
+        <td><span class="badge ${corBadge(c)}">${escapeHtml(c)}</span></td>
         <td style="text-align:center;font-weight:600;">${tC.length}</td>
         <td style="text-align:center;font-weight:600;">${aC.length}</td>
         <td style="text-align:center;color:var(--text-3);">${media}</td>
-        <td style="text-align:center;">${fbar(fM, fc)}</td>
+        <td style="text-align:center;">${fbar(fM, freqColor(fM))}</td>
         <td style="text-align:center;">${numBadge(reg, 'badge-green')}</td>
         <td style="text-align:center;">${numBadge(at, 'badge-amber')}</td>
         <td style="text-align:center;">${numBadge(al, 'badge-red')}</td>
         <td style="text-align:center;">${numBadge(canC.length, 'badge-red')}</td>
         <td style="text-align:center;">${numBadge(inaC.length, 'badge-amber')}</td>
       </tr>`;
-    }).join('')}</tbody>`;
+    }).join('') || '<tr><td colspan="10" class="empty">Nenhum curso cadastrado.</td></tr>'}</tbody>`;
 
-  // ── FREQUÊNCIA E DESEMPENHO ──────────────────────────────────
-  document.getElementById('metr-frequencia').innerHTML = `
-    <thead><tr><th>Status</th><th style="text-align:center;">Alunos</th><th style="text-align:center;">% dos ativos</th><th>Critério</th></tr></thead>
-    <tbody>
-      <tr><td style="font-weight:500;">Presença física (P)</td><td style="text-align:center;">${numBadge(dadosAtivos.filter(d => d.p - d.r > 0 || d.r === 0 && d.p > 0).length, 'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares), 'var(--green)')}</td><td style="color:var(--text-3);font-size:11px;">Presença registrada normalmente na aula</td></tr>
-      <tr><td style="font-weight:500;">Gravações (R)</td><td style="text-align:center;">${alunosRep > 0 ? `<span class="badge badge-amber">${alunosRep}</span>` : dash}</td><td style="text-align:center;">${fbar(pct(alunosRep), 'var(--amber)')}</td><td style="color:var(--text-3);font-size:11px;">Assistiram via plataforma · conta como presença · ${totalRep} registros no total</td></tr>
-      <tr><td style="font-weight:500;">Regulares (≥70%)</td><td style="text-align:center;">${numBadge(regulares, 'badge-green')}</td><td style="text-align:center;">${fbar(pct(regulares), 'var(--green)')}</td><td style="color:var(--text-3);font-size:11px;">freq ≥ 70% (P+R) e sem alerta</td></tr>
-      <tr><td style="font-weight:500;">Atenção (&lt;70%)</td><td style="text-align:center;">${numBadge(atencao, 'badge-amber')}</td><td style="text-align:center;">${fbar(pct(atencao), 'var(--amber)')}</td><td style="color:var(--text-3);font-size:11px;">freq &lt; 70% e sem 3 faltas seguidas</td></tr>
-      <tr><td style="font-weight:500;">Em alerta</td><td style="text-align:center;">${numBadge(alertas, 'badge-red')}</td><td style="text-align:center;">${fbar(pct(alertas), 'var(--red)')}</td><td style="color:var(--text-3);font-size:11px;">3 faltas seguidas nas últimas 8 aulas com registro</td></tr>
-      <tr><td style="font-weight:500;">Sem registro</td><td style="text-align:center;">${semReg > 0 ? `<span class="badge badge-gray">${semReg}</span>` : dash}</td><td style="text-align:center;">${fbar(pct(semReg), 'var(--text-faded)')}</td><td style="color:var(--text-3);font-size:11px;">Nenhuma aula lançada ainda</td></tr>
-    </tbody>`;
+  // ── CARGA POR PROFESSOR ───────────────────────────────────────
+  const porProfessor = new Map(); // professor_id (ou '—') -> turmas[]
+  turmasAtivas.forEach(t => {
+    const chave = t.professor_id ?? '—';
+    if (!porProfessor.has(chave)) porProfessor.set(chave, []);
+    porProfessor.get(chave).push(t);
+  });
+  const linhasProfessor = [...porProfessor.values()].map(tP => {
+    const nome = professorNome(tP[0]);
+    const aP = alunosFoco.filter(a => a.ativo && tP.some(t => t.id === a.turma_id));
+    const dp = aP.map(a => calcAluno(a));
+    const comF = dp.filter(d => d.freq !== null);
+    const fM = comF.length > 0 ? Math.round(comF.reduce((s, d) => s + d.freq, 0) / comF.length) : null;
+    const al = dp.filter(d => d.emAlerta).length;
+    return { nome, turmas: tP.length, alunos: aP.length, freq: fM, alertas: al };
+  }).sort((a, b) => b.alunos - a.alunos);
 
-  // ── EVASÃO E MOVIMENTAÇÃO ────────────────────────────────────
-  document.getElementById('metr-movimentacao').innerHTML = `
-    <thead><tr><th>Evento</th><th style="text-align:center;">Quantidade</th><th>Descrição</th></tr></thead>
-    <tbody>
-      <tr><td style="font-weight:500;">Novos alunos</td><td style="text-align:center;font-weight:700;font-size:15px;">${novos}</td><td style="color:var(--text-3);font-size:11px;">Total de alunos adicionados ao sistema</td></tr>
-      <tr><td style="font-weight:500;">Transferências</td><td style="text-align:center;font-weight:700;font-size:15px;">${transferidos}</td><td style="color:var(--text-3);font-size:11px;">Movimentações internas entre turmas ou cursos</td></tr>
-      <tr><td style="font-weight:500;">Matrículas canceladas</td><td style="text-align:center;">${numBadge(cancelados.length, 'badge-red')}</td><td style="color:var(--text-3);font-size:11px;">Alunos que encerraram o curso · taxa de evasão: ${txEvasao}% do total</td></tr>
-      <tr><td style="font-weight:500;">Inativos (temporários)</td><td style="text-align:center;">${numBadge(soInativos.length, 'badge-amber')}</td><td style="color:var(--text-3);font-size:11px;">Alunos afastados temporariamente, podem retornar</td></tr>
-      <tr><td style="font-weight:500;">Reativações</td><td style="text-align:center;">${reativacoes > 0 ? `<span class="badge badge-green">${reativacoes}</span>` : dash}</td><td style="color:var(--text-3);font-size:11px;">Alunos que retornaram após afastamento ou cancelamento</td></tr>
-    </tbody>`;
+  document.getElementById('metr-tabela-professor').innerHTML = `
+    <thead><tr>
+      <th>Professor</th><th style="text-align:center;">Turmas</th><th style="text-align:center;">Alunos ativos</th>
+      <th style="text-align:center;">Freq. média</th><th style="text-align:center;">Em alerta</th>
+    </tr></thead>
+    <tbody>${linhasProfessor.map(p => `<tr>
+        <td style="font-weight:500;">${escapeHtml(p.nome)}</td>
+        <td style="text-align:center;font-weight:600;">${p.turmas}</td>
+        <td style="text-align:center;font-weight:600;">${p.alunos}</td>
+        <td style="text-align:center;">${fbar(p.freq, freqColor(p.freq))}</td>
+        <td style="text-align:center;">${numBadge(p.alertas, 'badge-red')}</td>
+      </tr>`).join('') || '<tr><td colspan="5" class="empty">Nenhum professor com turma ativa.</td></tr>'}</tbody>`;
+
+  // ── ATIVIDADE RECENTE (feed) ──────────────────────────────────
+  const eventos = historicoFoco.filter(h => h.tipo !== 'observacao').slice(0, 8);
+  document.getElementById('metr-atividade').innerHTML = eventos.length > 0
+    ? `<div class="activity-feed">${eventos.map(h => {
+        const aluno = alunosFoco.find(a => a.id === h.aluno_id);
+        const cor = h.descricao?.includes('adicionado ao sistema') || h.descricao?.includes('importado por planilha') ? 'var(--green)'
+          : h.descricao?.includes('Transferido') ? 'var(--primary)'
+          : h.descricao?.includes('Matrícula cancelada') ? 'var(--red)'
+          : h.descricao?.includes('reativado') ? 'var(--green)'
+          : h.descricao?.includes('inativado') ? 'var(--amber)'
+          : 'var(--text-faded)';
+        return `<div class="activity-row">
+          <div class="activity-row-rail"><div class="activity-dot" style="background:${cor};"></div><div class="activity-line"></div></div>
+          <div class="activity-body">
+            <div class="activity-desc">${aluno ? `<b>${escapeHtml(aluno.nome)}</b> — ` : ''}${escapeHtml(h.descricao || '')}</div>
+            <div class="activity-time">${new Date(h.created_at).toLocaleDateString('pt-BR')}</div>
+          </div>
+        </div>`;
+      }).join('')}</div>`
+    : `<div class="metr-empty">Nenhuma atividade registrada ainda.</div>`;
 }
+
+window.addEventListener('resize', moverIndicadorFoco);
