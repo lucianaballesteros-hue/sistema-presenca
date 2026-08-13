@@ -3,9 +3,7 @@ import { calcAluno } from '../../../backend/domain/attendance.js';
 import { corBadge, freqBar, statusInativo } from '../../../backend/domain/status.js';
 import { escapeHtml } from '../../shared/dom.js';
 
-const PAGE_SIZE = 30;
-
-export function renderTabelaAlunos(resetPagina = true) {
+export function renderTabelaAlunos() {
   const busca = (document.getElementById('busca-alunos') || {}).value?.toLowerCase() || '';
   const fCurso = document.getElementById('f-curso-alunos')?.value || '';
   const fStatus = document.getElementById('f-status-alunos')?.value || '';
@@ -21,11 +19,7 @@ export function renderTabelaAlunos(resetPagina = true) {
   else if (fStatus === 'alerta') lista = lista.filter(a => a.ativo && a.emAlerta);
   else if (fStatus === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 70);
 
-  if (resetPagina) state.paginaAlunos = 1;
-  const totalFiltrado = lista.length;
-  const listaPagina = lista.slice(0, state.paginaAlunos * PAGE_SIZE);
-
-  document.getElementById('tbody-alunos').innerHTML = listaPagina.map(a => `
+  document.getElementById('tbody-alunos').innerHTML = lista.map(a => `
     <tr class="clickable ${a.emAlerta && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''} ${a.experimental ? 'row-experimental' : ''}" onclick="abrirModalAluno(${a.id})">
       <td>${escapeHtml(a.nome)}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
       <td><span class="badge ${corBadge(a.turma?.curso)}" style="font-size:10px;">${escapeHtml(a.turma?.curso) || '—'}</span></td>
@@ -36,18 +30,7 @@ export function renderTabelaAlunos(resetPagina = true) {
       <td style="text-align:center;">${a.maxConsec > 0 ? `<span class="badge ${a.emAlerta ? 'badge-red' : 'badge-gray'}">${a.maxConsec}</span>` : '—'}</td>
       <td>${freqBar(a.freq)}</td>
     </tr>`).join('') || '<tr><td colspan="7" class="empty">Nenhum aluno encontrado.</td></tr>';
-  const contagemTxt = totalFiltrado > listaPagina.length
-    ? `Mostrando ${listaPagina.length} de ${totalFiltrado} alunos`
-    : `${totalFiltrado} aluno${totalFiltrado !== 1 ? 's' : ''}`;
-  document.getElementById('alunos-count').textContent = `${contagemTxt} · Clique para ver detalhes, editar ou transferir`;
-  document.getElementById('alunos-mostrar-mais-wrap').innerHTML = totalFiltrado > listaPagina.length
-    ? `<button class="btn-sec" onclick="mostrarMaisAlunos()">Mostrar mais ${Math.min(PAGE_SIZE, totalFiltrado - listaPagina.length)}</button>`
-    : '';
-}
-
-export function mostrarMaisAlunos() {
-  state.paginaAlunos++;
-  renderTabelaAlunos(false);
+  document.getElementById('alunos-count').textContent = `${lista.length} aluno${lista.length !== 1 ? 's' : ''} · Clique para ver detalhes, editar ou transferir`;
 }
 
 export function atualizarTurmasAlunos() {

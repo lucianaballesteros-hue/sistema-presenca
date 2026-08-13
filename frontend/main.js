@@ -18,7 +18,7 @@ import { toggleTema } from './features/theme/theme.js';
 import { doLogin, doLogout, restoreSession, wireAutoLogin } from './features/auth/auth.js';
 import { abrirRecuperarSenha, voltarParaLogin, enviarLinkRecuperacao, salvarNovaSenhaRecuperacao } from './features/auth/recovery.js';
 
-import { renderDash, setCurso, irParaAlertas, mostrarMaisTurmas } from './features/dashboard/dashboardView.js';
+import { renderDash, setCurso, irParaAlertas } from './features/dashboard/dashboardView.js';
 import {
   abrirModalNovaTurma, selecionarCorNovaTurma, salvarNovaTurma,
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
@@ -28,7 +28,7 @@ import { abrirModalNovoCurso, salvarNovoCurso } from './features/dashboard/curso
 
 import { abrirChamada, voltarDash, renderChamada, selecionarAula, marcar } from './features/chamada/chamadaView.js';
 
-import { renderTabelaAlunos, atualizarTurmasAlunos, mostrarMaisAlunos } from './features/alunos/alunosTable.js';
+import { renderTabelaAlunos, atualizarTurmasAlunos } from './features/alunos/alunosTable.js';
 import {
   abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
@@ -68,13 +68,13 @@ Object.assign(window, {
   toggleTema,
   doLogin, doLogout, abrirRecuperarSenha, voltarParaLogin, enviarLinkRecuperacao, salvarNovaSenhaRecuperacao,
   goTab,
-  renderDash, setCurso, irParaAlertas, mostrarMaisTurmas,
+  renderDash, setCurso, irParaAlertas,
   abrirModalNovaTurma, selecionarCorNovaTurma, salvarNovaTurma,
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
   toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario,
   abrirModalNovoCurso, salvarNovoCurso,
   abrirChamada, voltarDash, renderChamada, selecionarAula, marcar,
-  renderTabelaAlunos, atualizarTurmasAlunos, mostrarMaisAlunos,
+  renderTabelaAlunos, atualizarTurmasAlunos,
   abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
   abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno,

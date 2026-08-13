@@ -5,9 +5,7 @@ import { escapeHtml, escapeAttr } from '../../shared/dom.js';
 import { goTab } from '../../shared/navigation.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
 
-const PAGE_SIZE_TURMAS = 12;
-
-export function renderDash(resetPagina = true) {
+export function renderDash() {
   const ativos = state.ALUNOS.filter(a => a.ativo);
   const dados = ativos.map(a => calcAluno(a));
   const alertas = dados.filter(d => d.emAlerta).length;
@@ -55,11 +53,7 @@ export function renderDash(resetPagina = true) {
     return a.turma.localeCompare(b.turma, 'pt-BR');
   });
 
-  if (resetPagina) state.paginaTurmas = 1;
-  const totalFiltradasTurmas = filtradas.length;
-  const turmasPagina = filtradas.slice(0, state.paginaTurmas * PAGE_SIZE_TURMAS);
-
-  document.getElementById('turmas-grid').innerHTML = turmasPagina.map(t => {
+  document.getElementById('turmas-grid').innerHTML = filtradas.map(t => {
     const inativa = t.ativa === false;
     const al = state.ALUNOS.filter(a => a.ativo && a.turma_id === t.id);
     const at = al.filter(a => calcAluno(a).emAlerta).length;
@@ -86,14 +80,6 @@ export function renderDash(resetPagina = true) {
       <button class="btn-chamada" onclick="abrirChamada(${t.id})">Acessar turma <span class="icon-mask icon-seta-direita" style="margin-left:6px;"></span></button>
     </div>`;
   }).join('') || '<div class="empty">Nenhuma turma encontrada.</div>';
-  document.getElementById('turmas-mostrar-mais-wrap').innerHTML = totalFiltradasTurmas > turmasPagina.length
-    ? `<button class="btn-sec" onclick="mostrarMaisTurmas()">Mostrar mais ${Math.min(PAGE_SIZE_TURMAS, totalFiltradasTurmas - turmasPagina.length)}</button>`
-    : '';
-}
-
-export function mostrarMaisTurmas() {
-  state.paginaTurmas++;
-  renderDash(false);
 }
 
 export function setCurso(c) {
