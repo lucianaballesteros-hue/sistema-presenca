@@ -12,6 +12,7 @@ import { toggleSenha, fecharModal, wireModalBackdrops } from './shared/dom.js';
 import { responderConfirm } from './shared/confirm.js';
 import { goTab } from './shared/navigation.js';
 import { startUpdateNotifier } from './shared/updateNotifier.js';
+import { enhanceSelect } from './shared/customSelect.js';
 
 import { toggleTema } from './features/theme/theme.js';
 import { doLogin, doLogout, restoreSession, wireAutoLogin } from './features/auth/auth.js';
@@ -96,6 +97,10 @@ Object.assign(window, {
 
 // Fecha modal ao clicar fora do card.
 wireModalBackdrops();
+
+// Troca a apresentação dos <select> nativos marcados por data-custom-select
+// por um botão + painel no estilo liquid glass (ver customSelect.js).
+document.querySelectorAll('select[data-custom-select]').forEach(enhanceSelect);
 
 // Fecha o menu de pontos, o menu de ações do aluno e os painéis de
 // multi-select ao clicar fora deles.

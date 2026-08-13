@@ -9,9 +9,11 @@
 .multi-select-btn{font-size:13px;padding:5px 9px;border:1px solid var(--border-input);border-radius:99px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;gap:var(--space-2);white-space:nowrap;min-width:130px;justify-content:space-between;}
 .multi-select-btn:hover{border-color:var(--primary-light-2);}
 .multi-select-btn.active{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);}
+.multi-select-btn .hint-text{display:inline-block;transition:transform .15s var(--ease-glass);}
+.multi-select-wrap:has(.multi-select-panel.open) .multi-select-btn .hint-text{transform:rotate(180deg);}
 .multi-select-panel{
   position:absolute;top:calc(100% + 6px);left:0;
-  background:var(--glass-tint-strong);-webkit-backdrop-filter:blur(var(--blur-md)) saturate(180%);backdrop-filter:blur(var(--blur-md)) saturate(180%);
+  background:var(--surface);
   border:1px solid var(--glass-border);border-radius:12px;box-shadow:var(--glass-shadow);z-index:200;min-width:150px;padding:var(--space-2) 0;
   display:none;
 }
@@ -19,6 +21,28 @@
 .multi-check{display:flex;align-items:center;gap:var(--space-2);padding:7px 14px;font-size:13px;color:var(--text);cursor:pointer;}
 .multi-check:hover{background:var(--surface-hover);}
 .multi-check input[type=checkbox]{width:14px;height:14px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;}
+
+/* Select de escolha única (ver frontend/shared/customSelect.js): reaproveita
+   o botão/painel do multi-select, só troca o checkbox por uma marcação de
+   selecionado. */
+.cs-option.cs-selected{color:var(--primary);font-weight:600;}
+.cs-option.cs-selected::after{content:'✓';margin-left:auto;padding-left:var(--space-2);}
+
+/* Com o painel aberto, o blur de qualquer superfície de vidro próxima —
+   seja um vizinho embaixo (tabela, contadores da chamada, lista de alunos)
+   ou o próprio pai do dropdown (.filter-bar, .chamada-top) — faz o Chromium
+   compor esse conteúdo por cima do painel apesar do z-index maior. É um bug
+   de compositing do backdrop-filter que só aparece em telas com escala
+   fracionária (Windows a 125%/150%, por ex.) — suspende o blur delas
+   enquanto o painel estiver aberto. Ao adicionar um dropdown num lugar novo,
+   inclua aqui qualquer superfície com backdrop-filter que fique perto dele. */
+body:has(.multi-select-panel.open) .table-wrap,
+body:has(.multi-select-panel.open) .chamada-counters,
+body:has(.multi-select-panel.open) .alunos-list,
+body:has(.multi-select-panel.open) .filter-bar,
+body:has(.multi-select-panel.open) .chamada-top{
+  -webkit-backdrop-filter:none;backdrop-filter:none;
+}
 
 @media(max-width:768px){
   .filter-bar input{width:100%;}

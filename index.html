@@ -184,7 +184,7 @@
           </div>
           <div class="flex-row">
             <label style="font-size:12px;color:var(--text-2);font-weight:500;">Aula:</label>
-            <select id="aula-sel" onchange="renderChamada()" style="font-size:13px;padding:5px 9px;border:1px solid var(--border-input);border-radius:6px;background:var(--surface);color:var(--text);"></select>
+            <select id="aula-sel" onchange="renderChamada()" data-custom-select></select>
             <span id="chamada-status" style="font-size:12px;color:var(--green);font-weight:500;"></span>
           </div>
         </div>
@@ -204,16 +204,16 @@
           <label>Buscar:</label>
           <input type="text" id="busca-alunos" placeholder="Nome do aluno..." oninput="renderTabelaAlunos()">
           <label>Curso:</label>
-          <select id="f-curso-alunos" onchange="atualizarTurmasAlunos();renderTabelaAlunos()">
+          <select id="f-curso-alunos" onchange="atualizarTurmasAlunos();renderTabelaAlunos()" data-custom-select>
             <option value="">Todos</option>
           </select>
           <label>Turma:</label>
-          <select id="f-turma-alunos" onchange="renderTabelaAlunos()">
+          <select id="f-turma-alunos" onchange="renderTabelaAlunos()" data-custom-select>
             <option value="">Todas</option>
           </select>
           <div class="flex-row" style="gap:6px;">
             <label style="margin:0;">Status:</label>
-            <select id="f-status-alunos" onchange="renderTabelaAlunos()">
+            <select id="f-status-alunos" onchange="renderTabelaAlunos()" data-custom-select>
               <option value="">Todos</option>
               <option value="ativo">Ativos</option>
               <option value="inativo">Inativos</option>
@@ -359,7 +359,7 @@
           <label>Buscar:</label>
           <input type="text" id="busca-reposicoes" placeholder="Nome do aluno..." oninput="aplicarFiltroReposicoes()">
           <label>Status:</label>
-          <select id="f-status-reposicoes" onchange="aplicarFiltroReposicoes()">
+          <select id="f-status-reposicoes" onchange="aplicarFiltroReposicoes()" data-custom-select>
             <option value="">Todos</option>
             <option value="aberta">Aguardando escolha</option>
             <option value="agendada">Agendada</option>
