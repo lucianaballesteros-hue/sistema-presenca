@@ -9,6 +9,7 @@ import { renderRel, popularFiltros } from '../relatorios/relatoriosView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
 import { AULAS } from '../../../backend/domain/attendance.js';
 import { renderOpcoesCurso } from './cursoModals.js';
+import { renderConfiguracoes } from '../configuracoes/configuracoesView.js';
 
 export const TURMA_CORES = ['#3b82f6', '#059669', '#7c3aed', '#db2777', '#d97706', '#0891b2', '#dc2626', '#65a30d'];
 
@@ -324,5 +325,5 @@ export async function salvarEditarTurma() {
   fecharModal('modal-editar-turma');
   showToast('Turma atualizada!');
   popularFiltros();
-  renderDash(); renderTabelaAlunos(); renderRel();
+  renderDash(); renderTabelaAlunos(); renderRel(); renderConfiguracoes();
 }

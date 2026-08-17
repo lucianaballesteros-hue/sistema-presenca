@@ -229,7 +229,14 @@ export function renderMetricas() {
       <th style="text-align:center;">Alerta</th><th style="text-align:center;">Cancelados</th><th style="text-align:center;">Inativos</th>
     </tr></thead>
     <tbody>${cursos.map(c => {
-      const tC = turmasFoco.filter(t => t.curso === c);
+      // Só turmas ativas — mesmo critério da tabela "Carga por professor" logo
+      // abaixo (que usa turmasAtivas) e do hero "X turmas em andamento". Usar
+      // turmasFoco aqui contava turmas inativas sempre que alguém ainda ativo
+      // estivesse matriculado nelas (ex.: transferido pra lá depois da turma
+      // já ter sido inativada), fazendo o curso aparecer com mais turmas e
+      // mais alunos ativos do que a soma das linhas de professor do mesmo
+      // curso na tabela seguinte.
+      const tC = turmasAtivas.filter(t => t.curso === c);
       const aC = alunosFoco.filter(a => a.ativo && tC.some(t => t.id === a.turma_id));
       const iC = inativos.filter(a => tC.some(t => t.id === a.turma_id));
       const canC = iC.filter(a => statusInativo(a.id) === 'cancelado');

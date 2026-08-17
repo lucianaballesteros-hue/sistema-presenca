@@ -92,12 +92,20 @@ export function selecionarTipoExclusao(tipo) {
 
 function theadPorTipo(tipo) {
   if (tipo === 'curso') return '<tr><th>Curso</th><th style="width:160px;">Turmas usando</th><th style="width:190px;"></th></tr>';
-  if (tipo === 'turma') return '<tr><th>Turma</th><th style="width:150px;">Curso</th><th style="width:160px;">Professor(a)</th><th style="width:80px;text-align:center;">Alunos</th><th style="width:90px;">Status</th><th style="width:120px;"></th></tr>';
-  return '<tr><th>Aluno</th><th style="width:150px;">Curso</th><th style="width:160px;">Turma</th><th style="width:100px;">Status</th><th style="width:120px;"></th></tr>';
+  if (tipo === 'turma') return '<tr><th>Turma</th><th style="width:150px;">Curso</th><th style="width:160px;">Professor(a)</th><th style="width:80px;text-align:center;">Alunos</th><th style="width:90px;">Status</th><th style="width:190px;"></th></tr>';
+  return '<tr><th>Aluno</th><th style="width:150px;">Curso</th><th style="width:160px;">Turma</th><th style="width:100px;">Status</th><th style="width:190px;"></th></tr>';
 }
 
 function botaoExcluir(tipo, id) {
   return `<button class="btn-danger" onclick="pedirExclusao('${tipo}',${id})">Excluir</button>`;
+}
+
+// Par "Editar" + "Excluir" usado nas 3 tabelas (curso/turma/aluno) — o editar
+// sempre abre o mesmo modal já usado no resto do sistema (dashboard pra
+// turma, aba Alunos pro aluno), então essa tela não duplica lógica de
+// edição, só dá mais um ponto de entrada pra ela.
+function acoesLinha(tipo, id, fnEditar) {
+  return `<div style="display:flex;gap:6px;justify-content:flex-end;"><button class="btn-edit-prof" onclick="${fnEditar}(${id})" aria-label="Editar ${TIPO_LABEL[tipo].toLowerCase()}"><span class="icon-mask icon-editar"></span> Editar</button>${botaoExcluir(tipo, id)}</div>`;
 }
 
 function crachaCurso(curso) {
@@ -109,7 +117,7 @@ function linhaCurso(c) {
   return `<tr>
     <td>${escapeHtml(c.nome)}</td>
     <td>${nTurmas ? `<span class="badge badge-gray">${nTurmas} turma${nTurmas > 1 ? 's' : ''}</span>` : '<span class="badge badge-green">Nenhuma</span>'}</td>
-    <td style="text-align:right;"><div style="display:flex;gap:6px;justify-content:flex-end;"><button class="btn-edit-prof" onclick="abrirModalEditarCurso(${c.id})" aria-label="Editar curso"><span class="icon-mask icon-editar"></span> Editar</button>${botaoExcluir('curso', c.id)}</div></td>
+    <td style="text-align:right;">${acoesLinha('curso', c.id, 'abrirModalEditarCurso')}</td>
   </tr>`;
 }
 
@@ -217,7 +225,7 @@ function linhaTurma(t) {
     <td style="color:var(--text-3);">Prof. ${escapeHtml(professorNome(t))}</td>
     <td style="text-align:center;">${nAlunos}</td>
     <td>${statusBadge}</td>
-    <td style="text-align:right;">${botaoExcluir('turma', t.id)}</td>
+    <td style="text-align:right;">${acoesLinha('turma', t.id, 'abrirModalEditarTurma')}</td>
   </tr>`;
 }
 
@@ -229,7 +237,7 @@ function linhaAluno(a) {
     <td>${t ? crachaCurso(t.curso) : '<span class="badge badge-gray">Sem curso</span>'}</td>
     <td style="color:var(--text-3);">${t ? escapeHtml(t.turma) : 'Sem turma'}</td>
     <td>${statusBadge}</td>
-    <td style="text-align:right;">${botaoExcluir('aluno', a.id)}</td>
+    <td style="text-align:right;">${acoesLinha('aluno', a.id, 'abrirModalEditar')}</td>
   </tr>`;
 }
 

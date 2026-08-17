@@ -25,6 +25,15 @@ let autoLoginTimer = null;
 function agendarAutoLogin() {
   clearTimeout(autoLoginTimer);
   if (estaEmRecuperacaoSenha()) return;
+  // Os campos de e-mail/senha continuam no DOM (só escondidos) depois do
+  // login, e o gerenciador de senhas do navegador pode re-preenchê-los
+  // sozinho a qualquer momento (ex.: ao focar outro campo em algum modal),
+  // disparando este listener de novo. Sem essa checagem, isso chamava
+  // doLogin() -> inicializarApp() no meio do uso normal do app, recarregando
+  // tudo e reabrindo a tela cheia de "Carregando..." sem o usuário ter feito
+  // login de fato. Só faz sentido auto-logar enquanto a tela de login está
+  // realmente visível.
+  if (document.getElementById('login-page').style.display === 'none') return;
   const email = document.getElementById('inp-email').value.trim();
   const senha = document.getElementById('inp-senha').value;
   if (!email || !senha) return;

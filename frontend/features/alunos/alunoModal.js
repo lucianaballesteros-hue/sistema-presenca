@@ -12,6 +12,7 @@ import { renderDash } from '../dashboard/dashboardView.js';
 import { renderRel } from '../relatorios/relatoriosView.js';
 import { abrirChamada, selecionarAula } from '../chamada/chamadaView.js';
 import { goTab } from '../../shared/navigation.js';
+import { renderConfiguracoes } from '../configuracoes/configuracoesView.js';
 
 export function abrirModalAluno(id) {
   state.alunoSelecionadoId = id;
@@ -147,7 +148,12 @@ export async function cancelarMatricula() {
   renderTabelaAlunos(); renderDash();
 }
  
-export function abrirModalEditar() {
+// `id` é opcional: quando chamado a partir do menu do modal do aluno (que já
+// deixou state.alunoSelecionadoId marcado), não precisa passar nada. Quando
+// chamado direto de uma linha de tabela (ex.: Configurações), passa o id do
+// aluno da linha clicada.
+export function abrirModalEditar(id) {
+  if (id != null) state.alunoSelecionadoId = id;
   const a = state.ALUNOS.find(x => x.id === state.alunoSelecionadoId);
   document.getElementById('edit-nome').value = a.nome;
   const btnSalvar = document.getElementById('edit-btn-salvar');
@@ -169,7 +175,7 @@ export async function salvarEdicao() {
   a.nome = novoNome;
   fecharModal('modal-editar');
   showToast('Nome atualizado!');
-  renderTabelaAlunos(); renderDash();
+  renderTabelaAlunos(); renderDash(); renderConfiguracoes();
 }
 
 export function abrirModalTransferir() {
