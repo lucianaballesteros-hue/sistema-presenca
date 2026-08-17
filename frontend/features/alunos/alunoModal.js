@@ -3,6 +3,7 @@ import { AULAS, calcAluno, aulasDaTurma } from '../../../backend/domain/attendan
 import { statusBadge, professorNome } from '../../../backend/domain/status.js';
 import { escapeHtml, showToast, fecharModal } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
+import { alunoJaExiste } from '../../shared/duplicados.js';
 import { inserirAluno, atualizarAluno } from '../../../backend/api/alunosRepo.js';
 import { registrarMovimentacao } from '../../../backend/api/historicoRepo.js';
 import { moverPresencasDeTurma } from '../../../backend/api/presencasRepo.js';
@@ -252,18 +253,17 @@ export function abrirModalNovoAluno() {
   document.getElementById('modal-novo').classList.add('open');
 }
 
-// Aviso (não bloqueia) se já existir um aluno com esse nome nessa turma —
-// pega o caso comum de duplicação por erro humano: reabrir o modal e
+// Aviso (não bloqueia) se já existir um aluno com esse nome em qualquer
+// turma do sistema — pega o caso comum de duplicação por erro humano: reabrir o modal e
 // adicionar de novo sem perceber que já tinha adicionado, ou duas pessoas
 // cadastrando o mesmo aluno em abas/dispositivos diferentes ao mesmo tempo
 // (esse segundo caso o sistema não tem como travar sozinho, já que cada aba
 // só conhece o que carregou; o aviso é a defesa possível do lado do cliente).
 export function verificarAlunoDuplicado() {
-  const nome = document.getElementById('novo-nome').value.trim().toLowerCase();
-  const turmaId = parseInt(document.getElementById('novo-turma').value);
+  const nome = document.getElementById('novo-nome').value.trim();
   const aviso = document.getElementById('novo-nome-aviso');
-  const existe = nome && turmaId && state.ALUNOS.some(a => a.turma_id === turmaId && a.nome.trim().toLowerCase() === nome);
-  aviso.textContent = existe ? 'Já existe um(a) aluno(a) com esse nome nessa turma. Confira antes de adicionar de novo.' : '';
+  const existe = alunoJaExiste(nome);
+  aviso.textContent = existe ? 'Já existe um(a) aluno(a) com esse nome no sistema. Confira antes de adicionar de novo.' : '';
   aviso.style.display = existe ? 'block' : 'none';
 }
 
@@ -275,6 +275,17 @@ export async function salvarNovoAluno() {
   const nome = document.getElementById('novo-nome').value.trim();
   if (!nome) { showToast('Digite o nome do aluno.', 'red'); return; }
   const turmaId = parseInt(document.getElementById('novo-turma').value);
+
+  if (alunoJaExiste(nome)) {
+    const ok = await confirmar({
+      titulo: 'Aluno(a) já cadastrado(a)',
+      mensagem: `Já existe um(a) aluno(a) chamado(a) "${nome}" no sistema. Deseja adicionar mesmo assim?`,
+      textoConfirmar: 'Adicionar mesmo assim',
+      perigo: true,
+    });
+    if (!ok) return;
+  }
+
   const experimental = document.getElementById('novo-experimental-btn').classList.contains('active');
   const btn = document.getElementById('novo-btn-adicionar');
   btn.disabled = true;

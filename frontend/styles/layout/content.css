@@ -3,6 +3,12 @@
 .screen{display:none;}.screen.active{display:block;}
 
 /* CHAMADA — containers de layout da tela de chamada */
+/* Logo do curso, ao lado do título dentro do próprio cartão da turma — sem
+   caixa de fundo (a "Logo master.png" é branca-sobre-transparente, pensada
+   pra ir sobre um fundo escuro; o drop-shadow supre esse contraste sem
+   precisar de um retângulo). */
+.chamada-logo{display:none;flex-shrink:0;max-width:170px;max-height:64px;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5));}
+.chamada-logo.visible{display:block;}
 .chamada-top{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3);}
 .chamada-counters{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:12px;padding:var(--space-3) var(--space-5);margin-bottom:var(--space-4);display:flex;gap:var(--space-6);font-size:12px;color:var(--text-3);}
 .alunos-list{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;overflow:hidden;}

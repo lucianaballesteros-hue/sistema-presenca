@@ -1,5 +1,7 @@
 import { state } from '../../state/store.js';
 import { escapeHtml, showToast, fecharModal } from '../../shared/dom.js';
+import { confirmar } from '../../shared/confirm.js';
+import { alunoJaExiste, normalizarNome as normalizarTexto } from '../../shared/duplicados.js';
 import { inserirAluno } from '../../../backend/api/alunosRepo.js';
 import { registrarMovimentacao } from '../../../backend/api/historicoRepo.js';
 import { renderTabelaAlunos } from './alunosTable.js';
@@ -14,10 +16,6 @@ let linhasImportacao = [];
 // Palavras que aparecem no nome da aba/curso mas não ajudam a identificar
 // qual curso é (ex: aba "Alunos Master" — "alunos" não diz nada).
 const PALAVRAS_GENERICAS = ['alunos', 'aluno', 'turma', 'turmas', 'planilha', 'lista', 'curso', 'pagina'];
-
-function normalizarTexto(s) {
-  return (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim().replace(/\s+/g, ' ');
-}
 
 function turmasAtivas() {
   return state.TURMAS.filter(t => t.ativa !== false);
@@ -82,11 +80,6 @@ function acharTurma(candidatas, horarioTexto) {
   return candidatas.find(t => normalizarTexto(t.turma) === alvo)
     || candidatas.find(t => turmaContemHorario(t.turma, horarioTexto))
     || null;
-}
-
-function alunoJaExiste(nome, turmaId) {
-  const alvo = normalizarTexto(nome);
-  return state.ALUNOS.some(a => a.turma_id === turmaId && normalizarTexto(a.nome) === alvo);
 }
 
 export function importarPlanilhaSelecionada(e) {
@@ -163,7 +156,7 @@ function processarPastaDeTrabalho(wb) {
 
 function renderModalImportacao() {
   const semTurma = linhasImportacao.filter(l => !l.turmaId).length;
-  const duplicados = linhasImportacao.filter(l => l.turmaId && alunoJaExiste(l.nome, parseInt(l.turmaId))).length;
+  const duplicados = linhasImportacao.filter(l => alunoJaExiste(l.nome)).length;
 
   document.getElementById('imp-resumo').textContent =
     `${linhasImportacao.length} aluno(s) lidos da planilha` +
@@ -174,7 +167,7 @@ function renderModalImportacao() {
   const cursos = cursosDisponiveis();
 
   document.getElementById('imp-tbody').innerHTML = linhasImportacao.map((l, i) => {
-    const duplicado = l.turmaId && alunoJaExiste(l.nome, parseInt(l.turmaId));
+    const duplicado = l.turmaId && alunoJaExiste(l.nome);
     const statusHtml = !l.turmaId
       ? '<span class="badge badge-red">Sem turma</span>'
       : duplicado
@@ -228,6 +221,19 @@ export function cancelarImportacaoPlanilha() {
 export async function confirmarImportacaoPlanilha() {
   const validas = linhasImportacao.filter(l => l.nome && l.turmaId);
   if (!validas.length) { showToast('Selecione a turma de ao menos um aluno.', 'red'); return; }
+
+  const duplicadas = validas.filter(l => alunoJaExiste(l.nome));
+  if (duplicadas.length) {
+    const nomes = duplicadas.map(l => l.nome);
+    const lista = nomes.length <= 5 ? nomes.join(', ') : `${nomes.slice(0, 5).join(', ')} e mais ${nomes.length - 5}`;
+    const ok = await confirmar({
+      titulo: duplicadas.length === 1 ? 'Aluno(a) já cadastrado(a)' : `${duplicadas.length} alunos já cadastrados`,
+      mensagem: `${lista} já ${duplicadas.length === 1 ? 'está cadastrado(a)' : 'estão cadastrados(as)'} no sistema. Deseja importar mesmo assim?`,
+      textoConfirmar: 'Importar mesmo assim',
+      perigo: true,
+    });
+    if (!ok) return;
+  }
 
   const btn = document.getElementById('imp-btn-confirmar');
   btn.disabled = true;

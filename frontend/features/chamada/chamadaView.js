@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { aulasDaTurma, registroPorAulaDaTurma } from '../../../backend/domain/attendance.js';
-import { professorNome } from '../../../backend/domain/status.js';
+import { professorNome, logoCurso } from '../../../backend/domain/status.js';
 import { escapeHtml, escapeAttr, showToast } from '../../shared/dom.js';
 import { salvarPresenca, removerPresenca } from '../../../backend/api/presencasRepo.js';
 import { renderDash } from '../dashboard/dashboardView.js';
@@ -13,6 +13,10 @@ export function abrirChamada(tId) {
   document.getElementById('chamada-view').style.display = 'block';
   document.getElementById('ch-titulo').textContent = state.turmaAtual.turma + ' — ' + (state.turmaAtual.curso || 'sem curso');
   document.getElementById('ch-sub').textContent = 'Prof. ' + professorNome(state.turmaAtual);
+  const logo = logoCurso(state.turmaAtual.curso);
+  const logoEl = document.getElementById('ch-logo');
+  logoEl.classList.toggle('visible', Boolean(logo));
+  if (logo) logoEl.src = logo;
   const sel = document.getElementById('aula-sel');
   sel.innerHTML = aulasDaTurma(state.turmaAtual).map(a => `<option>${a}</option>`).join('');
   renderChamada();

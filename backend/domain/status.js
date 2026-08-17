@@ -19,9 +19,9 @@ export function statusBadge(freq, emAlerta, ativo) {
 // Métricas, pra a mesma palavra-chave render sempre a mesma cor em todo canto
 // do sistema. `grad` só existe nos cursos com dashboard de foco dedicado.
 const TEMAS_CURSO = [
-  { chave: 'Elas', badge: 'badge-blue', cor: 'var(--primary)', corSoft: 'var(--primary-soft)', corSoftText: 'var(--primary-soft-text)', grad: 'var(--grad-blue)' },
-  { chave: 'Master', badge: 'badge-amber', cor: 'var(--amber)', corSoft: 'var(--amber-soft)', corSoftText: 'var(--amber-soft-text)', grad: 'var(--grad-amber)' },
-  { chave: 'Evolution', badge: 'badge-green', cor: 'var(--green)', corSoft: 'var(--green-soft)', corSoftText: 'var(--green-soft-text)', grad: 'var(--grad-green)' },
+  { chave: 'Elas', badge: 'badge-blue', cor: 'var(--primary)', corSoft: 'var(--primary-soft)', corSoftText: 'var(--primary-soft-text)', grad: 'var(--grad-blue)', logo: 'frontend/img/Logo elas.png' },
+  { chave: 'Master', badge: 'badge-amber', cor: 'var(--amber)', corSoft: 'var(--amber-soft)', corSoftText: 'var(--amber-soft-text)', grad: 'var(--grad-amber)', logo: 'frontend/img/Logo master.png' },
+  { chave: 'Evolution', badge: 'badge-green', cor: 'var(--green)', corSoft: 'var(--green-soft)', corSoftText: 'var(--green-soft-text)', grad: 'var(--grad-green)', logo: 'frontend/img/Logo evolution 2.0.png' },
   { chave: 'Clube', badge: 'badge-purple' },
 ];
 
@@ -31,6 +31,14 @@ export function temaCurso(curso) {
 
 export function corBadge(curso) {
   return temaCurso(curso)?.badge || 'badge-gray';
+}
+
+// Logo do curso (arquivo em frontend/img) pra identificar visualmente a
+// turma na página de gerenciamento — mesma chave de palavra usada em
+// temaCurso/corBadge, então basta o nome do curso conter "Elas"/"Master"/
+// "Evolution" pra achar o logo certo, sem precisar de um ID de curso.
+export function logoCurso(curso) {
+  return temaCurso(curso)?.logo || null;
 }
 
 // Cursos com dashboard de foco dedicado na página de Métricas (os que têm
