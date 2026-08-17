@@ -76,10 +76,27 @@ export function proximaDataTurma(turma, agora = new Date()) {
 // partir do cache local de presenças (state.PRESENCAS), sem chamadas à rede.
 export function calcAluno(aluno) {
   const turma = state.TURMAS.find(t => t.id === aluno.turma_id);
-  const seq = aulasDaTurma(turma).map(aula => {
-    const k = `${aluno.turma_id}_${aula}`;
-    return (state.PRESENCAS[k] && state.PRESENCAS[k][aluno.id]) || 'N';
-  });
+  // Sem turma atual (ex.: a turma foi excluída) — o histórico de presença
+  // pertence ao aluno, não à turma: continua existindo no cache local mesmo
+  // depois que a turma "dona" das aulas deixa de existir. Sem uma turma pra
+  // enumerar a sequência de aulas, junta qualquer registro desse aluno em
+  // qualquer chave de state.PRESENCAS (mesmo de turma já excluída),
+  // ordenado por turma e depois pela posição da aula na lista fixa AULAS —
+  // não pela ordem alfabética da chave, onde "Aula 10" viria antes de
+  // "Aula 2".
+  const seq = turma
+    ? aulasDaTurma(turma).map(aula => {
+        const k = `${aluno.turma_id}_${aula}`;
+        return (state.PRESENCAS[k] && state.PRESENCAS[k][aluno.id]) || 'N';
+      })
+    : Object.entries(state.PRESENCAS)
+        .filter(([, porAluno]) => porAluno[aluno.id] !== undefined)
+        .sort(([a], [b]) => {
+          const [turmaA, aulaA] = a.split('_');
+          const [turmaB, aulaB] = b.split('_');
+          return turmaA !== turmaB ? turmaA.localeCompare(turmaB) : AULAS.indexOf(aulaA) - AULAS.indexOf(aulaB);
+        })
+        .map(([, porAluno]) => porAluno[aluno.id]);
   const p = seq.filter(v => v === 'P' || v === 'R').length; // R conta como presença
   const r = seq.filter(v => v === 'R').length;               // reposições separadas
   const f = seq.filter(v => v === 'F').length;

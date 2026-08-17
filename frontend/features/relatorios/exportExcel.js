@@ -47,7 +47,7 @@ export async function exportarExcel() {
       const aulasCols = aulasComDados.length > 0 ? aulasComDados : aulasTurma;
       const header = ['Aluno', 'Status', ...aulasCols, 'Presenças', 'Faltas', '% Freq.', 'Faltas Consec.'];
       const rows = [
-        [t.turma + ' — ' + t.curso + ' — Prof. ' + professorNome(t)],
+        [t.turma + ' — ' + (t.curso || 'sem curso') + ' — Prof. ' + professorNome(t)],
         ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
         [],
         header,

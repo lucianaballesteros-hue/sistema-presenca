@@ -12,8 +12,35 @@ export async function inserirCurso(nome) {
   return sb.from('cursos').insert({ nome }).select().single();
 }
 
+export async function atualizarCurso(id, nome) {
+  return sb.from('cursos').update({ nome }).eq('id', id);
+}
+
+// turmas.curso é texto solto (não uma FK pro id do curso — ver comentário em
+// sincronizarCursosComTurmas), então renomear um curso só na tabela `cursos`
+// deixaria toda turma que já usava o nome antigo "presa" nele: some da opção
+// no <select> (que lista state.CURSOS) e, pior, no próximo login
+// sincronizarCursosComTurmas() recriaria o nome antigo como um curso novo
+// (órfão), porque pra ela essas turmas continuam citando um curso que "não
+// existe". Por isso todo rename precisa vir acompanhado desta função,
+// chamada ANTES de atualizarCurso — mesmo princípio do professor/professor_id
+// em turmaModals.js: o texto solto nunca pode ficar dessincronizado da fonte
+// oficial.
+export async function renomearTurmasDoCurso(nomeAntigo, nomeNovo) {
+  return sb.from('turmas').update({ curso: nomeNovo }).eq('curso', nomeAntigo);
+}
+
 export async function excluirCurso(id) {
   return sb.from('cursos').delete().eq('id', id);
+}
+
+// Desvincula (não apaga) as turmas que usam esse curso — elas continuam
+// existindo normalmente, só ficam sem curso (turmas.curso = null) até
+// alguém escolher um novo curso pra elas em "Editar turma". Chamado antes de
+// excluirCurso() quando o curso ainda tem turmas: excluir o curso nunca deve
+// levar as turmas junto.
+export async function desvincularTurmasDoCurso(nomeCurso) {
+  return sb.from('turmas').update({ curso: null }).eq('curso', nomeCurso);
 }
 
 // A tabela `cursos` foi criada depois que `turmas.curso` já existia como

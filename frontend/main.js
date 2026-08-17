@@ -24,6 +24,7 @@ import {
   abrirModalNovaTurma, selecionarCorNovaTurma, salvarNovaTurma,
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
   toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario,
+  verificarTurmaDuplicada,
 } from './features/dashboard/turmaModals.js';
 import { abrirModalNovoCurso, salvarNovoCurso } from './features/dashboard/cursoModals.js';
 
@@ -33,7 +34,8 @@ import { renderTabelaAlunos, atualizarTurmasAlunos } from './features/alunos/alu
 import {
   abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
-  abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno,
+  abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno, irParaAulaHistorico,
+  verificarAlunoDuplicado,
 } from './features/alunos/alunoModal.js';
 import { iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs } from './features/alunos/observacoes.js';
 import {
@@ -54,9 +56,10 @@ import { exportarExcel } from './features/relatorios/exportExcel.js';
 import { renderMetricas, setFocoMetricas } from './features/metricas/metricasView.js';
 
 import {
-  abrirMenuConfig, fecharMenuConfig, abrirModalConfiguracoes,
-  atualizarTipoExclusao, atualizarItemExclusao,
-  verificarTextoExclusao, confirmarExclusaoConfig,
+  abrirMenuConfig, fecharMenuConfig, renderConfiguracoes,
+  selecionarTipoExclusao, renderListaExclusao, pedirExclusao,
+  verificarTextoExclusaoItem, confirmarExclusaoConfig,
+  abrirModalEditarCurso, verificarNomeCursoEdicao, salvarEdicaoCurso,
 } from './features/configuracoes/configuracoesView.js';
 
 import {
@@ -78,13 +81,13 @@ Object.assign(window, {
   renderDash, setCurso, irParaAlertas,
   abrirModalNovaTurma, selecionarCorNovaTurma, salvarNovaTurma,
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
-  toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario,
+  toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario, verificarTurmaDuplicada,
   abrirModalNovoCurso, salvarNovoCurso,
   abrirChamada, voltarDash, renderChamada, selecionarAula, marcar,
   renderTabelaAlunos, atualizarTurmasAlunos,
   abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
-  abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno,
+  abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno, irParaAulaHistorico, verificarAlunoDuplicado,
   iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs,
   importarPlanilhaSelecionada, atualizarLinhaImportacao, atualizarFiltroCursoImportacao,
   cancelarImportacaoPlanilha, confirmarImportacaoPlanilha,
@@ -93,9 +96,10 @@ Object.assign(window, {
   renderRel, onMultiCheck, toggleMultiDropdown, abrirDotMenu, selecionarStatusDot,
   exportarExcel,
   renderMetricas, setFocoMetricas,
-  abrirMenuConfig, fecharMenuConfig, abrirModalConfiguracoes,
-  atualizarTipoExclusao, atualizarItemExclusao,
-  verificarTextoExclusao, confirmarExclusaoConfig,
+  abrirMenuConfig, fecharMenuConfig, renderConfiguracoes,
+  selecionarTipoExclusao, renderListaExclusao, pedirExclusao,
+  verificarTextoExclusaoItem, confirmarExclusaoConfig,
+  abrirModalEditarCurso, verificarNomeCursoEdicao, salvarEdicaoCurso,
   onLineChartMove, onLineChartLeave, onBarHover, onDonutHover, hideChartTooltip,
   abrirModalReposicao, atualizarOpcaoReposicao, adicionarOpcaoReposicao,
   removerOpcaoReposicao, salvarReposicao, copiarLinkReposicao, abrirPaginaReposicaoGerada,

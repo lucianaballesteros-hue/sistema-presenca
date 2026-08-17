@@ -86,7 +86,7 @@ export function usarSugestaoReposicao(turmaId, data) {
 
 function turmaOptionsHtml(selectedId) {
   return state.TURMAS.map(t =>
-    `<option value="${t.id}" ${String(t.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(professorNome(t))})</option>`
+    `<option value="${t.id}" ${String(t.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(t.turma)} — ${escapeHtml(t.curso) || 'sem curso'} (Prof. ${escapeHtml(professorNome(t))})</option>`
   ).join('');
 }
 

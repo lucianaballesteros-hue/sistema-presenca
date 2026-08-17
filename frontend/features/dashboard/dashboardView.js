@@ -19,7 +19,7 @@ export function renderDash() {
     <div class="stat-card"><div class="stat-label">Irregulares (&lt;70%)</div><div class="stat-val amber">${irregulares}</div></div>
     <div class="stat-card"><div class="stat-label">Alertas (3 seguidas)</div><div class="stat-val red">${alertas}</div></div>`;
 
-  const cursos = [...new Set(turmasAtivas.map(t => t.curso))];
+  const cursos = [...new Set(turmasAtivas.map(t => t.curso).filter(Boolean))];
 
   const ehAdmin = state.perfilLogado?.papel === 'admin';
   // Professores não precisam acompanhar turmas encerradas — só admin vê essa pill/filtro.
@@ -67,11 +67,11 @@ export function renderDash() {
         <div style="font-size:13px;font-weight:600;flex:1;color:var(--text);">${escapeHtml(t.turma)}</div>
         <div class="turma-card-actions">
           <button class="inline-edit-btn" title="Editar turma" aria-label="Editar turma" onclick="abrirModalEditarTurma(${t.id})"><span class="icon-mask icon-editar"></span></button>
-          <button class="inline-edit-btn" title="${inativa ? 'Reativar turma' : 'Inativar turma'}" aria-label="${inativa ? 'Reativar turma' : 'Inativar turma'}" onclick="toggleTurmaAtiva(event, ${t.id})">${inativa ? '▶' : '⏸'}</button>
+          <button class="inline-edit-btn" title="${inativa ? 'Reativar turma' : 'Inativar turma'}" aria-label="${inativa ? 'Reativar turma' : 'Inativar turma'}" onclick="toggleTurmaAtiva(event, ${t.id})">${inativa ? '<span class="icon-mask icon-ativar"></span>' : '<span class="icon-mask icon-pausa"></span>'}</button>
         </div>
       </div>
       <div style="font-size:12px;color:var(--text-3);display:flex;flex-direction:column;gap:6px;">
-        <span><span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso)}</span>${inativa ? ' <span class="badge badge-gray">Inativa</span>' : ''}</span>
+        <span>${t.curso ? `<span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso)}</span>` : '<span class="badge badge-gray">Sem curso</span>'}${inativa ? ' <span class="badge badge-gray">Inativa</span>' : ''}</span>
         <span>Prof. ${escapeHtml(professorNome(t))}</span>
         <span>${al.length} alunos${at > 0 ? ` · <span style="color:var(--red);font-weight:600;cursor:pointer;border-bottom:1.5px dashed var(--red);padding-bottom:1px;" onclick="irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
         <span>${ultimaAula ? `<span class="badge badge-blue" title="Última aula com presença registrada">Ultima Aula: ${ultimaAula}</span>` : `<span class="badge badge-gray" title="Nenhuma presença registrada ainda">Sem aulas registradas</span>`}</span>

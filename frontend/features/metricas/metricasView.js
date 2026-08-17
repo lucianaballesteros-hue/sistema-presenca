@@ -115,7 +115,7 @@ export function renderMetricas() {
   const turmasAtivas = turmasFoco.filter(t => t.ativa !== false);
   // Só cursos com pelo menos 1 turma ativa aparecem na comparação — um curso
   // 100% inativo não soma nada de útil pra visão "em tempo real" do dashboard.
-  const cursos = [...new Set(turmasAtivas.map(t => t.curso))].sort();
+  const cursos = [...new Set(turmasAtivas.map(t => t.curso).filter(Boolean))].sort();
 
   const cancelados = inativos.filter(a => statusInativo(a.id) === 'cancelado');
   const soInativos = inativos.filter(a => statusInativo(a.id) === 'inativo');
@@ -210,7 +210,7 @@ export function renderMetricas() {
           <div class="alert-row-dot"></div>
           <div class="alert-row-info">
             <div class="alert-row-nome">${escapeHtml(a.nome)}</div>
-            <div class="alert-row-turma">${escapeHtml(t?.turma) || '—'}${t ? ' · ' + escapeHtml(t.curso) : ''}</div>
+            <div class="alert-row-turma">${escapeHtml(t?.turma) || '—'}${t ? ' · ' + (escapeHtml(t.curso) || 'sem curso') : ''}</div>
           </div>
           <div class="alert-row-meta">
             <span class="badge badge-red">${a.maxConsec} faltas</span>

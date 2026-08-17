@@ -174,7 +174,22 @@ export function abrirModalNovaTurma() {
   preencherSelectsHorario('nt', null);
   preencherDiasGrid('nt', []);
   marcarPresetAtivo('nt');
+  document.getElementById('nt-nome-aviso').style.display = 'none';
   document.getElementById('modal-nova-turma').classList.add('open');
+}
+
+// Aviso (não bloqueia) se já existir uma turma com esse nome nesse curso —
+// mesmo raciocínio de verificarAlunoDuplicado() em alunoModal.js: pega o
+// erro humano de criar a turma duas vezes (reabrir o modal sem perceber, ou
+// duas pessoas em abas diferentes) sem impedir um caso legítimo de nome
+// repetido.
+export function verificarTurmaDuplicada() {
+  const nome = document.getElementById('nt-nome').value.trim().toLowerCase();
+  const curso = document.getElementById('nt-curso').value;
+  const aviso = document.getElementById('nt-nome-aviso');
+  const existe = nome && curso && state.TURMAS.some(t => t.curso === curso && t.turma.trim().toLowerCase() === nome);
+  aviso.textContent = existe ? 'Já existe uma turma com esse nome nesse curso. Confira antes de criar de novo.' : '';
+  aviso.style.display = existe ? 'block' : 'none';
 }
 
 export function selecionarCorNovaTurma(cor, btn) {

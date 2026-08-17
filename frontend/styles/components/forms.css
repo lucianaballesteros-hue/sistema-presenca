@@ -9,7 +9,7 @@
 
 /* MOSTRAR/OCULTAR SENHA (wrapper — botão está em buttons.css) */
 .senha-wrap{position:relative;}
-.senha-wrap input{padding-right:58px;}
+.senha-wrap input{padding-right:34px;}
 
 /* CAMPO DE BUSCA AVULSO (fora de .filter-bar) */
 .search-input{font-size:13px;padding:6px 10px;border:1px solid var(--border-input);border-radius:6px;outline:none;background:var(--surface);color:var(--text);}

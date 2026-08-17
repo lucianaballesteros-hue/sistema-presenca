@@ -22,8 +22,8 @@ export function renderTabelaAlunos() {
   document.getElementById('tbody-alunos').innerHTML = lista.map(a => `
     <tr class="clickable ${a.emAlerta && a.ativo ? 'row-alerta' : ''} ${!a.ativo ? 'row-inativo' : ''} ${a.experimental ? 'row-experimental' : ''}" onclick="abrirModalAluno(${a.id})">
       <td>${escapeHtml(a.nome)}${!a.ativo ? ' <span class="badge badge-gray" style="font-size:10px;">Inativo</span>' : ''}</td>
-      <td><span class="badge ${corBadge(a.turma?.curso)}" style="font-size:10px;">${escapeHtml(a.turma?.curso) || '—'}</span></td>
-      <td style="color:var(--text-3);">${escapeHtml(a.turma?.turma) || '—'}</td>
+      <td><span class="badge ${corBadge(a.turma?.curso)}" style="font-size:10px;">${escapeHtml(a.turma?.curso) || 'Sem curso'}</span></td>
+      <td style="color:var(--text-3);">${escapeHtml(a.turma?.turma) || 'Sem turma'}</td>
       <td style="text-align:center;color:var(--green);font-weight:600;">${a.p - a.r}</td>
       <td style="text-align:center;color:var(--amber);font-weight:600;">${a.r > 0 ? a.r : '—'}</td>
       <td style="text-align:center;color:var(--red);font-weight:600;">${a.f}</td>
@@ -38,5 +38,5 @@ export function atualizarTurmasAlunos() {
   let turmasFilt = state.TURMAS;
   if (fCurso) turmasFilt = turmasFilt.filter(t => t.curso === fCurso);
   const ft = document.getElementById('f-turma-alunos');
-  if (ft) ft.innerHTML = '<option value="">Todas</option>' + turmasFilt.map(t => '<option value="' + t.id + '">' + escapeHtml(t.turma) + ' - ' + escapeHtml(t.curso) + '</option>').join('');
+  if (ft) ft.innerHTML = '<option value="">Todas</option>' + turmasFilt.map(t => '<option value="' + t.id + '">' + escapeHtml(t.turma) + ' - ' + (escapeHtml(t.curso) || 'sem curso') + '</option>').join('');
 }

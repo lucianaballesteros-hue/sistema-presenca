@@ -1,5 +1,5 @@
 import { state } from '../../state/store.js';
-import { AULAS, calcAluno } from '../../../backend/domain/attendance.js';
+import { AULAS, calcAluno, aulasDaTurma } from '../../../backend/domain/attendance.js';
 import { statusBadge, professorNome } from '../../../backend/domain/status.js';
 import { escapeHtml, showToast, fecharModal } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
@@ -10,6 +10,8 @@ import { carregarObservacoes } from './observacoes.js';
 import { renderTabelaAlunos } from './alunosTable.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderRel } from '../relatorios/relatoriosView.js';
+import { abrirChamada, selecionarAula } from '../chamada/chamadaView.js';
+import { goTab } from '../../shared/navigation.js';
 
 export function abrirModalAluno(id) {
   state.alunoSelecionadoId = id;
@@ -31,7 +33,8 @@ export function abrirModalAluno(id) {
     const bg = v === 'P' ? 'var(--green-soft)' : v === 'R' ? 'var(--amber-soft)' : 'var(--red-soft)';
     const tc = v === 'P' ? 'var(--green-soft-text)' : v === 'R' ? 'var(--amber-soft-text)' : 'var(--red-soft-text)';
     const label = v === 'P' ? 'Presente' : v === 'R' ? 'Gravação' : 'Falta';
-    return `<div class="aula-chip" style="background:${bg};color:${tc};" title="Aula ${i + 1}: ${label}">${i + 1}</div>`;
+    const clique = t ? ` style="background:${bg};color:${tc};cursor:pointer;" onclick="irParaAulaHistorico(${t.id},${i})" title="Aula ${i + 1}: ${label} — clique para ir até essa aula na turma"` : ` style="background:${bg};color:${tc};" title="Aula ${i + 1}: ${label}"`;
+    return `<div class="aula-chip"${clique}>${i + 1}</div>`;
   }).join('') : `<div style="font-size:12px;color:var(--text-faded);">Nenhuma aula registrada ainda.</div>`;
 
   const hist = state.HISTORICO.filter(h => h.aluno_id === id);
@@ -43,6 +46,19 @@ export function abrirModalAluno(id) {
   if (obsTexto) obsTexto.value = '';
   carregarObservacoes(id);
   document.getElementById('modal-aluno').classList.add('open');
+}
+
+// Leva da ficha do aluno direto para a chamada da turma, já na aula clicada
+// no "Histórico por aula" — evita ter que sair do modal, achar a turma na
+// aba Turmas e selecionar a aula manualmente.
+export function irParaAulaHistorico(turmaId, aulaIndex) {
+  const t = state.TURMAS.find(x => x.id === turmaId);
+  if (!t) return;
+  const aula = aulasDaTurma(t)[aulaIndex];
+  fecharModal('modal-aluno');
+  goTab('turmas');
+  abrirChamada(turmaId);
+  if (aula) selecionarAula(aula);
 }
 
 // Menu "⚙ Configurações" — reúne todas as ações que alteram o aluno numa
@@ -161,7 +177,7 @@ export function abrirModalTransferir() {
   const t = state.TURMAS.find(x => x.id === a.turma_id);
   document.getElementById('transf-info').innerHTML = `<strong>${escapeHtml(a.nome)}</strong><br><span style="color:var(--text-3);">Turma atual: ${escapeHtml(t?.turma)} · ${escapeHtml(t?.curso)} · Prof. ${escapeHtml(professorNome(t))}</span>`;
   const outras = state.TURMAS.filter(x => x.id !== a.turma_id);
-  document.getElementById('transf-sel').innerHTML = outras.map(x => `<option value="${x.id}">${escapeHtml(x.turma)} — ${escapeHtml(x.curso)} (Prof. ${escapeHtml(professorNome(x))})</option>`).join('');
+  document.getElementById('transf-sel').innerHTML = outras.map(x => `<option value="${x.id}">${escapeHtml(x.turma)} — ${escapeHtml(x.curso) || 'sem curso'} (Prof. ${escapeHtml(professorNome(x))})</option>`).join('');
   const btnConfirmar = document.getElementById('transf-btn-confirmar');
   btnConfirmar.disabled = false;
   btnConfirmar.textContent = 'Confirmar transferência';
@@ -221,12 +237,28 @@ export async function confirmarTransferencia() {
 
 export function abrirModalNovoAluno() {
   document.getElementById('novo-nome').value = '';
-  document.getElementById('novo-turma').innerHTML = state.TURMAS.filter(t => t.ativa !== false).map(t => `<option value="${t.id}">${escapeHtml(t.turma)} — ${escapeHtml(t.curso)} (Prof. ${escapeHtml(professorNome(t))})</option>`).join('');
+  document.getElementById('novo-turma').innerHTML = state.TURMAS.filter(t => t.ativa !== false).map(t => `<option value="${t.id}">${escapeHtml(t.turma)} — ${escapeHtml(t.curso) || 'sem curso'} (Prof. ${escapeHtml(professorNome(t))})</option>`).join('');
   document.getElementById('novo-experimental-btn').classList.remove('active');
+  document.getElementById('novo-nome-aviso').style.display = 'none';
   const btnAdicionar = document.getElementById('novo-btn-adicionar');
   btnAdicionar.disabled = false;
   btnAdicionar.textContent = 'Adicionar';
   document.getElementById('modal-novo').classList.add('open');
+}
+
+// Aviso (não bloqueia) se já existir um aluno com esse nome nessa turma —
+// pega o caso comum de duplicação por erro humano: reabrir o modal e
+// adicionar de novo sem perceber que já tinha adicionado, ou duas pessoas
+// cadastrando o mesmo aluno em abas/dispositivos diferentes ao mesmo tempo
+// (esse segundo caso o sistema não tem como travar sozinho, já que cada aba
+// só conhece o que carregou; o aviso é a defesa possível do lado do cliente).
+export function verificarAlunoDuplicado() {
+  const nome = document.getElementById('novo-nome').value.trim().toLowerCase();
+  const turmaId = parseInt(document.getElementById('novo-turma').value);
+  const aviso = document.getElementById('novo-nome-aviso');
+  const existe = nome && turmaId && state.ALUNOS.some(a => a.turma_id === turmaId && a.nome.trim().toLowerCase() === nome);
+  aviso.textContent = existe ? 'Já existe um(a) aluno(a) com esse nome nessa turma. Confira antes de adicionar de novo.' : '';
+  aviso.style.display = existe ? 'block' : 'none';
 }
 
 export function toggleNovoExperimental() {

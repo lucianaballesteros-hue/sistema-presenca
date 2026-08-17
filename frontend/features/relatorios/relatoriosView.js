@@ -11,7 +11,7 @@ import { renderTabelaAlunos, atualizarTurmasAlunos } from '../alunos/alunosTable
 // =============================================
 export function popularFiltros() {
   atualizarTurmasAlunos();
-  const cursos = [...new Set(state.TURMAS.map(t => t.curso))].sort();
+  const cursos = [...new Set(state.TURMAS.map(t => t.curso).filter(Boolean))].sort();
   const profs = [...new Set(state.TURMAS.map(t => professorNome(t)))].sort();
 
   const elCursoAlunos = document.getElementById('f-curso-alunos');
@@ -22,7 +22,7 @@ export function popularFiltros() {
   popularMultiPanel('curso-multi-panel', 'curso-multi-btn', 'curso-multi-label', cursos.map(c => ({ value: c, label: c })));
   popularMultiPanel('prof-multi-panel', 'prof-multi-btn', 'prof-multi-label', profs.map(p => ({ value: p, label: p })));
   popularMultiPanel('turma-rel-multi-panel', 'turma-rel-multi-btn', 'turma-rel-multi-label',
-    state.TURMAS.map(t => ({ value: String(t.id), label: `${t.turma} (${t.curso})` }))
+    state.TURMAS.map(t => ({ value: String(t.id), label: `${t.turma} (${t.curso || 'sem curso'})` }))
   );
 }
 
@@ -106,7 +106,7 @@ export function renderRel() {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap;">
         <div style="width:9px;height:9px;border-radius:50%;background:${t.cor || '#3b82f6'};flex-shrink:0;"></div>
         <span style="font-size:14px;font-weight:600;color:var(--text);">${escapeHtml(t.turma)}</span>
-        <span style="font-size:12px;color:var(--text-3);">· ${escapeHtml(t.curso)} · Prof. ${escapeHtml(professorNome(t))} · ${ativos.length} ativos · freq. média ${fMedia !== null ? fMedia + '%' : '—'}${at > 0 ? ` · <span style="color:var(--red);font-weight:600;">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
+        <span style="font-size:12px;color:var(--text-3);">· ${escapeHtml(t.curso) || 'Sem curso'} · Prof. ${escapeHtml(professorNome(t))} · ${ativos.length} ativos · freq. média ${fMedia !== null ? fMedia + '%' : '—'}${at > 0 ? ` · <span style="color:var(--red);font-weight:600;">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
       </div>
       <div class="table-wrap"><table>
         <thead><tr>

@@ -11,7 +11,7 @@ export function abrirChamada(tId) {
   state.chamadaAlterada = {};
   document.getElementById('dash-view').style.display = 'none';
   document.getElementById('chamada-view').style.display = 'block';
-  document.getElementById('ch-titulo').textContent = state.turmaAtual.turma + ' — ' + state.turmaAtual.curso;
+  document.getElementById('ch-titulo').textContent = state.turmaAtual.turma + ' — ' + (state.turmaAtual.curso || 'sem curso');
   document.getElementById('ch-sub').textContent = 'Prof. ' + professorNome(state.turmaAtual);
   const sel = document.getElementById('aula-sel');
   sel.innerHTML = aulasDaTurma(state.turmaAtual).map(a => `<option>${a}</option>`).join('');
@@ -99,7 +99,7 @@ export function renderChamada() {
   document.getElementById('alunos-list').innerHTML = alunos.map((a, i) => {
     return `<div class="aluno-row ${a.experimental ? 'experimental' : ''}" data-aluno-id="${a.id}">
       <div class="aluno-num">${i + 1}</div>
-      <div class="aluno-nome">${escapeHtml(a.nome)}${a.experimental ? '<span class="aluno-status-experimental"><span class="status-dot-exp"></span>Experimental</span>' : ''}</div>
+      <div class="aluno-nome" style="cursor:pointer;" onclick="abrirModalAluno(${a.id})" title="Ver detalhes do aluno">${escapeHtml(a.nome)}${a.experimental ? '<span class="aluno-status-experimental"><span class="status-dot-exp"></span>Experimental</span>' : ''}</div>
       <div class="pbtns">
         <div class="pbtn-indicator"></div>
         <button class="pbtn pbtn-p" data-val="P" onclick="marcar(${a.id},'P')">✓ Presente</button>

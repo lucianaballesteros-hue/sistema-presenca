@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="app-version" content="30"/>
-  <title>Sistema de Presença</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='8' height='8' rx='2' fill='%231d4ed8'/%3E%3Crect x='13' y='3' width='8' height='8' rx='2' fill='%2393c5fd'/%3E%3Crect x='3' y='13' width='8' height='8' rx='2' fill='%2393c5fd'/%3E%3Crect x='13' y='13' width='8' height='8' rx='2' fill='%231d4ed8'/%3E%3C/svg%3E"/>
+  <meta name="app-version" content="33"/>
+  <title>Sistema de Gestão</title>
+  <link rel="icon" type="image/png" href="frontend/img/favicon.png"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
   <script>
@@ -56,7 +56,7 @@
           <rect x="13" y="13" width="8" height="8" rx="2" fill="#1d4ed8"/>
         </svg>
       </div>
-      <h1>Sistema de Presença</h1>
+      <h1>Sistema de Gestão</h1>
       <p>Gestão de turmas e frequência</p>
     </div>
     <div class="field">
@@ -65,7 +65,10 @@
     </div>
     <div class="field">
       <label>Senha</label>
-      <input type="password" id="inp-senha" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()"/>
+      <div class="senha-wrap">
+        <input type="password" id="inp-senha" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()"/>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('inp-senha',this)" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
       <div class="err" id="login-err">E-mail ou senha incorretos.</div>
     </div>
     <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
@@ -121,14 +124,14 @@
       <label>Nova senha</label>
       <div class="senha-wrap">
         <input type="password" id="rec-nova-senha" placeholder="Nova senha" onkeydown="if(event.key==='Enter')document.getElementById('rec-confirma-senha').focus()"/>
-        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-nova-senha',this)" aria-label="Mostrar ou ocultar senha">Mostrar</button>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-nova-senha',this)" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
     </div>
     <div class="field">
       <label>Confirmar nova senha</label>
       <div class="senha-wrap">
         <input type="password" id="rec-confirma-senha" placeholder="Repita a nova senha" onkeydown="if(event.key==='Enter')salvarNovaSenhaRecuperacao()"/>
-        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-confirma-senha',this)" aria-label="Mostrar ou ocultar senha">Mostrar</button>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('rec-confirma-senha',this)" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
     </div>
     <div id="rec-nova-erro" class="field-error" style="margin-top:-4px;"></div>
@@ -179,7 +182,7 @@
         <div id="turmas-grid" class="turmas-grid"></div>
       </div>
       <div id="chamada-view" style="display:none;">
-        <button class="back-btn" onclick="voltarDash()">← Voltar para turmas</button>
+        <button class="back-btn" onclick="voltarDash()"><span class="icon-mask icon-seta-direita"></span>Voltar para turmas</button>
         <div class="chamada-top">
           <div>
             <div style="font-size:14px;font-weight:600;color:var(--text);" id="ch-titulo"></div>
@@ -217,8 +220,8 @@
           <div class="flex-row" style="gap:6px;">
             <label style="margin:0;">Status:</label>
             <select id="f-status-alunos" onchange="renderTabelaAlunos()" data-custom-select>
+              <option value="ativo" selected>Ativos</option>
               <option value="">Todos</option>
-              <option value="ativo">Ativos</option>
               <option value="inativo">Inativos</option>
               <option value="experimental">Experimental</option>
               <option value="cancelado">Cancelados</option>
@@ -435,6 +438,47 @@
       <div class="prof-grid" id="prof-grid"></div>
     </div>
 
+    <!-- TAB CONFIGURAÇÕES (admin) — exclusão permanente de curso/turma/aluno -->
+    <div id="tab-configuracoes" class="screen">
+      <div class="toolbar-row">
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);">Configurações do sistema</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Exclusão permanente de cursos, turmas e alunos</div>
+        </div>
+      </div>
+
+      <div class="danger-box">Zona de risco: excluir um item aqui remove o registro permanentemente do banco de dados. Essa ação não pode ser desfeita.</div>
+
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);" id="cfg-stats"></div>
+
+      <div class="flex-row" id="cfg-tipo-tabs" style="gap:8px;margin-bottom:.75rem;">
+        <button class="preset-btn ativo" data-tipo="curso" onclick="selecionarTipoExclusao('curso')">Cursos</button>
+        <button class="preset-btn" data-tipo="turma" onclick="selecionarTipoExclusao('turma')">Turmas</button>
+        <button class="preset-btn" data-tipo="aluno" onclick="selecionarTipoExclusao('aluno')">Alunos</button>
+      </div>
+
+      <div class="filter-bar">
+        <label>Buscar:</label>
+        <input type="text" id="cfg-busca" placeholder="Nome..." oninput="renderListaExclusao()">
+        <div class="flex-row" id="cfg-f-curso-wrap" style="gap:6px;display:none;">
+          <label style="margin:0;">Curso:</label>
+          <select id="cfg-f-curso" onchange="renderListaExclusao()" data-custom-select>
+            <option value="">Todos os cursos</option>
+          </select>
+        </div>
+        <div class="flex-row" id="cfg-f-status-wrap" style="gap:6px;display:none;">
+          <label style="margin:0;">Status:</label>
+          <select id="cfg-f-status" onchange="renderListaExclusao()" data-custom-select></select>
+        </div>
+      </div>
+
+      <div class="table-wrap"><table>
+        <thead id="cfg-thead"></thead>
+        <tbody id="cfg-tbody"></tbody>
+      </table></div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:.5rem;" id="cfg-count"></div>
+    </div>
+
   </div>
 </div>
 
@@ -566,9 +610,13 @@
       <div class="modal-title">Adicionar novo aluno</div>
       <button class="close-btn" onclick="fecharModal('modal-novo')" aria-label="Fechar">×</button>
     </div>
-    <div class="field"><label>Nome completo</label><input type="text" id="novo-nome" placeholder="Nome completo" onkeydown="if(event.key==='Enter')salvarNovoAluno()"/></div>
+    <div class="field">
+      <label>Nome completo</label>
+      <input type="text" id="novo-nome" placeholder="Nome completo" oninput="verificarAlunoDuplicado()" onkeydown="if(event.key==='Enter')salvarNovoAluno()"/>
+      <div id="novo-nome-aviso" style="display:none;font-size:11px;color:var(--amber);margin-top:4px;"></div>
+    </div>
     <div class="field"><label>Turma</label>
-      <select id="novo-turma" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"></select>
+      <select id="novo-turma" onchange="verificarAlunoDuplicado()" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"></select>
     </div>
     <div class="field">
       <button type="button" class="btn-toggle-experimental" id="novo-experimental-btn" onclick="toggleNovoExperimental()" style="width:100%;">Aula experimental</button>
@@ -626,7 +674,7 @@
       <label>Senha inicial</label>
       <div class="senha-wrap">
         <input type="password" id="np-senha" value="Teste1234" onkeydown="if(event.key==='Enter')salvarNovoProf()"/>
-        <button class="senha-toggle" type="button" onclick="toggleSenha('np-senha',this)" aria-label="Mostrar ou ocultar senha">Mostrar</button>
+        <button class="senha-toggle" type="button" onclick="toggleSenha('np-senha',this)" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
     </div>
     <div class="field">
@@ -684,12 +732,13 @@
     </div>
     <div class="field">
       <label>Nome da turma</label>
-      <input type="text" id="nt-nome" placeholder="Ex: Segunda 19h" onkeydown="if(event.key==='Enter')salvarNovaTurma()"/>
+      <input type="text" id="nt-nome" placeholder="Ex: Segunda 19h" oninput="verificarTurmaDuplicada()" onkeydown="if(event.key==='Enter')salvarNovaTurma()"/>
+      <div id="nt-nome-aviso" style="display:none;font-size:11px;color:var(--amber);margin-top:4px;"></div>
     </div>
     <div class="field">
       <label>Curso</label>
       <div class="curso-select-row">
-        <select id="nt-curso"></select>
+        <select id="nt-curso" onchange="verificarTurmaDuplicada()"></select>
         <button type="button" class="select-add-btn" title="Criar novo curso" aria-label="Criar novo curso" onclick="abrirModalNovoCurso('nt')">+</button>
       </div>
     </div>
@@ -841,41 +890,46 @@
   </div>
 </div>
 
-<!-- MODAL CONFIGURAÇÕES (admin) — exclusão permanente de curso/turma/aluno -->
-<div class="modal-bg" id="modal-configuracoes">
-  <div class="modal" style="max-width:460px;">
+<!-- MODAL EDITAR CURSO (admin) — renomeia o curso e todas as turmas que o usam -->
+<div class="modal-bg" id="modal-editar-curso">
+  <div class="modal" style="max-width:400px;">
     <div class="modal-header">
-      <div class="modal-title">Configurações do sistema</div>
-      <button class="close-btn" onclick="fecharModal('modal-configuracoes')" aria-label="Fechar">×</button>
+      <div class="modal-title">Editar curso</div>
+      <button class="close-btn" onclick="fecharModal('modal-editar-curso')" aria-label="Fechar">×</button>
+    </div>
+    <div id="ec-aviso" class="info-box"></div>
+    <div class="field">
+      <label>Nome do curso</label>
+      <input type="text" id="ec-nome" placeholder="Ex: Master 2/2026" oninput="verificarNomeCursoEdicao()" onkeydown="if(event.key==='Enter')salvarEdicaoCurso()"/>
+    </div>
+    <div id="ec-erro" class="field-error"></div>
+    <div class="modal-footer">
+      <button class="btn-sec" onclick="fecharModal('modal-editar-curso')">Cancelar</button>
+      <button class="btn-save" id="ec-btn-salvar" onclick="salvarEdicaoCurso()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUSÃO (admin) — passo final da exclusão permanente,
+     disparado a partir de uma linha na aba Configurações -->
+<div class="modal-bg" id="modal-excluir-item">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title" id="cfg-excluir-titulo">Excluir item?</div>
+      <button class="close-btn" onclick="fecharModal('modal-excluir-item')" aria-label="Fechar">×</button>
     </div>
 
-    <div class="danger-box">Zona de risco: excluir um item aqui remove o registro permanentemente do banco de dados. Essa ação não pode ser desfeita.</div>
+    <div class="danger-box">Essa ação remove o registro permanentemente do banco de dados e não pode ser desfeita.</div>
+    <div id="cfg-excluir-info" class="text-caption" style="display:none;margin:-8px 0 var(--space-4);"></div>
 
     <div class="field">
-      <label>O que deseja excluir?</label>
-      <select id="cfg-tipo" onchange="atualizarTipoExclusao()">
-        <option value="curso">Curso</option>
-        <option value="turma">Turma</option>
-        <option value="aluno">Aluno</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label id="cfg-item-label">Curso</label>
-      <select id="cfg-item" onchange="atualizarItemExclusao()"></select>
-    </div>
-
-    <div id="cfg-bloqueio" class="field-error"></div>
-    <div id="cfg-info" class="text-caption" style="display:none;margin:-8px 0 var(--space-4);"></div>
-
-    <div class="field" id="cfg-confirm-field" style="display:none;">
-      <label id="cfg-confirm-label"></label>
-      <input type="text" id="cfg-confirm-input" oninput="verificarTextoExclusao()" autocomplete="off" placeholder="Digite o nome exato"/>
+      <label id="cfg-excluir-confirm-label"></label>
+      <input type="text" id="cfg-excluir-confirm-input" oninput="verificarTextoExclusaoItem()" autocomplete="off" placeholder="Digite o nome exato"/>
     </div>
 
     <div class="modal-footer">
-      <button class="btn-sec" onclick="fecharModal('modal-configuracoes')">Cancelar</button>
-      <button class="btn-danger-solid" id="cfg-btn-excluir" onclick="confirmarExclusaoConfig()" disabled>Excluir permanentemente</button>
+      <button class="btn-sec" onclick="fecharModal('modal-excluir-item')">Cancelar</button>
+      <button class="btn-danger-solid" id="cfg-excluir-btn" onclick="confirmarExclusaoConfig()" disabled>Excluir permanentemente</button>
     </div>
   </div>
 </div>

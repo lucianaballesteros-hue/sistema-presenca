@@ -2,6 +2,7 @@ import { renderRel } from '../features/relatorios/relatoriosView.js';
 import { renderMetricas } from '../features/metricas/metricasView.js';
 import { renderProfessores } from '../features/professores/professoresView.js';
 import { renderReposicoes } from '../features/reposicoes/reposicoesView.js';
+import { renderConfiguracoes } from '../features/configuracoes/configuracoesView.js';
 
 const TABS = ['turmas', 'alunos', 'relatorio', 'metricas', 'reposicoes'];
 
@@ -32,6 +33,7 @@ export function goTab(tab) {
   if (tab === 'metricas') renderMetricas();
   if (tab === 'reposicoes') renderReposicoes();
   if (tab === 'professores') renderProfessores();
+  if (tab === 'configuracoes') renderConfiguracoes();
 }
 
 window.addEventListener('resize', moverIndicadorNav);

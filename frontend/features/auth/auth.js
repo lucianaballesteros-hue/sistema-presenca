@@ -76,7 +76,25 @@ export async function doLogout() {
   btn.disabled = false; btn.textContent = 'Entrar';
 }
 
-export async function inicializarApp() {
+// Evita que duas chamadas concorrentes carreguem os dados em paralelo — ex.:
+// restoreSession() ainda está esperando getSession() responder quando o
+// gerenciador de senhas do navegador preenche os campos escondidos do login
+// e agendarAutoLogin() dispara doLogin() sozinho, ou o usuário reabre a aba
+// duas vezes rápido. Cada carregarX() é uma função independente sem noção
+// da outra chamada em andamento, então duas em paralelo duplicavam alunos
+// (e arriscavam duplicar turmas/cursos) até a página ser recarregada — às
+// vezes de forma permanente, se a corrida também alcançava um INSERT (ver
+// sincronizarCursosComTurmas). Reaproveitar a mesma promessa em vez de
+// rodar tudo de novo fecha essa janela por completo dentro da mesma aba.
+let cargaEmAndamento = null;
+
+export function inicializarApp() {
+  if (cargaEmAndamento) return cargaEmAndamento;
+  cargaEmAndamento = executarCargaInicial().finally(() => { cargaEmAndamento = null; });
+  return cargaEmAndamento;
+}
+
+async function executarCargaInicial() {
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('app-loading').classList.add('visible');
   const ini = state.perfilLogado?.nome ? state.perfilLogado.nome.substring(0, 2).toUpperCase() : '--';

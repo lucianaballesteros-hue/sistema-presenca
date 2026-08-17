@@ -193,7 +193,7 @@ function renderModalImportacao() {
         </select>
         <select onchange="atualizarLinhaImportacao(${i},'turmaId',this.value)" style="${selectStyle}">
           <option value="">— selecione a turma —</option>
-          ${turmasDaLinha.map(t => `<option value="${t.id}" ${String(t.id) === l.turmaId ? 'selected' : ''}>${escapeHtml(t.turma)} — ${escapeHtml(t.curso)}</option>`).join('')}
+          ${turmasDaLinha.map(t => `<option value="${t.id}" ${String(t.id) === l.turmaId ? 'selected' : ''}>${escapeHtml(t.turma)} — ${escapeHtml(t.curso) || 'sem curso'}</option>`).join('')}
         </select>
         <div style="font-size:10px;color:var(--text-faded);margin-top:3px;">Na planilha: ${escapeHtml(l.cursoTexto)}${l.horarioTexto ? ` · "${escapeHtml(l.horarioTexto)}"` : ''}</div>
       </td>

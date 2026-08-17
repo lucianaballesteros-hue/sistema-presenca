@@ -22,3 +22,12 @@ export async function atualizarTurma(id, updates) {
 export async function excluirTurma(id) {
   return sb.from('turmas').delete().eq('id', id);
 }
+
+// Desvincula (não apaga) os alunos dessa turma — eles continuam existindo
+// normalmente, só ficam sem turma (alunos.turma_id = null) até alguém
+// transferir cada um pra uma turma nova. Chamado antes de excluirTurma()
+// quando a turma ainda tem alunos: excluir a turma nunca deve levar os
+// alunos (e o histórico/presença deles) junto.
+export async function desvincularAlunosDaTurma(turmaId) {
+  return sb.from('alunos').update({ turma_id: null }).eq('turma_id', turmaId);
+}
