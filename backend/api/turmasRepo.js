@@ -19,8 +19,10 @@ export async function atualizarTurma(id, updates) {
   return sb.from('turmas').update(updates).eq('id', id);
 }
 
+// .select() é necessário pra detectar exclusão barrada por RLS — ver mesmo
+// comentário em excluirAluno (alunosRepo.js).
 export async function excluirTurma(id) {
-  return sb.from('turmas').delete().eq('id', id);
+  return sb.from('turmas').delete().eq('id', id).select();
 }
 
 // Desvincula (não apaga) os alunos dessa turma — eles continuam existindo

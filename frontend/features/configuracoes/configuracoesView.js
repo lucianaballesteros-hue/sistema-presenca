@@ -333,6 +333,18 @@ export function verificarTextoExclusaoItem() {
   btn.disabled = digitado !== itemPendente.nome;
 }
 
+// O Supabase/PostgREST não retorna erro quando uma política de RLS impede o
+// DELETE de casar com nenhuma linha — a resposta vem "bem-sucedida" com
+// data:[] mesmo sem apagar nada, então sem checar data.length essa tela dava
+// a exclusão como concluída (toast verde, item some da lista local) mesmo
+// quando o registro continuava intacto no banco e voltava a aparecer no
+// próximo carregamento.
+function erroSeNadaApagado({ data, error }) {
+  if (error) return error;
+  if (!data || !data.length) return { message: 'Nada foi apagado — as permissões do banco (RLS) bloquearam esta exclusão.' };
+  return null;
+}
+
 // Aluno não tem "delete" simples: presença/histórico/reposição (+ suas
 // opções) são registros à parte que só existem em função dele, então saem
 // junto — nessa ordem, pra nunca tentar apagar o aluno antes de limpar o
@@ -344,9 +356,7 @@ async function excluirAlunoCompleto(alunoId) {
   if (errPres) return errPres;
   const { error: errHist } = await excluirHistoricoDeAluno(alunoId);
   if (errHist) return errHist;
-  const { error: errAluno } = await excluirAluno(alunoId);
-  if (errAluno) return errAluno;
-  return null;
+  return erroSeNadaApagado(await excluirAluno(alunoId));
 }
 
 export async function confirmarExclusaoConfig() {
@@ -385,8 +395,8 @@ export async function confirmarExclusaoConfig() {
     state.ALUNOS.filter(a => a.turma_id === item.id).forEach(a => { a.turma_id = null; });
   }
 
-  const error = item.tipo === 'curso' ? (await excluirCurso(item.id)).error
-    : item.tipo === 'turma' ? (await excluirTurma(item.id)).error
+  const error = item.tipo === 'curso' ? erroSeNadaApagado(await excluirCurso(item.id))
+    : item.tipo === 'turma' ? erroSeNadaApagado(await excluirTurma(item.id))
     : await excluirAlunoCompleto(item.id);
 
   if (error) {

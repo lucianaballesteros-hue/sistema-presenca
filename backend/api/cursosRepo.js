@@ -30,8 +30,10 @@ export async function renomearTurmasDoCurso(nomeAntigo, nomeNovo) {
   return sb.from('turmas').update({ curso: nomeNovo }).eq('curso', nomeAntigo);
 }
 
+// .select() é necessário pra detectar exclusão barrada por RLS — ver mesmo
+// comentário em excluirAluno (alunosRepo.js).
 export async function excluirCurso(id) {
-  return sb.from('cursos').delete().eq('id', id);
+  return sb.from('cursos').delete().eq('id', id).select();
 }
 
 // Desvincula (não apaga) as turmas que usam esse curso — elas continuam

@@ -47,6 +47,11 @@ export async function atualizarAlunosEmLote(ids, updates) {
   return sb.from('alunos').update(updates).in('id', ids);
 }
 
+// .select() no fim é o que permite detectar exclusão bloqueada por RLS: sem
+// ele, um DELETE que a política de segurança barra não gera erro nenhum — só
+// afeta 0 linhas silenciosamente — e o chamador não teria como diferenciar
+// isso de uma exclusão bem-sucedida (ver erroSeNadaApagado em
+// configuracoesView.js, que é quem realmente checa data.length).
 export async function excluirAluno(id) {
-  return sb.from('alunos').delete().eq('id', id);
+  return sb.from('alunos').delete().eq('id', id).select();
 }
