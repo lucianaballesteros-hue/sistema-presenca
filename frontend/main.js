@@ -121,14 +121,25 @@ document.querySelectorAll('select[data-custom-select]').forEach(enhanceSelect);
 
 // Fecha o menu de pontos, o menu de ações do aluno e os painéis de
 // multi-select ao clicar fora deles.
+// Usa e.composedPath() em vez de e.target.closest(): alguns cliques (ex.: nas
+// pills de curso do seletor de turma do modal "Novo aluno") disparam um
+// re-render que troca o innerHTML do próprio container clicado ANTES de o
+// clique terminar de borbulhar até aqui — isso desconecta e.target da árvore
+// do documento (seu parentElement vira null), e e.target.closest(...) nunca
+// mais acha o painel, fechando-o por engano mesmo o clique tendo sido dentro
+// dele. composedPath() é calculado no início do disparo do evento, então
+// continua correto mesmo depois de o alvo ser removido/substituído.
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('#dot-menu')) {
+  const caminho = e.composedPath();
+  const dentro = (id) => caminho.includes(document.getElementById(id));
+
+  if (!dentro('dot-menu')) {
     const menu = document.getElementById('dot-menu');
     if (menu) { menu.remove(); state.dotMenuContext = null; }
   }
-  if (!e.target.closest('#ma-acoes-menu')) fecharMenuAluno();
-  if (!e.target.closest('#config-menu')) fecharMenuConfig();
-  if (!e.target.closest('#novo-turma-picker')) fecharNovoTurmaPainel();
+  if (!dentro('ma-acoes-menu')) fecharMenuAluno();
+  if (!dentro('config-menu')) fecharMenuConfig();
+  if (!dentro('novo-turma-picker')) fecharNovoTurmaPainel();
   document.querySelectorAll('.multi-select-panel.open').forEach(p => p.classList.remove('open'));
 });
 
