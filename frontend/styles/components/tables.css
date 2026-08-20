@@ -1,5 +1,6 @@
 /* TABELA PADRÃO */
-.table-wrap{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;overflow:auto;margin-bottom:var(--space-4);}
+.table-wrap{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;overflow:auto;margin-bottom:var(--space-4);
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px;}
 th{text-align:left;padding:9px 1rem;font-weight:600;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border);background:var(--surface-2);}
 td{padding:9px 1rem;border-bottom:1px solid var(--border-2);color:var(--text);vertical-align:middle;}
@@ -16,7 +17,8 @@ tr.clickable:hover td{background:var(--surface-hover-2);}
 .fbar-fill{height:100%;border-radius:99px;}
 
 /* TABELA DE MÉTRICAS */
-.metr-table-wrap{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;overflow:auto;}
+.metr-table-wrap{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;overflow:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 .metr-table{width:100%;border-collapse:collapse;font-size:12px;}
 .metr-table th{text-align:left;padding:9px 1rem;font-weight:600;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border);background:var(--surface-2);white-space:nowrap;}
 .metr-table td{padding:9px 1rem;border-bottom:1px solid var(--border-2);color:var(--text);vertical-align:middle;}

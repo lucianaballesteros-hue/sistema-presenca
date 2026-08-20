@@ -22,7 +22,14 @@
 
 @media(max-width:768px){
   .header{padding:0 var(--space-4);}
+  /* Nome do professor logado não pode empurrar o resto do cabeçalho pra
+     fora da tela numa turma/paisagem mais estreita (o span some de vez a
+     partir de 480px abaixo, mas entre 480-768 ele ainda aparece). */
+  #hname{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 }
 @media(max-width:480px){
-  .hright span{display:none;}
+  /* Só o nome — não usar ".hright span" aqui: isso também pega o
+     <span class="icon-mask"> do botão de Configurações (visível só pra
+     admin) e apagava o ícone da engrenagem sem querer. */
+  #hname{display:none;}
 }

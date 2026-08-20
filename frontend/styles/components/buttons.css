@@ -81,3 +81,16 @@
 .obs-cat-btn.selected{background:var(--primary-soft);color:var(--primary-soft-text);border-color:var(--primary);}
 .obs-cat-btn .icon{font-size:14px;}
 #obs-confirm-btn:disabled{background:var(--primary-disabled);cursor:not-allowed;}
+
+/* Alvos de toque maiores no mobile — os botões de ícone (32px) e os de
+   presença da chamada (a tela mais usada no celular) ficam apertados pro
+   dedo; aumenta só aqui em vez de mexer no tamanho "denso" do desktop. */
+@media(max-width:768px){
+  .theme-toggle,.close-btn,.menu-btn{width:40px;height:40px;}
+  .theme-toggle svg,.theme-toggle .icon-mask{width:18px;height:18px;}
+  .menu-btn .icon-mask{width:22px;height:22px;}
+  .inline-edit-btn{width:30px;height:30px;}
+  .logout-btn{padding:8px 14px;}
+
+  .pbtn{padding:9px 14px;font-size:12.5px;}
+}

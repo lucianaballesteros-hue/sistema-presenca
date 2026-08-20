@@ -1,5 +1,5 @@
 /* LOGIN */
-#login-page,#recover-request-page,#recovery-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:var(--space-4);}
+#login-page,#recover-request-page,#recovery-page{display:flex;align-items:center;justify-content:center;min-height:100vh;min-height:100dvh;padding:var(--space-4);}
 .login-card{
   background:var(--glass-tint-strong);-webkit-backdrop-filter:blur(var(--blur-lg)) saturate(180%);backdrop-filter:blur(var(--blur-lg)) saturate(180%);
   border:1px solid var(--glass-border);border-radius:20px;padding:var(--space-8);width:320px;box-shadow:var(--glass-shadow);

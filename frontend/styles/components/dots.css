@@ -14,3 +14,10 @@
 .dot-menu-item:hover{background:var(--surface-hover);}
 .dot-menu-item.dot-menu-active{background:var(--surface-hover);}
 .dot-menu-p{color:var(--green);}.dot-menu-r{color:var(--amber);}.dot-menu-f{color:var(--red);}.dot-menu-n{color:var(--text-faded);}
+
+/* Pontinhos maiores no mobile — são o alvo de toque pra corrigir uma
+   presença direto no relatório, e 11px é pouco preciso pro dedo. */
+@media(max-width:768px){
+  .dots{gap:6px;}
+  .dot{width:15px;height:15px;}
+}

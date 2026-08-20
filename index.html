@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="app-version" content="50"/>
+  <meta name="app-version" content="100"/>
   <title>Sistema de Gestão</title>
   <link rel="icon" type="image/png" href="frontend/img/favicon.png"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous"></script>
@@ -176,7 +176,7 @@
         <div class="stats-row" id="stats-area"></div>
         <div class="flex-row" style="gap:10px;margin-bottom:.75rem;">
           <div class="curso-pills" id="curso-pills" style="margin:0;flex:1;"></div>
-          <input type="text" id="busca-turmas" class="search-input" placeholder="Buscar turma..." oninput="renderDash()" style="width:200px;">
+          <input type="text" id="busca-turmas" class="search-input" placeholder="Buscar turma..." oninput="renderDash()">
           <button class="btn-save" onclick="abrirModalNovaTurma()">+ Nova turma</button>
         </div>
         <div id="turmas-grid" class="turmas-grid"></div>
@@ -440,10 +440,10 @@
         <strong>Senha padrão:</strong> ao criar um professor, a senha inicial é <code>Teste1234</code>. O professor pode alterá-la após o primeiro acesso.
       </div>
 
-      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);" id="prof-stats"></div>
+      <div class="stats-row stats-row-3" id="prof-stats"></div>
 
       <div style="margin-bottom:.75rem;">
-        <input type="text" id="busca-prof" class="search-input" placeholder="Buscar professor..." oninput="renderProfessores()" style="width:240px;">
+        <input type="text" id="busca-prof" class="search-input" placeholder="Buscar professor..." oninput="renderProfessores()">
       </div>
 
       <div class="prof-grid" id="prof-grid"></div>
@@ -460,7 +460,7 @@
 
       <div class="danger-box">Zona de risco: excluir um item aqui remove o registro permanentemente do banco de dados. Essa ação não pode ser desfeita.</div>
 
-      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);" id="cfg-stats"></div>
+      <div class="stats-row stats-row-3" id="cfg-stats"></div>
 
       <div class="flex-row" id="cfg-tipo-tabs" style="gap:8px;margin-bottom:.75rem;">
         <button class="preset-btn ativo" data-tipo="curso" onclick="selecionarTipoExclusao('curso')">Cursos</button>
@@ -512,7 +512,7 @@
       <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:.5rem;">Observações</div>
       <div id="ma-obs-lista" style="margin-bottom:.75rem;max-height:140px;overflow-y:auto;"></div>
       <div style="display:flex;gap:6px;">
-        <input type="text" id="obs-texto" placeholder="Digite uma observação..." onkeydown="if(event.key==='Enter')iniciarObservacao()" style="flex:1;padding:6px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);" />
+        <input type="text" id="obs-texto" placeholder="Digite uma observação..." onkeydown="if(event.key==='Enter')iniciarObservacao()" />
         <button id="obs-add-btn" onclick="iniciarObservacao()" style="padding:6px 12px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
       </div>
       <div id="obs-categoria-panel" style="display:none;margin-top:8px;background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:10px;">
@@ -604,7 +604,7 @@
     </div>
     <div id="transf-info" style="background:var(--surface-3);border-radius:7px;padding:.75rem 1rem;margin-bottom:1rem;font-size:13px;color:var(--text);"></div>
     <div class="field"><label>Nova turma</label>
-      <select id="transf-sel" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"></select>
+      <select id="transf-sel"></select>
     </div>
     <div class="info-box">O histórico de presença do aluno será movido junto para a nova turma.</div>
     <div class="modal-footer">

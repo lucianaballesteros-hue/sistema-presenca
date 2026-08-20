@@ -1,6 +1,11 @@
 /* STATS */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);margin-bottom:var(--space-5);}
 @media(max-width:640px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+
+/* Variante de 3 colunas (Professores, Configurações) — em classe própria em
+   vez de style inline, pra poder reempilhar no mobile como as outras. */
+.stats-row-3{grid-template-columns:repeat(3,1fr);}
+@media(max-width:640px){.stats-row-3{grid-template-columns:1fr;}}
 .stat-card{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:12px;padding:var(--space-4);}
 .stat-label{font-size:11px;color:var(--text-3);margin-bottom:var(--space-1);}
 .stat-val{font-size:22px;font-weight:600;color:var(--text);}

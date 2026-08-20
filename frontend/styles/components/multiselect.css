@@ -14,7 +14,8 @@
 .multi-select-panel{
   position:absolute;top:calc(100% + 6px);left:0;
   background:var(--surface);
-  border:1px solid var(--glass-border);border-radius:12px;box-shadow:var(--glass-shadow);z-index:200;min-width:150px;padding:var(--space-2) 0;
+  border:1px solid var(--glass-border);border-radius:12px;box-shadow:var(--glass-shadow);z-index:200;min-width:150px;max-width:calc(100vw - 2 * var(--space-4));padding:var(--space-2) 0;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   display:none;
 }
 .multi-select-panel.open{display:block;}
@@ -46,4 +47,12 @@ body:has(.multi-select-panel.open) .chamada-top{
 
 @media(max-width:768px){
   .filter-bar input{width:100%;}
+  .filter-bar select,.filter-bar input{font-size:16px;}
+
+  /* Cada filtro de múltipla escolha ocupa a linha toda — evita 5 dropdowns
+     (Curso/Professor/Turma/Mostrar/Status, na aba Relatórios) espremidos e
+     também garante que o painel, alinhado à esquerda do botão, nunca nasça
+     perto da borda direita da tela. */
+  .multi-select-wrap{width:100%;}
+  .multi-select-btn{width:100%;}
 }

@@ -17,7 +17,9 @@
    pílula também troca de cor conforme o curso selecionado. ---- */
 .foco-switch{position:relative;display:inline-flex;gap:var(--space-1);padding:5px;
   background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));
-  border:1px solid var(--glass-border);border-radius:99px;box-shadow:var(--shadow-sm);max-width:100%;overflow-x:auto;}
+  border:1px solid var(--glass-border);border-radius:99px;box-shadow:var(--shadow-sm);max-width:100%;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x;scrollbar-width:none;}
+.foco-switch::-webkit-scrollbar{display:none;}
 .foco-indicator{position:absolute;top:5px;bottom:5px;left:0;width:var(--foco-w,0px);
   transform:translateX(var(--foco-x,0px));border-radius:99px;
   transition:transform .32s var(--spring),width .28s var(--spring),background-color .25s var(--ease-glass);
@@ -111,7 +113,7 @@
 .delta-badge.flat{background:var(--gray-soft);color:var(--gray-soft-text);}
 
 /* ---- LISTA DE ALERTAS (ação necessária) ---- */
-.alert-list{display:flex;flex-direction:column;gap:var(--space-1);max-height:280px;overflow-y:auto;}
+.alert-list{display:flex;flex-direction:column;gap:var(--space-1);max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 .alert-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2);border-radius:10px;cursor:pointer;}
 .alert-row:hover{background:var(--surface-hover);}
 .alert-row-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;box-shadow:0 0 0 3px var(--red-soft);}
@@ -121,7 +123,7 @@
 .alert-row-meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;}
 
 /* ---- FEED DE ATIVIDADE RECENTE ---- */
-.activity-feed{display:flex;flex-direction:column;max-height:290px;overflow-y:auto;}
+.activity-feed{display:flex;flex-direction:column;max-height:290px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 .activity-row{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-2) var(--space-1);}
 .activity-row-rail{display:flex;flex-direction:column;align-items:center;align-self:stretch;flex-shrink:0;}
 .activity-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}

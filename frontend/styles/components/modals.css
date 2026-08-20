@@ -10,6 +10,7 @@
   -webkit-backdrop-filter:blur(var(--blur-lg)) saturate(180%);
   backdrop-filter:blur(var(--blur-lg)) saturate(180%);
   border:1px solid var(--glass-border);border-radius:18px;padding:var(--space-6);width:100%;max-width:500px;max-height:85vh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   box-shadow:var(--glass-shadow);
 }
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);}
@@ -91,4 +92,17 @@
   .modal{padding:var(--space-5);}
   .info-grid{grid-template-columns:1fr;}
   .confirm-bg{padding:var(--space-4);}
+
+  /* Quadradinhos de aula maiores — na chamada, eles são o alvo de toque
+     mais repetido da tela inteira (um por aula, até 32). */
+  .aula-chip{min-width:32px;height:32px;font-size:12px;}
+}
+
+@media(max-width:480px){
+  /* Rodapé do modal em coluna, botões ocupando a largura toda — mais fácil
+     de acertar com o dedo do que dois/três botões espremidos lado a lado, e
+     a ação principal (sempre a última do grupo no HTML) fica embaixo, mais
+     perto do polegar. */
+  .modal-footer{flex-direction:column;align-items:stretch;}
+  .modal-footer button{width:100%;margin:0!important;}
 }

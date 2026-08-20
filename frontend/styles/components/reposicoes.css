@@ -44,6 +44,13 @@
 .rep-opcao-item.escolhida{color:var(--green);font-weight:600;}
 .muted{color:var(--text-faded);}
 
+@media(max-width:768px){
+  /* 16px pra não deixar o Safari no iOS dar zoom automático ao focar. */
+  .rep-opcao-header select,
+  .rep-opcao-body input[type="date"],
+  .rep-opcao-obs{font-size:16px;}
+}
+
 @media(max-width:480px){
   .rep-opcao-header select{min-width:0;}
   .rep-opcao-body{flex-direction:column;gap:var(--space-2);margin-left:0;}

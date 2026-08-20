@@ -66,6 +66,24 @@ function moverIndicadorPbtn(pbtnsEl, val) {
   indicador.style.setProperty('--pw', (ativo ? ativo.offsetWidth : 0) + 'px');
 }
 
+// A posição desses indicadores é medida em pixels (offsetLeft/offsetWidth) e
+// fica "presa" no lugar antigo até alguém recalcular — sem isso, girar o
+// celular (ou qualquer outro redimensionamento, já que os quadradinhos de
+// aula e as linhas de aluno quebram de layout em pontos diferentes) deixava
+// o anel/pílula flutuando fora do lugar certo até o próximo clique.
+function reposicionarIndicadoresChamada() {
+  if (!state.turmaAtual) return;
+  moverIndicadorAula();
+  const aula = document.getElementById('aula-sel')?.value;
+  const key = `${state.turmaAtual.id}_${aula}`;
+  document.querySelectorAll('#alunos-list .aluno-row').forEach(row => {
+    const alunoId = Number(row.dataset.alunoId);
+    moverIndicadorPbtn(row.querySelector('.pbtns'), state.PRESENCAS[key]?.[alunoId] || '');
+  });
+}
+
+window.addEventListener('resize', reposicionarIndicadoresChamada);
+
 function alunosDaChamada() {
   const turmaInativa = state.turmaAtual.ativa === false;
   return state.ALUNOS.filter(a => a.turma_id === state.turmaAtual.id && (turmaInativa || a.ativo));
