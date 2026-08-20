@@ -134,15 +134,32 @@ export function renderMetricas() {
   const meses = ultimosMeses(6);
   const novosPorMes = meses.map(() => 0);
   const cancelPorMes = meses.map(() => 0);
+  const expAdicPorMes = meses.map(() => 0);
+  const expConvPorMes = meses.map(() => 0);
   historicoFoco.forEach(h => {
     const d = new Date(h.created_at);
     const idx = meses.findIndex(m => m.chave === `${d.getFullYear()}-${d.getMonth()}`);
     if (idx === -1) return;
     if (h.descricao?.includes('adicionado ao sistema') || h.descricao?.includes('importado por planilha')) novosPorMes[idx]++;
     else if (h.descricao?.includes('Matrícula cancelada')) cancelPorMes[idx]++;
+    if (h.descricao?.includes('adicionado ao sistema (experimental)') || h.descricao?.includes('Marcado(a) como aluno(a) experimental')) expAdicPorMes[idx]++;
+    else if (h.descricao?.includes('Deixou de ser aluno(a) experimental')) expConvPorMes[idx]++;
   });
   const novosMesAtual = novosPorMes[novosPorMes.length - 1], novosMesAnterior = novosPorMes[novosPorMes.length - 2] ?? 0;
   const cancelMesAtual = cancelPorMes[cancelPorMes.length - 1], cancelMesAnterior = cancelPorMes[cancelPorMes.length - 2] ?? 0;
+
+  // ── ALUNOS EXPERIMENTAIS: adicionados vs convertidos em matrícula ──
+  // "Adicionado" conta tanto quem já entra como experimental quanto quem foi
+  // marcado depois; "convertido" é o toggle inverso (ver toggleExperimental
+  // em alunoModal.js). Total histórico (não só os 6 meses do gráfico acima),
+  // pra responder "quantos no total" em vez de só "quantos este mês".
+  const expAdicionados = historicoFoco.filter(h => h.descricao?.includes('adicionado ao sistema (experimental)') || h.descricao?.includes('Marcado(a) como aluno(a) experimental'));
+  const expConvertidos = historicoFoco.filter(h => h.descricao?.includes('Deixou de ser aluno(a) experimental'));
+  const expAdicTotal = expAdicionados.length;
+  const expConvTotal = expConvertidos.length;
+  const taxaConversao = expAdicTotal > 0 ? Math.round((expConvTotal / expAdicTotal) * 100) : null;
+  const expAdicMesAtual = expAdicPorMes[expAdicPorMes.length - 1];
+  const expConvMesAtual = expConvPorMes[expConvPorMes.length - 1];
 
   // ── LINHA 1: KPIs (2 heroes + 2 cards de variação do mês) ──────
   // Fora do foco "geral" os dois heroes assumem a cor do curso selecionado,
@@ -164,6 +181,23 @@ export function renderMetricas() {
     </div>
     ${kpiCardHtml({ value: novosMesAtual, label: 'Novas matrículas', badge: deltaBadge(novosMesAtual, novosMesAnterior) })}
     ${kpiCardHtml({ value: cancelMesAtual, label: 'Cancelamentos', badge: deltaBadge(cancelMesAtual, cancelMesAnterior, false) })}`;
+
+  document.getElementById('metr-experimental').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-card-label">Experimentais adicionados</div>
+      <div class="kpi-card-value">${expAdicTotal}</div>
+      <div class="kpi-card-foot"><span class="kpi-card-foot-text">${expAdicMesAtual} este mês · total histórico</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card-label">Convertidos em matrícula</div>
+      <div class="kpi-card-value">${expConvTotal}</div>
+      <div class="kpi-card-foot"><span class="kpi-card-foot-text">${expConvMesAtual} este mês · total histórico</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card-label">Taxa de conversão</div>
+      <div class="kpi-card-value">${taxaConversao !== null ? taxaConversao + '%' : '—'}</div>
+      <div class="kpi-card-foot"><span class="kpi-card-foot-text">${expConvTotal} de ${expAdicTotal} experimentais</span></div>
+    </div>`;
 
   document.getElementById('metr-linha-matriculas').innerHTML = lineChart({
     labels: meses.map(m => m.label),

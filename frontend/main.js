@@ -36,6 +36,7 @@ import {
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
   abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno, irParaAulaHistorico,
   verificarAlunoDuplicado,
+  toggleNovoTurmaPainel, fecharNovoTurmaPainel, filtrarNovoTurmaBusca, filtrarNovoTurmaCurso, selecionarNovaTurmaOpcao,
 } from './features/alunos/alunoModal.js';
 import { iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs } from './features/alunos/observacoes.js';
 import {
@@ -88,6 +89,7 @@ Object.assign(window, {
   abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
   abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno, irParaAulaHistorico, verificarAlunoDuplicado,
+  toggleNovoTurmaPainel, fecharNovoTurmaPainel, filtrarNovoTurmaBusca, filtrarNovoTurmaCurso, selecionarNovaTurmaOpcao,
   iniciarObservacao, cancelarObservacao, confirmarObservacao, selecionarCategoriaObs,
   importarPlanilhaSelecionada, atualizarLinhaImportacao, atualizarFiltroCursoImportacao,
   cancelarImportacaoPlanilha, confirmarImportacaoPlanilha,
@@ -126,6 +128,7 @@ document.addEventListener('click', (e) => {
   }
   if (!e.target.closest('#ma-acoes-menu')) fecharMenuAluno();
   if (!e.target.closest('#config-menu')) fecharMenuConfig();
+  if (!e.target.closest('#novo-turma-picker')) fecharNovoTurmaPainel();
   document.querySelectorAll('.multi-select-panel.open').forEach(p => p.classList.remove('open'));
 });
 

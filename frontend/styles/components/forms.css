@@ -14,6 +14,39 @@
 /* CAMPO DE BUSCA AVULSO (fora de .filter-bar) */
 .search-input{font-size:13px;padding:6px 10px;border:1px solid var(--border-input);border-radius:6px;outline:none;background:var(--surface);color:var(--text);}
 
+/* SELETOR DE TURMA COM BUSCA (modal "Adicionar novo aluno") — troca o
+   <select> nativo (mantido escondido como fonte da verdade — mesma ideia do
+   customSelect.js, ver alunoModal.js) por um botão + painel com busca e
+   chips de curso, pra achar uma turma específica numa lista longa. O painel
+   fica no fluxo normal (não é um overlay flutuante): ao abrir, ele empurra o
+   resto do modal pra baixo e o modal cresce junto, em vez de sobrepor o
+   conteúdo abaixo — pedido explícito pra acompanhar o tamanho do filtro. */
+.turma-picker{position:relative;}
+.turma-picker-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);
+  padding:7px 10px;border:1px solid var(--border-input);border-radius:10px;font-size:13px;
+  background:var(--surface);color:var(--text);cursor:pointer;text-align:left;}
+.turma-picker-btn:hover{border-color:var(--primary-light-2);}
+.turma-picker-btn-label{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.turma-picker-btn .hint-text{flex-shrink:0;color:var(--text-faded);transition:transform .15s var(--ease-glass);}
+.turma-picker:has(.turma-picker-panel.open) .turma-picker-btn .hint-text{transform:rotate(180deg);}
+.turma-picker-panel{
+  display:none;margin-top:6px;
+  background:var(--glass-tint-strong);-webkit-backdrop-filter:blur(var(--blur-md)) saturate(180%);backdrop-filter:blur(var(--blur-md)) saturate(180%);
+  border:1px solid var(--glass-border);border-radius:12px;box-shadow:var(--glass-shadow);padding:var(--space-3);
+}
+.turma-picker-panel.open{display:block;}
+.turma-picker-busca{width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);outline:none;margin-bottom:var(--space-2);}
+.turma-picker-busca:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);}
+.turma-picker-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--space-2);}
+.turma-picker-chips .cpill{padding:4px 10px;font-size:11px;background:var(--surface-3);}
+.turma-picker-chips .cpill.active{background:var(--primary);}
+.turma-picker-lista{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+.turma-picker-opt{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:12.5px;}
+.turma-picker-opt:hover{background:var(--surface-hover);}
+.turma-picker-opt.selected{background:var(--primary-soft);}
+.turma-picker-opt-nome{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%;}
+.turma-picker-opt-prof{margin-left:auto;color:var(--text-faded);font-size:11px;white-space:nowrap;flex-shrink:0;}
+
 /* MENSAGEM DE ERRO ABAIXO DE UM CAMPO/FORMULÁRIO */
 .field-error{font-size:12px;color:var(--red);display:none;margin-bottom:var(--space-2);}
 

@@ -3,3 +3,6 @@
 
 # Referência local de ambiente/credenciais (veja .env.example)
 .env
+
+.claude
+

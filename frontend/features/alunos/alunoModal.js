@@ -1,7 +1,7 @@
 import { state } from '../../state/store.js';
 import { AULAS, calcAluno, aulasDaTurma } from '../../../backend/domain/attendance.js';
-import { statusBadge, professorNome } from '../../../backend/domain/status.js';
-import { escapeHtml, showToast, fecharModal } from '../../shared/dom.js';
+import { statusBadge, professorNome, ordemDia, corBadge } from '../../../backend/domain/status.js';
+import { escapeHtml, escapeAttr, showToast, fecharModal } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
 import { alunoJaExiste } from '../../shared/duplicados.js';
 import { inserirAluno, atualizarAluno } from '../../../backend/api/alunosRepo.js';
@@ -242,9 +242,97 @@ export async function confirmarTransferencia() {
   renderTabelaAlunos(); renderDash(); renderRel();
 }
 
+// Mesma ordenação usada na grade de turmas do Dashboard (dia da semana, depois
+// nome) — separado numa função porque tanto o <select> escondido quanto a
+// lista visível do seletor de busca precisam da mesma ordem, senão a opção
+// pré-selecionada ao abrir o modal não bate com o topo da lista.
+function turmasNovoAlunoOrdenadas() {
+  return state.TURMAS.filter(t => t.ativa !== false).slice().sort((a, b) => {
+    const da = ordemDia(a.turma), db = ordemDia(b.turma);
+    if (da !== db) return da - db;
+    return a.turma.localeCompare(b.turma, 'pt-BR');
+  });
+}
+
+// Filtro do seletor de turma do modal "Adicionar novo aluno" — vive fora da
+// função pra sobreviver entre abrir/fechar o painel sem perder o que foi
+// digitado, e é resetado só quando o modal inteiro é reaberto.
+let novoTurmaFiltro = { busca: '', curso: '' };
+
+function turmaLabel(t) {
+  return `${t.turma} — ${t.curso || 'sem curso'} (Prof. ${professorNome(t)})`;
+}
+
+function atualizarNovoTurmaBotao() {
+  const t = state.TURMAS.find(x => String(x.id) === String(document.getElementById('novo-turma').value));
+  document.getElementById('novo-turma-btn-label').textContent = t ? turmaLabel(t) : 'Selecione a turma';
+}
+
+function renderNovoTurmaChips() {
+  const cursos = [...new Set(turmasNovoAlunoOrdenadas().map(t => t.curso).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  document.getElementById('novo-turma-chips').innerHTML =
+    `<button type="button" class="cpill ${novoTurmaFiltro.curso === '' ? 'active' : ''}" onclick="filtrarNovoTurmaCurso('')">Todos</button>` +
+    cursos.map(c => `<button type="button" class="cpill ${novoTurmaFiltro.curso === c ? 'active' : ''}" onclick="filtrarNovoTurmaCurso('${escapeAttr(c)}')">${escapeHtml(c)}</button>`).join('');
+}
+
+function renderNovoTurmaLista() {
+  const busca = novoTurmaFiltro.busca;
+  const turmas = turmasNovoAlunoOrdenadas().filter(t => {
+    if (novoTurmaFiltro.curso && t.curso !== novoTurmaFiltro.curso) return false;
+    if (!busca) return true;
+    return `${t.turma} ${t.curso || ''} ${professorNome(t)}`.toLowerCase().includes(busca);
+  });
+  const selecionadoId = document.getElementById('novo-turma').value;
+  document.getElementById('novo-turma-lista').innerHTML = turmas.length ? turmas.map(t => `
+    <div class="turma-picker-opt ${String(t.id) === String(selecionadoId) ? 'selected' : ''}" onclick="selecionarNovaTurmaOpcao(${t.id})">
+      <span class="turma-picker-opt-nome">${escapeHtml(t.turma)}</span>
+      <span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso) || 'Sem curso'}</span>
+      <span class="turma-picker-opt-prof">Prof. ${escapeHtml(professorNome(t))}</span>
+    </div>`).join('') : '<div class="empty" style="padding:16px 10px;">Nenhuma turma encontrada.</div>';
+}
+
+export function toggleNovoTurmaPainel(e) {
+  e.stopPropagation();
+  const panel = document.getElementById('novo-turma-panel');
+  const abrir = !panel.classList.contains('open');
+  panel.classList.toggle('open', abrir);
+  if (abrir) setTimeout(() => document.getElementById('novo-turma-busca')?.focus(), 0);
+}
+
+export function fecharNovoTurmaPainel() {
+  document.getElementById('novo-turma-panel')?.classList.remove('open');
+}
+
+export function filtrarNovoTurmaBusca() {
+  novoTurmaFiltro.busca = document.getElementById('novo-turma-busca').value.trim().toLowerCase();
+  renderNovoTurmaLista();
+}
+
+export function filtrarNovoTurmaCurso(curso) {
+  novoTurmaFiltro.curso = curso;
+  renderNovoTurmaChips();
+  renderNovoTurmaLista();
+}
+
+export function selecionarNovaTurmaOpcao(id) {
+  const select = document.getElementById('novo-turma');
+  select.value = String(id);
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  atualizarNovoTurmaBotao();
+  renderNovoTurmaLista();
+  fecharNovoTurmaPainel();
+}
+
 export function abrirModalNovoAluno() {
   document.getElementById('novo-nome').value = '';
-  document.getElementById('novo-turma').innerHTML = state.TURMAS.filter(t => t.ativa !== false).map(t => `<option value="${t.id}">${escapeHtml(t.turma)} — ${escapeHtml(t.curso) || 'sem curso'} (Prof. ${escapeHtml(professorNome(t))})</option>`).join('');
+  novoTurmaFiltro = { busca: '', curso: '' };
+  document.getElementById('novo-turma-busca').value = '';
+  const turmas = turmasNovoAlunoOrdenadas();
+  document.getElementById('novo-turma').innerHTML = turmas.map(t => `<option value="${t.id}">${escapeHtml(turmaLabel(t))}</option>`).join('');
+  fecharNovoTurmaPainel();
+  renderNovoTurmaChips();
+  renderNovoTurmaLista();
+  atualizarNovoTurmaBotao();
   document.getElementById('novo-experimental-btn').classList.remove('active');
   document.getElementById('novo-nome-aviso').style.display = 'none';
   const btnAdicionar = document.getElementById('novo-btn-adicionar');

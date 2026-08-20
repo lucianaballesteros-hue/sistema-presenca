@@ -320,6 +320,14 @@
       <!-- LINHA 1: KPIs principais -->
       <div class="kpi-row" id="metr-heroes"></div>
 
+      <!-- ALUNOS EXPERIMENTAIS: adicionados vs convertidos em matrícula -->
+      <div class="metr-section">
+        <div class="metr-section-header">
+          <span class="metr-section-title">Alunos Experimentais</span>
+        </div>
+        <div class="metr-row-3col" id="metr-experimental" style="margin-bottom:0;"></div>
+      </div>
+
       <!-- LINHA 2: matrículas x cancelamentos + turmas por dia da semana -->
       <div class="metr-row-charts">
         <div class="metr-card">
@@ -608,7 +616,7 @@
 
 <!-- MODAL NOVO ALUNO -->
 <div class="modal-bg" id="modal-novo">
-  <div class="modal">
+  <div class="modal" style="max-width:860px;">
     <div class="modal-header">
       <div class="modal-title">Adicionar novo aluno</div>
       <button class="close-btn" onclick="fecharModal('modal-novo')" aria-label="Fechar">×</button>
@@ -619,7 +627,18 @@
       <div id="novo-nome-aviso" style="display:none;font-size:11px;color:var(--amber);margin-top:4px;"></div>
     </div>
     <div class="field"><label>Turma</label>
-      <select id="novo-turma" onchange="verificarAlunoDuplicado()" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"></select>
+      <div class="turma-picker" id="novo-turma-picker">
+        <button type="button" class="turma-picker-btn" onclick="toggleNovoTurmaPainel(event)">
+          <span class="turma-picker-btn-label" id="novo-turma-btn-label">Selecione a turma</span>
+          <span class="hint-text">▾</span>
+        </button>
+        <div class="turma-picker-panel" id="novo-turma-panel">
+          <input type="text" id="novo-turma-busca" class="turma-picker-busca" placeholder="Buscar por turma, curso ou professor…" oninput="filtrarNovoTurmaBusca()"/>
+          <div class="turma-picker-chips" id="novo-turma-chips"></div>
+          <div class="turma-picker-lista" id="novo-turma-lista"></div>
+        </div>
+      </div>
+      <select id="novo-turma" onchange="verificarAlunoDuplicado()" style="display:none;"></select>
     </div>
     <div class="field">
       <button type="button" class="btn-toggle-experimental" id="novo-experimental-btn" onclick="toggleNovoExperimental()" style="width:100%;">Aula experimental</button>
