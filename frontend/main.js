@@ -32,7 +32,7 @@ import { abrirChamada, voltarDash, renderChamada, selecionarAula, marcar } from 
 
 import { renderTabelaAlunos, atualizarTurmasAlunos } from './features/alunos/alunosTable.js';
 import {
-  abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
+  abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula, removerExperimental,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
   abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno, irParaAulaHistorico,
   verificarAlunoDuplicado,
@@ -86,7 +86,7 @@ Object.assign(window, {
   abrirModalNovoCurso, salvarNovoCurso,
   abrirChamada, voltarDash, renderChamada, selecionarAula, marcar,
   renderTabelaAlunos, atualizarTurmasAlunos,
-  abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula,
+  abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula, removerExperimental,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
   abrirModalNovoAluno, toggleNovoExperimental, salvarNovoAluno, irParaAulaHistorico, verificarAlunoDuplicado,
   toggleNovoTurmaPainel, fecharNovoTurmaPainel, filtrarNovoTurmaBusca, filtrarNovoTurmaCurso, selecionarNovaTurmaOpcao,

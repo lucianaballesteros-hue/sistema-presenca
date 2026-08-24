@@ -16,6 +16,7 @@ export function renderTabelaAlunos() {
   else if (fStatus === 'inativo') lista = lista.filter(a => !a.ativo);
   else if (fStatus === 'experimental') lista = lista.filter(a => a.experimental);
   else if (fStatus === 'cancelado') lista = lista.filter(a => !a.ativo && statusInativo(a.id) === 'cancelado');
+  else if (fStatus === 'experimental_removido') lista = lista.filter(a => !a.ativo && statusInativo(a.id) === 'experimental_removido');
   else if (fStatus === 'alerta') lista = lista.filter(a => a.ativo && a.emAlerta);
   else if (fStatus === 'irregular') lista = lista.filter(a => a.ativo && a.freq !== null && a.freq < 70);
 

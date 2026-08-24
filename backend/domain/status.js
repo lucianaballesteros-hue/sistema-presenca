@@ -45,13 +45,18 @@ export function logoCurso(curso) {
 // uma cor "cheia" definida acima, não só um badge).
 export const FOCOS_METRICAS = TEMAS_CURSO.filter(t => t.grad);
 
-// 'cancelado' (encerramento definitivo) vs 'inativo' (afastamento temporário),
-// inferido a partir da última movimentação de histórico do aluno.
+// 'cancelado' (matrícula de verdade encerrada), 'experimental_removido'
+// (nunca converteu a aula experimental) vs 'inativo' (afastamento
+// temporário) — inferido a partir da última movimentação de histórico do
+// aluno (ver cancelarMatricula/removerExperimental em alunoModal.js).
 export function statusInativo(alunoId) {
   const hist = state.HISTORICO
-    .filter(h => h.aluno_id === alunoId && (h.descricao?.includes('inativad') || h.descricao?.includes('cancelad')))
+    .filter(h => h.aluno_id === alunoId && (h.descricao?.includes('inativad') || h.descricao?.includes('cancelad') || h.descricao?.includes('experimental removid')))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  return (hist.length && hist[0].descricao?.includes('cancelad')) ? 'cancelado' : 'inativo';
+  if (!hist.length) return 'inativo';
+  const d = hist[0].descricao;
+  if (d?.includes('experimental removid')) return 'experimental_removido';
+  return d?.includes('cancelad') ? 'cancelado' : 'inativo';
 }
 
 export function ordemDia(nomeTurma) {

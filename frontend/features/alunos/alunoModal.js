@@ -87,6 +87,7 @@ export function abrirMenuAluno(e) {
     <div class="dot-menu-item" onclick="fecharMenuAluno();toggleInativo();">${a.ativo ? 'Inativar aluno' : 'Reativar aluno'}</div>
     <div class="dot-menu-item" onclick="fecharMenuAluno();toggleExperimental();">${a.experimental ? 'Tornar matriculado' : 'Marcar como experimental'}</div>
     ${divisor}
+    ${a.experimental ? `<div class="dot-menu-item" style="color:var(--red);" onclick="fecharMenuAluno();removerExperimental();">Remover aluno experimental</div>` : ''}
     <div class="dot-menu-item" style="color:var(--red);" onclick="fecharMenuAluno();cancelarMatricula();">Cancelar matrícula</div>
   `;
   document.body.appendChild(menu);
@@ -148,7 +149,30 @@ export async function cancelarMatricula() {
   showToast('Matrícula cancelada.', 'red');
   renderTabelaAlunos(); renderDash();
 }
- 
+
+// Mesmo efeito de cancelarMatricula() (ativo:false) mas com uma descrição de
+// histórico diferente — só pra alunos ainda experimentais, que nunca chegaram
+// a converter em matrícula. Separar essa descrição de "Matrícula cancelada" é
+// o que permite a aba Métricas contar "experimentais que não converteram"
+// junto de "convertidos em matrícula" sem misturar com cancelamentos de quem
+// já era matriculado de verdade (ver statusInativo em backend/domain/status.js).
+export async function removerExperimental() {
+  const a = state.ALUNOS.find(x => x.id === state.alunoSelecionadoId);
+  const ok = await confirmar({
+    titulo: `Remover o(a) aluno(a) experimental "${a.nome}"?`,
+    mensagem: 'Ele(a) não converteu a aula experimental em matrícula e será marcado(a) como inativo(a). Fica registrado separadamente de uma matrícula cancelada, pra manter a taxa de conversão em Métricas correta.',
+    textoConfirmar: 'Remover',
+    perigo: true,
+  });
+  if (!ok) return;
+  await atualizarAluno(a.id, { ativo: false });
+  await registrarMovimentacao(a.id, 'Aluno(a) experimental removido(a) (não converteu em matrícula)');
+  a.ativo = false;
+  fecharModal('modal-aluno');
+  showToast('Aluno(a) experimental removido(a).', 'red');
+  renderTabelaAlunos(); renderDash();
+}
+
 // `id` é opcional: quando chamado a partir do menu do modal do aluno (que já
 // deixou state.alunoSelecionadoId marcado), não precisa passar nada. Quando
 // chamado direto de uma linha de tabela (ex.: Configurações), passa o id do

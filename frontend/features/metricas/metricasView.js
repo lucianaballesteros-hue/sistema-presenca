@@ -155,8 +155,10 @@ export function renderMetricas() {
   // pra responder "quantos no total" em vez de só "quantos este mês".
   const expAdicionados = historicoFoco.filter(h => h.descricao?.includes('adicionado ao sistema (experimental)') || h.descricao?.includes('Marcado(a) como aluno(a) experimental'));
   const expConvertidos = historicoFoco.filter(h => h.descricao?.includes('Deixou de ser aluno(a) experimental'));
+  const expNaoConvertidos = historicoFoco.filter(h => h.descricao?.includes('experimental removid'));
   const expAdicTotal = expAdicionados.length;
   const expConvTotal = expConvertidos.length;
+  const expNaoConvTotal = expNaoConvertidos.length;
   const taxaConversao = expAdicTotal > 0 ? Math.round((expConvTotal / expAdicTotal) * 100) : null;
   const expAdicMesAtual = expAdicPorMes[expAdicPorMes.length - 1];
   const expConvMesAtual = expConvPorMes[expConvPorMes.length - 1];
@@ -192,6 +194,11 @@ export function renderMetricas() {
       <div class="kpi-card-label">Convertidos em matrícula</div>
       <div class="kpi-card-value">${expConvTotal}</div>
       <div class="kpi-card-foot"><span class="kpi-card-foot-text">${expConvMesAtual} este mês · total histórico</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card-label">Não convertidos</div>
+      <div class="kpi-card-value">${expNaoConvTotal}</div>
+      <div class="kpi-card-foot"><span class="kpi-card-foot-text">Removidos sem virar matrícula · total histórico</span></div>
     </div>
     <div class="kpi-card">
       <div class="kpi-card-label">Taxa de conversão</div>
