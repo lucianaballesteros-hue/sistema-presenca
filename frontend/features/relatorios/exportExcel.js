@@ -6,6 +6,15 @@ import { showToast } from '../../shared/dom.js';
 // A biblioteca xlsx é carregada via <script> global no index.html (sem passo
 // de build neste projeto). Ela só é usada aqui, então mantemos o acoplamento
 // ao global `XLSX` isolado neste único arquivo.
+
+// Nomes de turma são texto livre (sem restrição no formulário) mas o Excel
+// proíbe \ / ? * [ ] : em nome de aba e rejeita a pasta de trabalho inteira
+// se algum vier com esses caracteres — sanitiza antes de truncar para 31.
+function nomeAbaSeguro(nome) {
+  const limpo = (nome || '').replace(/[\\/?*[\]:]/g, '-').trim();
+  return (limpo || 'Turma').substring(0, 31);
+}
+
 export async function exportarExcel() {
   const btn = document.getElementById('btn-exportar');
   if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
@@ -70,7 +79,7 @@ export async function exportarExcel() {
       }
       ws['!cols'] = [{ wch: 35 }, { wch: 8 }, ...aulasCols.map(() => ({ wch: 7 })), { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 14 }];
 
-      let nomeAba = (t.turma || t.curso || 'Turma').substring(0, 31);
+      let nomeAba = nomeAbaSeguro(t.turma || t.curso);
       if (nomesUsados.has(nomeAba)) {
         let contador = 2;
         while (nomesUsados.has(nomeAba.substring(0, 28) + ' ' + contador)) contador++;
