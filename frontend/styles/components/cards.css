@@ -13,7 +13,7 @@
 
 /* CARDS DE TURMA */
 .turmas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-3);}
-.turma-card{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;padding:var(--space-4) var(--space-5);cursor:default;box-shadow:var(--shadow-sm);}
+.turma-card{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:14px;padding:var(--space-4) var(--space-5);cursor:pointer;box-shadow:var(--shadow-sm);}
 .turma-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
 .turma-card-inativa{opacity:.55;}
 .turma-card-inativa:hover{opacity:.85;}

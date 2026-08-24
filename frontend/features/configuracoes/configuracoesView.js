@@ -32,8 +32,8 @@ let cursoEmEdicaoId = null;
 
 // Botão de engrenagem no header abre este menu (mesmo padrão visual do
 // dot-menu de relatórios/aluno) — "Geral" leva pra aba de exclusão abaixo;
-// "Professores" reaproveita a tela cheia que já existia (tab-professores/
-// renderProfessores), só que agora só é alcançável por aqui, não pela nav
+// "Usuários" reaproveita a tela cheia que já existia (tab-usuarios/
+// renderUsuarios), só que agora é alcançável por aqui, não pela nav
 // principal.
 export function abrirMenuConfig(e) {
   e.stopPropagation();
@@ -45,7 +45,7 @@ export function abrirMenuConfig(e) {
   menu.className = 'dot-menu';
   menu.innerHTML = `
     <div class="dot-menu-item" onclick="fecharMenuConfig();goTab('configuracoes');">Geral</div>
-    <div class="dot-menu-item" onclick="fecharMenuConfig();goTab('professores');">Professores</div>
+    <div class="dot-menu-item" onclick="fecharMenuConfig();goTab('professores');">Usuários</div>
   `;
   document.body.appendChild(menu);
   const rect = e.currentTarget.getBoundingClientRect();

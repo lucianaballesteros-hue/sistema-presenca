@@ -430,26 +430,26 @@
     <div id="tab-professores" class="screen">
       <div class="toolbar-row">
         <div>
-          <div style="font-size:15px;font-weight:600;color:var(--text);">Professores</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);">Usuários</div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Gerencie os usuários com acesso ao sistema</div>
         </div>
-        <button class="btn-save" onclick="abrirModalNovoProf()">+ Novo professor</button>
+        <button class="btn-save" onclick="abrirModalNovoProf()">+ Novo usuário</button>
       </div>
 
       <div class="hint-box">
-        <strong>Senha padrão:</strong> ao criar um professor, a senha inicial é <code>Teste1234</code>. O professor pode alterá-la após o primeiro acesso.
+        <strong>Senha padrão:</strong> <code>Teste1234</code> O usuário pode alterá-la após o primeiro acesso.
       </div>
 
       <div class="stats-row stats-row-3" id="prof-stats"></div>
 
       <div style="margin-bottom:.75rem;">
-        <input type="text" id="busca-prof" class="search-input" placeholder="Buscar professor..." oninput="renderProfessores()">
+        <input type="text" id="busca-prof" class="search-input" placeholder="Buscar usuário..." oninput="renderProfessores()">
       </div>
 
       <div class="prof-grid" id="prof-grid"></div>
     </div>
 
-    <!-- TAB CONFIGURAÇÕES (admin) — exclusão permanente de curso/turma/aluno -->
+    <!-- TAB CONFIGURAÇÕES (admin) — exclusão permanente de course/turma/aluno -->
     <div id="tab-configuracoes" class="screen">
       <div class="toolbar-row">
         <div>

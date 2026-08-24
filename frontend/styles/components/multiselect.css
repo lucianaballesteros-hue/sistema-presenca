@@ -46,7 +46,22 @@ body:has(.multi-select-panel.open) .chamada-top{
 }
 
 @media(max-width:768px){
-  .filter-bar input{width:100%;}
+  /* Empilha em coluna (rótulo em cima do campo, como .field) em vez do
+     flex-row do desktop: lado a lado, rótulo curto ("Buscar:") + campo largo
+     não cabem numa tela de celular sem espremer um dos dois. */
+  .filter-bar{flex-direction:column;align-items:stretch;gap:6px;}
+
+  /* .filter-bar é uma lista achatada de rótulo,campo,rótulo,campo,... (sem
+     wrapper por par no HTML), então o espaçamento do gap sozinho deixa tudo
+     com a mesma distância — não dá pra ver qual rótulo é de qual campo. Aqui
+     o campo fica colado no rótulo anterior (gap:6px já cuida disso) e só o
+     PRÓXIMO rótulo (ou grupo .flex-row já pronto, como "Status:" nas abas
+     Alunos/Configurações) ganha uma margem extra em cima, separando um
+     filtro do outro visualmente. */
+  .filter-bar>label:not(:first-child),
+  .filter-bar>.flex-row:not(:first-child){margin-top:14px;}
+
+  .filter-bar input,.filter-bar select{width:100%;}
   .filter-bar select,.filter-bar input{font-size:16px;}
 
   /* Cada filtro de múltipla escolha ocupa a linha toda — evita 5 dropdowns
