@@ -4,5 +4,8 @@
 # Referência local de ambiente/credenciais (veja .env.example)
 .env
 
+# claude utiliza essa pasta para armazenar arquivos temporários, logs e outros dados de execução. Não é necessário versionar esses arquivos.
 .claude
 
+# Arquivos de banco de dados que precisam ser inseridos, mas não são necessários para versionamento
+sql
