@@ -105,12 +105,17 @@ export function calcAluno(aluno) {
   let maxC = 0, cur = 0;
   seq.forEach(v => { if (v === 'F') { cur++; maxC = Math.max(maxC, cur); } else cur = 0; });
 
-  // Alerta: 3+ faltas seguidas nas últimas 8 aulas com registro
+  // Alerta: 3+ faltas seguidas contadas de trás pra frente — o aluno faltou
+  // nas 3 (ou mais) ÚLTIMAS aulas com registro. É uma situação do presente,
+  // não um histórico: assim que o aluno volta (P ou R numa aula mais
+  // recente), o alerta sai sozinho. A sequência antiga continua visível em
+  // maxConsec, só não pinta mais o aluno de vermelho. Aulas ainda sem
+  // registro ('N') são ignoradas — uma aula futura que ninguém lançou não é
+  // presença e não pode zerar o alerta de quem está faltando agora.
   const registradas = seq.filter(v => v !== 'N');
-  const ultimas8 = registradas.slice(-8);
-  let consecU8 = 0, curU8 = 0;
-  ultimas8.forEach(v => { if (v === 'F') { curU8++; consecU8 = Math.max(consecU8, curU8); } else curU8 = 0; });
-  const emAlerta = consecU8 >= 3;
+  let consecAtual = 0;
+  for (let i = registradas.length - 1; i >= 0 && registradas[i] === 'F'; i--) consecAtual++;
+  const emAlerta = consecAtual >= 3;
 
-  return { seq, p, r, f, freq, maxConsec: maxC, emAlerta };
+  return { seq, p, r, f, freq, maxConsec: maxC, consecAtual, emAlerta };
 }

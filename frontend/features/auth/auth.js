@@ -2,6 +2,7 @@ import { sb } from '../../../backend/api/supabaseClient.js';
 import { state } from '../../state/store.js';
 import { estaEmRecuperacaoSenha } from './recovery.js';
 import { moverIndicadorNav } from '../../shared/navigation.js';
+import { ehAdmin } from '../../shared/permissoes.js';
 import { carregarTurmas } from '../../../backend/api/turmasRepo.js';
 import { carregarAlunos } from '../../../backend/api/alunosRepo.js';
 import { carregarPresencas } from '../../../backend/api/presencasRepo.js';
@@ -111,7 +112,7 @@ async function executarCargaInicial() {
   document.getElementById('hname').textContent = state.perfilLogado?.nome || state.usuarioLogado.email;
 
   // Botão de Configurações (Geral / Professores) só aparece para admins
-  if (state.perfilLogado?.papel === 'admin') {
+  if (ehAdmin()) {
     document.getElementById('btn-config').classList.remove('hidden');
   }
 

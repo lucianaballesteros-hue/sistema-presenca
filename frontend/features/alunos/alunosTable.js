@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { calcAluno } from '../../../backend/domain/attendance.js';
-import { corBadge, freqBar, statusInativo } from '../../../backend/domain/status.js';
+import { corBadge, freqBar, statusInativo, turmasAtivas } from '../../../backend/domain/status.js';
 import { escapeHtml } from '../../shared/dom.js';
 
 export function renderTabelaAlunos() {
@@ -36,7 +36,8 @@ export function renderTabelaAlunos() {
 
 export function atualizarTurmasAlunos() {
   const fCurso = document.getElementById('f-curso-alunos')?.value || '';
-  let turmasFilt = state.TURMAS;
+  // Só turmas ativas no filtro — ver turmasAtivas() em backend/domain/status.js.
+  let turmasFilt = turmasAtivas();
   if (fCurso) turmasFilt = turmasFilt.filter(t => t.curso === fCurso);
   const ft = document.getElementById('f-turma-alunos');
   if (ft) ft.innerHTML = '<option value="">Todas</option>' + turmasFilt.map(t => '<option value="' + t.id + '">' + escapeHtml(t.turma) + ' - ' + (escapeHtml(t.curso) || 'sem curso') + '</option>').join('');

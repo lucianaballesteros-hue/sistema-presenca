@@ -90,15 +90,15 @@ export async function exportarExcel() {
     });
 
     const alertaRows = [
-      ['Alunos em Alerta — 3 ou mais faltas consecutivas'],
+      ['Alunos em Alerta — faltaram nas 3 (ou mais) últimas aulas'],
       ['Gerado em: ' + new Date().toLocaleString('pt-BR')],
       [],
-      ['Turma', 'Curso', 'Professor', 'Aluno', 'Faltas Consecutivas', 'Total Faltas', '% Frequência'],
+      ['Turma', 'Curso', 'Professor', 'Aluno', 'Faltas Seguidas (em aberto)', 'Total Faltas', '% Frequência'],
     ];
     state.TURMAS.forEach(t => {
       state.ALUNOS.filter(a => a.ativo && a.turma_id === t.id).forEach(a => {
         const c = calcAluno(a);
-        if (c.emAlerta) alertaRows.push([t.turma, t.curso, professorNome(t), a.nome, c.maxConsec, c.f, c.freq !== null ? c.freq / 100 : null]);
+        if (c.emAlerta) alertaRows.push([t.turma, t.curso, professorNome(t), a.nome, c.consecAtual, c.f, c.freq !== null ? c.freq / 100 : null]);
       });
     });
     const wsAlerta = XLSX.utils.aoa_to_sheet(alertaRows);

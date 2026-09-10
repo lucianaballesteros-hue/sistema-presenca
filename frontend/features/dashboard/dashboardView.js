@@ -1,8 +1,9 @@
 import { state } from '../../state/store.js';
 import { calcAluno, ultimaAulaRegistrada } from '../../../backend/domain/attendance.js';
-import { ordemDia, corBadge, professorNome } from '../../../backend/domain/status.js';
+import { ordemDia, corBadge, professorNome, turmaAtiva, turmasAtivas } from '../../../backend/domain/status.js';
 import { escapeHtml, escapeAttr } from '../../shared/dom.js';
 import { goTab } from '../../shared/navigation.js';
+import { ehAdmin, podeGerenciarTurmasInativas } from '../../shared/permissoes.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
 
 export function renderDash() {
@@ -10,42 +11,44 @@ export function renderDash() {
   const dados = ativos.map(a => calcAluno(a));
   const alertas = dados.filter(d => d.emAlerta).length;
   const irregulares = dados.filter(d => d.freq !== null && d.freq < 70).length;
-  const turmasAtivas = state.TURMAS.filter(t => t.ativa !== false);
-  const turmasInativas = state.TURMAS.filter(t => t.ativa === false);
+  // Para professor, state.TURMAS já vem sem nenhuma turma inativa
+  // (carregarTurmas() as descarta) — então turmasInativas fica vazia e a pill
+  // correspondente nem é desenhada. Ver turmasRepo.js.
+  const ativas = turmasAtivas();
+  const turmasInativas = state.TURMAS.filter(t => !turmaAtiva(t));
 
   document.getElementById('stats-area').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Turmas</div><div class="stat-val">${turmasAtivas.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Turmas</div><div class="stat-val">${ativas.length}</div></div>
     <div class="stat-card"><div class="stat-label">Alunos ativos</div><div class="stat-val">${ativos.length}</div></div>
     <div class="stat-card"><div class="stat-label">Irregulares (&lt;70%)</div><div class="stat-val amber">${irregulares}</div></div>
-    <div class="stat-card"><div class="stat-label">Alertas (3 seguidas)</div><div class="stat-val red">${alertas}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Alertas (3 últimas faltas)</div><div class="stat-val red">${alertas}</div></div>`;
 
-  const cursos = [...new Set(turmasAtivas.map(t => t.curso).filter(Boolean))];
+  const cursos = [...new Set(ativas.map(t => t.curso).filter(Boolean))];
 
-  const ehAdmin = state.perfilLogado?.papel === 'admin';
   // Professores não precisam acompanhar turmas encerradas — só admin vê essa pill/filtro.
-  if (!ehAdmin && state.filtroCurso === '__inativas__') state.filtroCurso = '';
+  if (!ehAdmin() && state.filtroCurso === '__inativas__') state.filtroCurso = '';
 
   // Vínculo de posse é sempre por professor_id (nunca por nome) — ver
   // professorNome() em backend/domain/status.js para o motivo.
-  const minhasTurmas = turmasAtivas.filter(t => t.professor_id === state.perfilLogado?.id);
+  const minhasTurmas = ativas.filter(t => t.professor_id === state.perfilLogado?.id);
   document.getElementById('curso-pills').innerHTML =
     `<button class="cpill ${state.filtroCurso === '' ? 'active' : ''}" onclick="setCurso('')">Todos</button>` +
     (minhasTurmas.length > 0
       ? `<button class="cpill ${state.filtroCurso === '__minhas__' ? 'active' : ''}" onclick="setCurso('__minhas__')">Suas Turmas<span class="cpill-count">${minhasTurmas.length}</span></button>`
       : '') +
     cursos.map(c => `<button class="cpill ${state.filtroCurso === c ? 'active' : ''}" onclick="setCurso('${escapeAttr(c)}')">${escapeHtml(c)}</button>`).join('') +
-    (ehAdmin
+    (ehAdmin()
       ? `<button class="cpill ${state.filtroCurso === '__inativas__' ? 'active' : ''}" onclick="setCurso('__inativas__')">Turmas inativas<span class="cpill-count">${turmasInativas.length}</span></button>`
       : '');
 
   const buscaTurma = (document.getElementById('busca-turmas')?.value || '').toLowerCase();
-  let filtradas = state.filtroCurso === '__inativas__' && ehAdmin
+  let filtradas = state.filtroCurso === '__inativas__' && ehAdmin()
     ? turmasInativas
     : state.filtroCurso === '__minhas__'
       ? minhasTurmas
       : state.filtroCurso
-        ? turmasAtivas.filter(t => t.curso === state.filtroCurso)
-        : turmasAtivas;
+        ? ativas.filter(t => t.curso === state.filtroCurso)
+        : ativas;
   if (buscaTurma) filtradas = filtradas.filter(t => t.turma.toLowerCase().includes(buscaTurma) || professorNome(t).toLowerCase().includes(buscaTurma));
   filtradas = filtradas.slice().sort((a, b) => {
     const da = ordemDia(a.turma), db = ordemDia(b.turma);
@@ -67,7 +70,7 @@ export function renderDash() {
         <div style="font-size:13px;font-weight:600;flex:1;color:var(--text);">${escapeHtml(t.turma)}</div>
         <div class="turma-card-actions">
           <button class="inline-edit-btn" title="Editar turma" aria-label="Editar turma" onclick="event.stopPropagation();abrirModalEditarTurma(${t.id})"><span class="icon-mask icon-editar"></span></button>
-          <button class="inline-edit-btn" title="${inativa ? 'Reativar turma' : 'Inativar turma'}" aria-label="${inativa ? 'Reativar turma' : 'Inativar turma'}" onclick="event.stopPropagation();toggleTurmaAtiva(event, ${t.id})">${inativa ? '<span class="icon-mask icon-ativar"></span>' : '<span class="icon-mask icon-pausa"></span>'}</button>
+          ${podeGerenciarTurmasInativas() ? `<button class="inline-edit-btn" title="${inativa ? 'Reativar turma' : 'Inativar turma'}" aria-label="${inativa ? 'Reativar turma' : 'Inativar turma'}" onclick="event.stopPropagation();toggleTurmaAtiva(event, ${t.id})">${inativa ? '<span class="icon-mask icon-ativar"></span>' : '<span class="icon-mask icon-pausa"></span>'}</button>` : ''}
         </div>
       </div>
       <div style="font-size:12px;color:var(--text-3);display:flex;flex-direction:column;gap:6px;">

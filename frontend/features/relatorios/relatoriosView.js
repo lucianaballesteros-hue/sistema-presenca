@@ -1,18 +1,23 @@
 import { state } from '../../state/store.js';
 import { calcAluno, aulasDaTurma } from '../../../backend/domain/attendance.js';
-import { statusInativo, freqBar, statusBadge, professorNome } from '../../../backend/domain/status.js';
+import { statusInativo, freqBar, statusBadge, professorNome, turmasAtivas, cursosAtivos } from '../../../backend/domain/status.js';
 import { escapeHtml, showToast } from '../../shared/dom.js';
 import { salvarPresenca, removerPresenca } from '../../../backend/api/presencasRepo.js';
-import { renderDash } from '../dashboard/dashboardView.js';
-import { renderTabelaAlunos, atualizarTurmasAlunos } from '../alunos/alunosTable.js';
+import { atualizarTurmasAlunos } from '../alunos/alunosTable.js';
+import { atualizarTelas } from '../../shared/refresh.js';
 
 // =============================================
 // FILTROS (selects simples + multi-select do relatório)
 // =============================================
+// Todo filtro desta tela (e o de curso da aba Alunos) enxerga só turmas
+// ativas — inclusive os filtros derivados (curso e professor), senão sobraria
+// como opção um curso ou um professor que só tem turma encerrada e o
+// relatório voltaria vazio. Ver turmasAtivas() em backend/domain/status.js.
 export function popularFiltros() {
   atualizarTurmasAlunos();
-  const cursos = [...new Set(state.TURMAS.map(t => t.curso).filter(Boolean))].sort();
-  const profs = [...new Set(state.TURMAS.map(t => professorNome(t)))].sort();
+  const turmas = turmasAtivas();
+  const cursos = cursosAtivos();
+  const profs = [...new Set(turmas.map(t => professorNome(t)))].sort();
 
   const elCursoAlunos = document.getElementById('f-curso-alunos');
   if (elCursoAlunos) {
@@ -22,7 +27,7 @@ export function popularFiltros() {
   popularMultiPanel('curso-multi-panel', 'curso-multi-btn', 'curso-multi-label', cursos.map(c => ({ value: c, label: c })));
   popularMultiPanel('prof-multi-panel', 'prof-multi-btn', 'prof-multi-label', profs.map(p => ({ value: p, label: p })));
   popularMultiPanel('turma-rel-multi-panel', 'turma-rel-multi-btn', 'turma-rel-multi-label',
-    state.TURMAS.map(t => ({ value: String(t.id), label: `${t.turma} (${t.curso || 'sem curso'})` }))
+    turmas.map(t => ({ value: String(t.id), label: `${t.turma} (${t.curso || 'sem curso'})` }))
   );
 }
 
@@ -71,7 +76,10 @@ export function renderRel() {
   const fTipos = getMultiSelecionados('tipo-multi-panel');
   const fTurmasRel = getMultiSelecionados('turma-rel-multi-panel');
   const fStatus = getMultiSelecionados('status-multi-panel');
-  let turmas = state.TURMAS;
+  // Mesma base dos filtros acima: turma encerrada não entra no relatório nem
+  // quando nenhum filtro está marcado — se ela não pode ser escolhida, não
+  // faria sentido ela aparecer sozinha no "Todos".
+  let turmas = turmasAtivas();
   if (fCursos.length > 0) turmas = turmas.filter(t => fCursos.includes(t.curso));
   if (fProfs.length > 0) turmas = turmas.filter(t => fProfs.includes(professorNome(t)));
   if (fTurmasRel.length > 0) turmas = turmas.filter(t => fTurmasRel.includes(String(t.id)));
@@ -196,7 +204,7 @@ export async function selecionarStatusDot(novoVal) {
     }
     if (saveError) throw saveError;
     showToast('Presença atualizada!', 'green');
-    renderRel(); renderDash(); renderTabelaAlunos();
+    atualizarTelas();
   } catch (err) {
     console.error('Erro ao salvar dot:', err);
     state.PRESENCAS[key][alunoId] = atual; // reverte

@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { calcAluno } from '../../../backend/domain/attendance.js';
-import { statusInativo, corBadge, professorNome, temaCurso, FOCOS_METRICAS } from '../../../backend/domain/status.js';
+import { statusInativo, corBadge, professorNome, temaCurso, turmaAtiva, FOCOS_METRICAS } from '../../../backend/domain/status.js';
 import { escapeHtml } from '../../shared/dom.js';
 import { lineChart, barChart, donutChart } from '../../shared/charts.js';
 
@@ -112,7 +112,7 @@ export function renderMetricas() {
 
   const ativos = alunosFoco.filter(a => a.ativo);
   const inativos = alunosFoco.filter(a => !a.ativo);
-  const turmasAtivas = turmasFoco.filter(t => t.ativa !== false);
+  const turmasAtivas = turmasFoco.filter(turmaAtiva);
   // Só cursos com pelo menos 1 turma ativa aparecem na comparação — um curso
   // 100% inativo não soma nada de útil pra visão "em tempo real" do dashboard.
   const cursos = [...new Set(turmasAtivas.map(t => t.curso).filter(Boolean))].sort();
@@ -243,7 +243,11 @@ export function renderMetricas() {
     `<div class="donut-legend">${segsAtivos.map(s => `<div class="donut-legend-item"><span class="donut-legend-dot" style="background:${s.color};"></span>${escapeHtml(s.label)}<b>${s.value}</b></div>`).join('')}</div>`;
 
   // ── AÇÃO NECESSÁRIA (alunos em alerta, acionável) ──────────────
-  const emAlertaOrdenado = emAlerta.slice().sort((a, b) => b.maxConsec - a.maxConsec);
+  // Ordena e rotula pela sequência de faltas EM ABERTO (consecAtual), não
+  // pelo recorde histórico (maxConsec) — o alerta é sobre quem está faltando
+  // agora, então mostrar "5 faltas" de uma sequência antiga já encerrada
+  // daria a dimensão errada do caso.
+  const emAlertaOrdenado = emAlerta.slice().sort((a, b) => b.consecAtual - a.consecAtual);
   document.getElementById('metr-alertas').innerHTML = emAlertaOrdenado.length > 0
     ? `<div class="alert-list">${emAlertaOrdenado.map(a => {
         const t = turmasFoco.find(tt => tt.id === a.turma_id);
@@ -254,7 +258,7 @@ export function renderMetricas() {
             <div class="alert-row-turma">${escapeHtml(t?.turma) || '—'}${t ? ' · ' + (escapeHtml(t.curso) || 'sem curso') : ''}</div>
           </div>
           <div class="alert-row-meta">
-            <span class="badge badge-red">${a.maxConsec} faltas</span>
+            <span class="badge badge-red">${a.consecAtual} faltas seguidas</span>
             <span style="font-size:10px;color:var(--text-faded);">freq ${a.freq !== null ? a.freq + '%' : '—'}</span>
           </div>
         </div>`;

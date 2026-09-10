@@ -3,8 +3,7 @@ import { aulasDaTurma, registroPorAulaDaTurma } from '../../../backend/domain/at
 import { professorNome, logoCurso } from '../../../backend/domain/status.js';
 import { escapeHtml, escapeAttr, showToast } from '../../shared/dom.js';
 import { salvarPresenca, removerPresenca } from '../../../backend/api/presencasRepo.js';
-import { renderDash } from '../dashboard/dashboardView.js';
-import { renderTabelaAlunos } from '../alunos/alunosTable.js';
+import { atualizarTelas } from '../../shared/refresh.js';
 
 export function abrirChamada(tId) {
   state.turmaAtual = state.TURMAS.find(t => t.id === tId);
@@ -173,8 +172,9 @@ export async function marcar(alunoId, val) {
       await removerPresenca(state.turmaAtual.id, alunoId, aula);
     }
     if (statusEl) { statusEl.textContent = '✓ Salvo'; setTimeout(() => { statusEl.textContent = ''; }, 1500); }
-    renderDash();
-    renderTabelaAlunos();
+    // A própria lista da chamada já foi atualizada linha a linha acima (sem
+    // redesenhar, pra preservar a animação do indicador) — por isso chamada:false.
+    atualizarTelas({ chamada: false });
   } catch (err) {
     console.error('Erro ao salvar presença:', err);
     if (statusEl) statusEl.textContent = '';

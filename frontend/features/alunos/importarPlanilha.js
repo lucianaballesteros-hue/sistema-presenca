@@ -1,12 +1,11 @@
 import { state } from '../../state/store.js';
+import { turmasAtivas, cursosAtivos } from '../../../backend/domain/status.js';
 import { escapeHtml, showToast, fecharModal } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
 import { alunoJaExiste, normalizarNome as normalizarTexto } from '../../shared/duplicados.js';
 import { inserirAluno } from '../../../backend/api/alunosRepo.js';
 import { registrarMovimentacao } from '../../../backend/api/historicoRepo.js';
-import { renderTabelaAlunos } from './alunosTable.js';
-import { renderDash } from '../dashboard/dashboardView.js';
-import { renderRel, popularFiltros } from '../relatorios/relatoriosView.js';
+import { atualizarTelas } from '../../shared/refresh.js';
 
 // A biblioteca xlsx é carregada via <script> global no index.html (sem passo
 // de build neste projeto) — mesma dependência já usada em exportExcel.js,
@@ -17,15 +16,6 @@ let linhasImportacao = [];
 // qual curso é (ex: aba "Alunos Master" — "alunos" não diz nada).
 const PALAVRAS_GENERICAS = ['alunos', 'aluno', 'turma', 'turmas', 'planilha', 'lista', 'curso', 'pagina'];
 
-function turmasAtivas() {
-  return state.TURMAS.filter(t => t.ativa !== false);
-}
-
-// Cursos disponíveis pro filtro — só os que têm ao menos uma turma ativa.
-function cursosDisponiveis() {
-  return [...new Set(turmasAtivas().map(t => t.curso).filter(Boolean))].sort();
-}
-
 // O curso pode vir de duas formas na planilha: uma coluna com "curso" no
 // cabeçalho (valor por linha, mais preciso) ou o nome da aba (ex: "Alunos
 // Master"). Aqui tenta achar, entre as turmas ativas, um curso que bata com
@@ -33,7 +23,7 @@ function cursosDisponiveis() {
 function resolverCursoUnico(cursoTexto) {
   const alvo = normalizarTexto(cursoTexto);
   if (!alvo) return '';
-  const cursos = cursosDisponiveis();
+  const cursos = cursosAtivos();
 
   const exato = cursos.find(c => normalizarTexto(c) === alvo);
   if (exato) return exato;
@@ -164,7 +154,7 @@ function renderModalImportacao() {
     (duplicados ? ` · ${duplicados} possivelmente já cadastrado(s)` : '');
 
   const selectStyle = 'width:100%;padding:6px 8px;border:1px solid var(--border-input);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text);';
-  const cursos = cursosDisponiveis();
+  const cursos = cursosAtivos();
 
   document.getElementById('imp-tbody').innerHTML = linhasImportacao.map((l, i) => {
     const duplicado = l.turmaId && alunoJaExiste(l.nome);
@@ -254,5 +244,5 @@ export async function confirmarImportacaoPlanilha() {
   linhasImportacao = [];
   fecharModal('modal-importar-planilha');
   showToast(erro ? `${sucesso} aluno(s) importado(s), ${erro} com erro.` : `${sucesso} aluno(s) importado(s) com sucesso!`, erro ? 'red' : 'green');
-  renderTabelaAlunos(); renderDash(); renderRel(); popularFiltros();
+  atualizarTelas({ filtros: true });
 }

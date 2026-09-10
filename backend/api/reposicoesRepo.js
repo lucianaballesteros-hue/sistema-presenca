@@ -49,16 +49,48 @@ export async function criarReposicao({ alunoId, turmaOrigemId, aula, criadoPor, 
 // Apaga TODAS as reposições (e respectivas opções) de um aluno — usado só na
 // exclusão permanente do aluno (configuracoesView.js). reposicao_opcoes não
 // tem aluno_id direto, então precisa passar por reposicoes primeiro.
+//
+// As duas tabelas apontam uma pra outra: `reposicao_opcoes.reposicao_id` ->
+// `reposicoes.id`, e `reposicoes.opcao_escolhida_id` -> `reposicao_opcoes.id`
+// (preenchida quando o aluno confirma um horário pelo link público). Esse
+// ciclo travava a exclusão nos dois sentidos: apagar a opção primeiro esbarra
+// na reposição que ainda aponta pra ela, e apagar a reposição primeiro
+// esbarra nas opções que ainda apontam pra ela. Era exatamente isso que
+// impedia excluir um aluno que já tinha reposição agendada/concluída (as
+// "abertas", sem escolha feita, passavam) — o DELETE do aluno vinha depois e
+// morria com erro de chave estrangeira. Por isso o passo zero aqui é soltar a
+// escolha (`opcao_escolhida_id = null`): sem o ciclo, a ordem
+// opções -> reposições passa limpo.
 export async function excluirReposicoesDeAluno(alunoId) {
   const { data: reps, error: errSel } = await sb.from('reposicoes').select('id').eq('aluno_id', alunoId);
   if (errSel) return { error: errSel };
   const ids = (reps || []).map(r => r.id);
   if (!ids.length) return { error: null };
 
-  const { error: errOpc } = await sb.from('reposicao_opcoes').delete().in('reposicao_id', ids);
-  if (errOpc) return { error: errOpc };
+  const { error: errSolta } = await sb.from('reposicoes').update({ opcao_escolhida_id: null }).eq('aluno_id', alunoId);
+  if (errSolta) return { error: errSolta };
 
-  return sb.from('reposicoes').delete().eq('aluno_id', alunoId);
+  // Mesmo padrão .select() dos outros DELETEs do projeto: RLS que bloqueia um
+  // DELETE não devolve erro, devolve sucesso com data vazio (ver
+  // erroSeNadaApagado em configuracoesView.js). Sem essa checagem, um bloqueio
+  // aqui reapareceria lá na frente como um erro de chave estrangeira do DELETE
+  // do aluno — mensagem que não diz nada pra quem está usando o sistema.
+  const { data: opcoes, error: errOpcSel } = await sb.from('reposicao_opcoes').select('id').in('reposicao_id', ids);
+  if (errOpcSel) return { error: errOpcSel };
+  if (opcoes?.length) {
+    const { data: opcoesApagadas, error: errOpc } = await sb.from('reposicao_opcoes').delete().in('reposicao_id', ids).select();
+    if (errOpc) return { error: errOpc };
+    if (!opcoesApagadas?.length) {
+      return { error: { message: 'As opções de reposição deste aluno não puderam ser apagadas — as permissões do banco (RLS) bloquearam.' } };
+    }
+  }
+
+  const { data: repsApagadas, error: errRep } = await sb.from('reposicoes').delete().eq('aluno_id', alunoId).select();
+  if (errRep) return { error: errRep };
+  if (!repsApagadas?.length) {
+    return { error: { message: 'As reposições deste aluno não puderam ser apagadas — as permissões do banco (RLS) bloquearam.' } };
+  }
+  return { error: null };
 }
 
 export async function cancelarReposicao(id) {

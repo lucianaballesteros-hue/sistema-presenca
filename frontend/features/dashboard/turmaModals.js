@@ -4,12 +4,10 @@ import { atualizarAlunosEmLote } from '../../../backend/api/alunosRepo.js';
 import { registrarMovimentacoesEmLote, carregarHistorico } from '../../../backend/api/historicoRepo.js';
 import { showToast, fecharModal, escapeHtml } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
-import { renderDash } from './dashboardView.js';
-import { renderRel, popularFiltros } from '../relatorios/relatoriosView.js';
-import { renderTabelaAlunos } from '../alunos/alunosTable.js';
+import { podeGerenciarTurmasInativas } from '../../shared/permissoes.js';
+import { atualizarTelas } from '../../shared/refresh.js';
 import { AULAS } from '../../../backend/domain/attendance.js';
 import { renderOpcoesCurso } from './cursoModals.js';
-import { renderConfiguracoes } from '../configuracoes/configuracoesView.js';
 
 export const TURMA_CORES = ['#3b82f6', '#059669', '#7c3aed', '#db2777', '#d97706', '#0891b2', '#dc2626', '#65a30d'];
 
@@ -17,6 +15,13 @@ const MARCA_INATIVACAO_AUTO = 'Aluno inativado automaticamente (turma inativada)
 const MARCA_REATIVACAO_AUTO = 'Aluno reativado automaticamente (turma reativada)';
 
 export async function toggleTurmaAtiva(e, tId) {
+  // Encerrar (ou reabrir) uma turma é decisão de coordenação: o botão nem é
+  // desenhado pra professor, mas a checagem fica aqui também porque a função
+  // é global (window.*) e continua alcançável por outro caminho.
+  if (!podeGerenciarTurmasInativas()) {
+    showToast('Só um admin pode inativar ou reativar turmas.', 'red');
+    return;
+  }
   const t = state.TURMAS.find(x => x.id === tId);
   if (!t) return;
   // Captura o botão ANTES do await confirmar() — event.currentTarget só é
@@ -80,7 +85,9 @@ export async function toggleTurmaAtiva(e, tId) {
 
   await carregarHistorico();
   showToast(novoStatus ? 'Turma reativada!' : 'Turma inativada.');
-  renderDash(); renderRel();
+  // Inativar/reativar turma mexe em todos os alunos dela — precisa atualizar
+  // tudo que estiver à vista, inclusive a chamada aberta dessa mesma turma.
+  atualizarTelas({ filtros: true });
 }
 
 // =============================================
@@ -235,8 +242,7 @@ export async function salvarNovaTurma() {
   state.TURMAS.push(data);
   fecharModal('modal-nova-turma');
   showToast(`Turma "${nome}" criada com sucesso!`);
-  popularFiltros();
-  renderDash();
+  atualizarTelas({ filtros: true });
 }
 
 // =============================================
@@ -324,6 +330,5 @@ export async function salvarEditarTurma() {
 
   fecharModal('modal-editar-turma');
   showToast('Turma atualizada!');
-  popularFiltros();
-  renderDash(); renderTabelaAlunos(); renderRel(); renderConfiguracoes();
+  atualizarTelas({ filtros: true });
 }

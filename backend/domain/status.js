@@ -59,6 +59,33 @@ export function statusInativo(alunoId) {
   return d?.includes('cancelad') ? 'cancelado' : 'inativo';
 }
 
+// Turma inativa = turma encerrada. A regra do sistema é: ela NUNCA aparece
+// em filtro, seletor ou busca — nem no select "selecionar turma", nem nos
+// multiselects do relatório, nem nas pills de curso, nem nas sugestões de
+// reposição/transferência. Os dois únicos lugares que ainda mostram turma
+// inativa são telas de gerenciamento, ambas restritas a admin: a pill
+// "Turmas inativas" do Dashboard (usada pra reativar) e a lista de exclusão
+// em Configurações. Para professor a turma inativa nem chega ao navegador —
+// carregarTurmas() já a descarta (ver turmasRepo.js).
+//
+// O teste é sempre `!== false`, nunca `=== true`: turmas criadas antes da
+// coluna `ativa` existir vêm com null e são consideradas ativas.
+export function turmaAtiva(turma) {
+  return turma?.ativa !== false;
+}
+
+// Fonte única das turmas que podem aparecer em qualquer filtro do sistema.
+export function turmasAtivas() {
+  return state.TURMAS.filter(turmaAtiva);
+}
+
+// Cursos que ainda têm ao menos uma turma ativa — um curso 100% encerrado
+// não deve sobrar em filtro nenhum, senão vira uma opção que nunca devolve
+// resultado.
+export function cursosAtivos() {
+  return [...new Set(turmasAtivas().map(t => t.curso).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
 export function ordemDia(nomeTurma) {
   const dias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   const idx = dias.findIndex(d => (nomeTurma || '').includes(d));

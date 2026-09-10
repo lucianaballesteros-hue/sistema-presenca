@@ -13,9 +13,7 @@ import { excluirAluno } from '../../../backend/api/alunosRepo.js';
 import { excluirPresencasDeAluno } from '../../../backend/api/presencasRepo.js';
 import { excluirHistoricoDeAluno } from '../../../backend/api/historicoRepo.js';
 import { excluirReposicoesDeAluno } from '../../../backend/api/reposicoesRepo.js';
-import { renderDash } from '../dashboard/dashboardView.js';
-import { renderTabelaAlunos } from '../alunos/alunosTable.js';
-import { renderRel, popularFiltros } from '../relatorios/relatoriosView.js';
+import { atualizarTelas } from '../../shared/refresh.js';
 
 const TIPO_LABEL = { curso: 'Curso', turma: 'Turma', aluno: 'Aluno' };
 
@@ -212,8 +210,7 @@ export async function salvarEdicaoCurso() {
   btn.textContent = 'Salvar alterações';
   fecharModal('modal-editar-curso');
   showToast(`Curso renomeado para "${nomeNovo}"${turmasAfetadas.length ? ` — ${turmasAfetadas.length} turma(s) atualizada(s)` : ''}.`);
-  renderDash(); renderTabelaAlunos(); renderRel(); popularFiltros();
-  renderConfiguracoes();
+  atualizarTelas({ filtros: true });
 }
 
 function linhaTurma(t) {
@@ -411,16 +408,27 @@ export async function confirmarExclusaoConfig() {
     state.CURSOS = state.CURSOS.filter(c => c.id !== item.id);
   } else if (item.tipo === 'turma') {
     state.TURMAS = state.TURMAS.filter(t => t.id !== item.id);
+    // Se a chamada dessa turma estiver aberta (mesmo escondida atrás de outra
+    // aba), ela precisa esquecer a turma que acabou de deixar de existir —
+    // senão o próximo redesenho montaria a tela de uma turma fantasma.
+    if (state.turmaAtual?.id === item.id) {
+      state.turmaAtual = null;
+      document.getElementById('chamada-view').style.display = 'none';
+      document.getElementById('dash-view').style.display = 'block';
+    }
   } else {
     state.ALUNOS = state.ALUNOS.filter(a => a.id !== item.id);
     state.HISTORICO = state.HISTORICO.filter(h => h.aluno_id !== item.id);
     Object.values(state.PRESENCAS).forEach(doAula => { delete doAula[item.id]; });
+    // A aba Reposições recarrega do banco toda vez que é aberta, mas o cache
+    // local pode estar em memória agora — tira as linhas do aluno excluído
+    // pra ela não mostrar uma reposição órfã se for redesenhada antes disso.
+    if (state.REPOSICOES) state.REPOSICOES = state.REPOSICOES.filter(r => r.aluno_id !== item.id);
   }
 
   btn.textContent = 'Excluir permanentemente';
   fecharModal('modal-excluir-item');
   itemPendente = null;
   showToast(`${TIPO_LABEL[item.tipo]} "${item.nome}" excluído(a) permanentemente.`, 'red');
-  renderDash(); renderTabelaAlunos(); renderRel(); popularFiltros();
-  renderConfiguracoes();
+  atualizarTelas({ filtros: true });
 }

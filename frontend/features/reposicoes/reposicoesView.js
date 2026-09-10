@@ -6,9 +6,7 @@ import {
   assinarMudancasReposicoes, buscarOpcaoReposicao,
 } from '../../../backend/api/reposicoesRepo.js';
 import { salvarPresenca } from '../../../backend/api/presencasRepo.js';
-import { renderDash } from '../dashboard/dashboardView.js';
-import { renderTabelaAlunos } from '../alunos/alunosTable.js';
-import { renderRel } from '../relatorios/relatoriosView.js';
+import { atualizarTelas } from '../../shared/refresh.js';
 
 const STATUS_INFO = {
   aberta: { label: 'Aguardando escolha', cls: 'rep-pill-aguardando' },
@@ -170,9 +168,6 @@ export async function concluirReposicaoAcao(e, id) {
   if (errStatus) { showToast('Presença gravada, mas houve erro ao marcar o caso como concluído.', 'red'); }
   r.status = 'concluida';
 
-  aplicarFiltroReposicoes();
-  renderDash();
-  renderTabelaAlunos();
-  renderRel();
+  atualizarTelas();
   showToast('Reposição concluída!');
 }

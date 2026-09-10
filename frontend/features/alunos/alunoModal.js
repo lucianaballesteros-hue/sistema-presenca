@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { AULAS, calcAluno, aulasDaTurma } from '../../../backend/domain/attendance.js';
-import { statusBadge, professorNome, ordemDia, corBadge } from '../../../backend/domain/status.js';
+import { statusBadge, professorNome, ordemDia, corBadge, turmasAtivas } from '../../../backend/domain/status.js';
 import { escapeHtml, escapeAttr, showToast, fecharModal } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
 import { alunoJaExiste } from '../../shared/duplicados.js';
@@ -8,12 +8,9 @@ import { inserirAluno, atualizarAluno } from '../../../backend/api/alunosRepo.js
 import { registrarMovimentacao } from '../../../backend/api/historicoRepo.js';
 import { moverPresencasDeTurma } from '../../../backend/api/presencasRepo.js';
 import { carregarObservacoes } from './observacoes.js';
-import { renderTabelaAlunos } from './alunosTable.js';
-import { renderDash } from '../dashboard/dashboardView.js';
-import { renderRel } from '../relatorios/relatoriosView.js';
 import { abrirChamada, selecionarAula } from '../chamada/chamadaView.js';
 import { goTab } from '../../shared/navigation.js';
-import { renderConfiguracoes } from '../configuracoes/configuracoesView.js';
+import { atualizarTelas } from '../../shared/refresh.js';
 
 export function abrirModalAluno(id) {
   state.alunoSelecionadoId = id;
@@ -117,7 +114,7 @@ export async function toggleInativo() {
   a.ativo = novoStatus;
   fecharModal('modal-aluno');
   showToast(novoStatus ? 'Aluno(a) reativado.' : 'Aluno(a) inativado.');
-  renderTabelaAlunos(); renderDash();
+  atualizarTelas();
 }
 
 export async function toggleExperimental() {
@@ -128,7 +125,7 @@ export async function toggleExperimental() {
   a.experimental = novoStatus;
   fecharModal('modal-aluno');
   showToast(novoStatus ? 'Aluno(a) marcado como experimental.' : 'Aluno(a) agora está matriculado.');
-  renderTabelaAlunos(); renderDash(); renderRel();
+  atualizarTelas();
 }
 
 export async function cancelarMatricula() {
@@ -147,7 +144,7 @@ export async function cancelarMatricula() {
   a.ativo = false;
   fecharModal('modal-aluno');
   showToast('Matrícula cancelada.', 'red');
-  renderTabelaAlunos(); renderDash();
+  atualizarTelas();
 }
 
 // Mesmo efeito de cancelarMatricula() (ativo:false) mas com uma descrição de
@@ -170,7 +167,7 @@ export async function removerExperimental() {
   a.ativo = false;
   fecharModal('modal-aluno');
   showToast('Aluno(a) experimental removido(a).', 'red');
-  renderTabelaAlunos(); renderDash();
+  atualizarTelas();
 }
 
 // `id` é opcional: quando chamado a partir do menu do modal do aluno (que já
@@ -200,14 +197,16 @@ export async function salvarEdicao() {
   a.nome = novoNome;
   fecharModal('modal-editar');
   showToast('Nome atualizado!');
-  renderTabelaAlunos(); renderDash(); renderConfiguracoes();
+  atualizarTelas();
 }
 
 export function abrirModalTransferir() {
   const a = state.ALUNOS.find(x => x.id === state.alunoSelecionadoId);
   const t = state.TURMAS.find(x => x.id === a.turma_id);
   document.getElementById('transf-info').innerHTML = `<strong>${escapeHtml(a.nome)}</strong><br><span style="color:var(--text-3);">Turma atual: ${escapeHtml(t?.turma)} · ${escapeHtml(t?.curso)} · Prof. ${escapeHtml(professorNome(t))}</span>`;
-  const outras = state.TURMAS.filter(x => x.id !== a.turma_id);
+  // Só turmas ativas como destino — transferir aluno pra turma encerrada
+  // seria mandá-lo pra uma turma que não tem mais aula.
+  const outras = turmasAtivas().filter(x => x.id !== a.turma_id);
   document.getElementById('transf-sel').innerHTML = outras.map(x => `<option value="${x.id}">${escapeHtml(x.turma)} — ${escapeHtml(x.curso) || 'sem curso'} (Prof. ${escapeHtml(professorNome(x))})</option>`).join('');
   const btnConfirmar = document.getElementById('transf-btn-confirmar');
   btnConfirmar.disabled = false;
@@ -263,7 +262,7 @@ export async function confirmarTransferencia() {
   a.turma_id = novoTId;
   fecharModal('modal-transferir');
   showToast(`${a.nome} transferido para ${tNova?.turma}!`, 'blue');
-  renderTabelaAlunos(); renderDash(); renderRel();
+  atualizarTelas();
 }
 
 // Mesma ordenação usada na grade de turmas do Dashboard (dia da semana, depois
@@ -271,7 +270,7 @@ export async function confirmarTransferencia() {
 // lista visível do seletor de busca precisam da mesma ordem, senão a opção
 // pré-selecionada ao abrir o modal não bate com o topo da lista.
 function turmasNovoAlunoOrdenadas() {
-  return state.TURMAS.filter(t => t.ativa !== false).slice().sort((a, b) => {
+  return turmasAtivas().slice().sort((a, b) => {
     const da = ordemDia(a.turma), db = ordemDia(b.turma);
     if (da !== db) return da - db;
     return a.turma.localeCompare(b.turma, 'pt-BR');
@@ -413,5 +412,5 @@ export async function salvarNovoAluno() {
   state.ALUNOS.push(data);
   fecharModal('modal-novo');
   showToast(`${nome} adicionado com sucesso!`);
-  renderTabelaAlunos(); renderDash();
+  atualizarTelas();
 }

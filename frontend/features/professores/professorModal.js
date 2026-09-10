@@ -2,10 +2,7 @@ import { state } from '../../state/store.js';
 import { isEmailValido } from '../../shared/validators.js';
 import { showToast, fecharModal } from '../../shared/dom.js';
 import { criarContaAuth, criarPerfilProfessor, atualizarProfessor, enviarResetSenha as enviarResetSenhaRepo } from '../../../backend/api/professoresRepo.js';
-import { renderProfessores } from './professoresView.js';
-import { popularFiltros, renderRel } from '../relatorios/relatoriosView.js';
-import { renderDash } from '../dashboard/dashboardView.js';
-import { renderTabelaAlunos } from '../alunos/alunosTable.js';
+import { atualizarTelas } from '../../shared/refresh.js';
 
 export function abrirModalNovoProf() {
   document.getElementById('np-nome').value = '';
@@ -68,8 +65,7 @@ export async function salvarNovoProf() {
     state.PROFESSORES.push(profData);
     fecharModal('modal-novo-prof');
     showToast(`Professor ${nome} criado com sucesso!`);
-    renderProfessores();
-    popularFiltros();
+    atualizarTelas({ filtros: true });
 
   } catch (err) {
     console.error('Erro ao criar professor:', err);
@@ -126,7 +122,7 @@ export async function salvarEdicaoProf() {
 
   fecharModal('modal-editar-prof');
   showToast('Professor atualizado!');
-  renderProfessores(); renderDash(); renderTabelaAlunos(); renderRel();
+  atualizarTelas({ filtros: true });
 }
 
 export async function enviarResetSenha() {

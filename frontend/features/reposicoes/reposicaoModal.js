@@ -1,6 +1,6 @@
 import { state } from '../../state/store.js';
 import { aulasDaTurma, calcAluno, ultimaAulaRegistrada, proximaAula, proximaDataTurma } from '../../../backend/domain/attendance.js';
-import { professorNome } from '../../../backend/domain/status.js';
+import { professorNome, turmaAtiva, turmasAtivas } from '../../../backend/domain/status.js';
 import { escapeHtml, escapeAttr, showToast, fecharModal } from '../../shared/dom.js';
 import { criarReposicao } from '../../../backend/api/reposicoesRepo.js';
 import { renderReposicoes } from './reposicoesView.js';
@@ -54,7 +54,7 @@ export function renderSugestoesReposicao() {
   const jaUsadas = new Set(opcoesTemp.map(o => String(o.turmaDestinoId)).filter(Boolean));
 
   const sugestoes = state.TURMAS
-    .filter(t => t.id !== turmaOrigem.id && t.curso === turmaOrigem.curso && t.ativa !== false)
+    .filter(t => t.id !== turmaOrigem.id && t.curso === turmaOrigem.curso && turmaAtiva(t))
     .filter(t => !jaUsadas.has(String(t.id)))
     .filter(t => proximaAula(t) === aulaFaltada)
     .map(t => ({ turma: t, data: proximaDataTurma(t) }))
@@ -84,8 +84,10 @@ export function usarSugestaoReposicao(turmaId, data) {
   renderSugestoesReposicao();
 }
 
+// Só turmas ativas podem receber uma reposição — a turma precisa continuar
+// dando aula pro aluno ter onde repor.
 function turmaOptionsHtml(selectedId) {
-  return state.TURMAS.map(t =>
+  return turmasAtivas().map(t =>
     `<option value="${t.id}" ${String(t.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(t.turma)} — ${escapeHtml(t.curso) || 'sem curso'} (Prof. ${escapeHtml(professorNome(t))})</option>`
   ).join('');
 }
