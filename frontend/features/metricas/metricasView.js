@@ -352,7 +352,7 @@ export function renderMetricas() {
           <div class="activity-row-rail"><div class="activity-dot" style="background:${cor};"></div><div class="activity-line"></div></div>
           <div class="activity-body">
             <div class="activity-desc">${aluno ? `<b>${escapeHtml(aluno.nome)}</b> — ` : ''}${escapeHtml(h.descricao || '')}</div>
-            <div class="activity-time">${new Date(h.created_at).toLocaleDateString('pt-BR')}</div>
+            <div class="activity-time">${new Date(h.created_at).toLocaleDateString('pt-BR')}${h.usuario_nome ? ` · por ${escapeHtml(h.usuario_nome)}` : ''}</div>
           </div>
         </div>`;
       }).join('')}</div>`

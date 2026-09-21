@@ -36,10 +36,12 @@ export function abrirModalAluno(id) {
     return `<div class="aula-chip"${clique}>${i + 1}</div>`;
   }).join('') : `<div style="font-size:12px;color:var(--text-faded);">Nenhuma aula registrada ainda.</div>`;
 
+  // `usuario_nome` fica vazio nas linhas gravadas antes de existir o registro
+  // de autor (sql/historico_autor.sql) — nelas não há o que mostrar.
   const hist = state.HISTORICO.filter(h => h.aluno_id === id);
   document.getElementById('ma-hist').innerHTML = hist.length ? `
     <div style="font-size:12px;color:var(--text-3);margin-bottom:.5rem;font-weight:500;">Histórico de movimentações</div>
-    ${hist.map(h => `<div class="hist-item"><span style="font-size:10px;color:var(--text-faded);width:80px;flex-shrink:0;">${new Date(h.created_at).toLocaleDateString('pt-BR')}</span><span>${escapeHtml(h.descricao)}</span></div>`).join('')}` : '';
+    ${hist.map(h => `<div class="hist-item"><span style="font-size:10px;color:var(--text-faded);width:80px;flex-shrink:0;">${new Date(h.created_at).toLocaleDateString('pt-BR')}</span><div><div>${escapeHtml(h.descricao)}</div>${h.usuario_nome ? `<div style="font-size:11px;color:var(--text-faded);margin-top:2px;">por ${escapeHtml(h.usuario_nome)}</div>` : ''}</div></div>`).join('')}` : '';
 
   const obsTexto = document.getElementById('obs-texto');
   if (obsTexto) obsTexto.value = '';

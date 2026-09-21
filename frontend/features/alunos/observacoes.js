@@ -24,7 +24,8 @@ export async function carregarObservacoes(alunoId) {
     const d = h.data_obs ? new Date(h.data_obs + 'T00:00:00').toLocaleDateString('pt-BR') : new Date(h.created_at).toLocaleDateString('pt-BR');
     const cat = OBS_CATEGORIAS.find(c => c.id === h.categoria);
     const catBadge = cat ? `<span class="badge ${cat.badge}" style="font-size:10px;margin-left:6px;">${cat.icon} ${cat.label}</span>` : '';
-    return '<div style="padding:6px 0;border-bottom:1px solid var(--border-2);font-size:12px;color:var(--text);"><div style="display:flex;align-items:center;flex-wrap:wrap;margin-bottom:3px;"><span style="color:var(--text-faded);font-size:11px;">' + d + '</span>' + catBadge + '</div><div>' + escapeHtml(h.descricao) + '</div></div>';
+    const autor = h.usuario_nome ? `<span style="color:var(--text-faded);font-size:11px;margin-left:auto;padding-left:6px;">por ${escapeHtml(h.usuario_nome)}</span>` : '';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border-2);font-size:12px;color:var(--text);"><div style="display:flex;align-items:center;flex-wrap:wrap;margin-bottom:3px;"><span style="color:var(--text-faded);font-size:11px;">' + d + '</span>' + catBadge + autor + '</div><div>' + escapeHtml(h.descricao) + '</div></div>';
   }).join('');
 }
 
