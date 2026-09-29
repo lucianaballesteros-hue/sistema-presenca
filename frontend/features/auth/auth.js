@@ -14,44 +14,6 @@ import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
 import { iniciarNotificacoesReposicoes } from '../reposicoes/reposicoesView.js';
 
-let autoLoginTimer = null;
-
-// Login automático quando o navegador preenche e-mail/senha sozinho
-// (autofill do gerenciador de senhas). Espera os campos ficarem estáveis por
-// 400ms antes de logar — evita disparar no meio da digitação manual (ex.:
-// com a senha ainda incompleta). Nunca dispara durante a tela de
-// recuperação/troca de senha (estaEmRecuperacaoSenha()), mesmo que os campos
-// escondidos do login ainda tenham valor — é o mesmo tipo de corrida que já
-// causava as duas telas aparecerem juntas.
-function agendarAutoLogin() {
-  clearTimeout(autoLoginTimer);
-  if (estaEmRecuperacaoSenha()) return;
-  // Os campos de e-mail/senha continuam no DOM (só escondidos) depois do
-  // login, e o gerenciador de senhas do navegador pode re-preenchê-los
-  // sozinho a qualquer momento (ex.: ao focar outro campo em algum modal),
-  // disparando este listener de novo. Sem essa checagem, isso chamava
-  // doLogin() -> inicializarApp() no meio do uso normal do app, recarregando
-  // tudo e reabrindo a tela cheia de "Carregando..." sem o usuário ter feito
-  // login de fato. Só faz sentido auto-logar enquanto a tela de login está
-  // realmente visível.
-  if (document.getElementById('login-page').style.display === 'none') return;
-  const email = document.getElementById('inp-email').value.trim();
-  const senha = document.getElementById('inp-senha').value;
-  if (!email || !senha) return;
-  autoLoginTimer = setTimeout(() => {
-    const aindaEmail = document.getElementById('inp-email').value.trim();
-    const aindaSenha = document.getElementById('inp-senha').value;
-    if (aindaEmail === email && aindaSenha === senha && !estaEmRecuperacaoSenha()) {
-      doLogin();
-    }
-  }, 400);
-}
-
-export function wireAutoLogin() {
-  document.getElementById('inp-email').addEventListener('input', agendarAutoLogin);
-  document.getElementById('inp-senha').addEventListener('input', agendarAutoLogin);
-}
-
 export async function doLogin() {
   const email = document.getElementById('inp-email').value.trim();
   const senha = document.getElementById('inp-senha').value;
@@ -88,9 +50,7 @@ export async function doLogout() {
 
 // Evita que duas chamadas concorrentes carreguem os dados em paralelo — ex.:
 // restoreSession() ainda está esperando getSession() responder quando o
-// gerenciador de senhas do navegador preenche os campos escondidos do login
-// e agendarAutoLogin() dispara doLogin() sozinho, ou o usuário reabre a aba
-// duas vezes rápido. Cada carregarX() é uma função independente sem noção
+// usuário já clica em "Entrar", ou o usuário reabre a aba duas vezes rápido. Cada carregarX() é uma função independente sem noção
 // da outra chamada em andamento, então duas em paralelo duplicavam alunos
 // (e arriscavam duplicar turmas/cursos) até a página ser recarregada — às
 // vezes de forma permanente, se a corrida também alcançava um INSERT (ver

@@ -16,7 +16,7 @@ import { enhanceSelect } from './shared/customSelect.js';
 import { onLineChartMove, onLineChartLeave, onBarHover, onDonutHover, hideChartTooltip } from './shared/charts.js';
 
 import { toggleTema } from './features/theme/theme.js';
-import { doLogin, doLogout, restoreSession, wireAutoLogin } from './features/auth/auth.js';
+import { doLogin, doLogout, restoreSession } from './features/auth/auth.js';
 import { abrirRecuperarSenha, voltarParaLogin, enviarLinkRecuperacao, salvarNovaSenhaRecuperacao } from './features/auth/recovery.js';
 
 import { renderDash, setCurso, irParaAlertas } from './features/dashboard/dashboardView.js';
@@ -146,4 +146,3 @@ document.addEventListener('click', (e) => {
 // Retoma sessão existente (se houver) e liga o aviso de nova versão publicada.
 restoreSession();
 startUpdateNotifier();
-wireAutoLogin();
