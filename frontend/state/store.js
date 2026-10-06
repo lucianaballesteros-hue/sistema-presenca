@@ -9,6 +9,9 @@ export const state = {
   HISTORICO: [],
   PROFESSORES: [],
   CURSOS: [],
+  // Carregado já no login (não só ao abrir a aba Reposições): a chamada
+  // precisa saber quem vem repor aula em cada turma.
+  REPOSICOES: [],
 
   usuarioLogado: null,
   perfilLogado: null,

@@ -31,6 +31,10 @@ export async function salvarPresenca(turmaId, alunoId, aula, status) {
   );
 }
 
+export async function buscarPresenca(turmaId, alunoId, aula) {
+  return sb.from('presencas').select('status').eq('turma_id', turmaId).eq('aluno_id', alunoId).eq('aula', aula).maybeSingle();
+}
+
 export async function removerPresenca(turmaId, alunoId, aula) {
   return sb.from('presencas').delete().eq('turma_id', turmaId).eq('aluno_id', alunoId).eq('aula', aula);
 }

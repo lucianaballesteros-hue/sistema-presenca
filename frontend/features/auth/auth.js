@@ -9,6 +9,7 @@ import { carregarPresencas } from '../../../backend/api/presencasRepo.js';
 import { carregarHistorico } from '../../../backend/api/historicoRepo.js';
 import { carregarProfessores } from '../../../backend/api/professoresRepo.js';
 import { carregarCursos, sincronizarCursosComTurmas } from '../../../backend/api/cursosRepo.js';
+import { carregarReposicoes } from '../../../backend/api/reposicoesRepo.js';
 import { popularFiltros, renderRel } from '../relatorios/relatoriosView.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
@@ -79,7 +80,10 @@ async function executarCargaInicial() {
   try {
     await carregarTurmas();
     await carregarAlunos();
-    await Promise.all([carregarPresencas(), carregarHistorico(), carregarProfessores(), carregarCursos()]);
+    await Promise.all([
+      carregarPresencas(), carregarHistorico(), carregarProfessores(), carregarCursos(),
+      carregarReposicoes().then(lista => { state.REPOSICOES = lista; }),
+    ]);
     await sincronizarCursosComTurmas();
 
     popularFiltros();

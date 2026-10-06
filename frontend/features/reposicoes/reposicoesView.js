@@ -1,11 +1,12 @@
 import { state } from '../../state/store.js';
+import { aulasDaTurma } from '../../../backend/domain/attendance.js';
+import { opcaoEscolhida, turmaDaAulaPerdida, resultadoReposicao } from '../../../backend/domain/reposicoes.js';
 import { escapeHtml, showToast } from '../../shared/dom.js';
 import { confirmar } from '../../shared/confirm.js';
-import {
-  carregarReposicoes, cancelarReposicao, concluirReposicao,
-  assinarMudancasReposicoes, buscarOpcaoReposicao,
-} from '../../../backend/api/reposicoesRepo.js';
-import { salvarPresenca } from '../../../backend/api/presencasRepo.js';
+import { goTab } from '../../shared/navigation.js';
+import { carregarReposicoes, cancelarReposicao, assinarMudancasReposicoes } from '../../../backend/api/reposicoesRepo.js';
+import { buscarPresenca } from '../../../backend/api/presencasRepo.js';
+import { abrirChamada, selecionarAula } from '../chamada/chamadaView.js';
 import { atualizarTelas } from '../../shared/refresh.js';
 
 const STATUS_INFO = {
@@ -13,6 +14,14 @@ const STATUS_INFO = {
   agendada: { label: 'Agendada', cls: 'rep-pill-agendada' },
   concluida: { label: 'Concluída', cls: 'rep-pill-concluida' },
   cancelada: { label: 'Cancelada', cls: 'rep-pill-cancelada' },
+};
+
+// Reposição concluída = já marcada na chamada da turma escolhida; o que foi
+// marcado lá aparece junto, já que "concluída" sozinho não diz se o aluno foi.
+const RESULTADO_INFO = {
+  P: { label: 'Concluída · Presente', cls: 'rep-pill-concluida' },
+  R: { label: 'Concluída · Gravação', cls: 'rep-pill-concluida' },
+  F: { label: 'Concluída · Faltou', cls: 'rep-pill-cancelada' },
 };
 
 function linkReposicao(token) {
@@ -32,25 +41,55 @@ export async function renderReposicoes() {
   aplicarFiltroReposicoes();
 }
 
-// Aviso em tempo real: assim que um aluno confirma um horário pelo link
-// público, mostra um toast e já atualiza a aba (se estiver aberta) sem
-// precisar recarregar a página. Chamado uma vez, logo após o login.
+// Relê só a presença da aula perdida de um aluno — quando outra pessoa marca
+// a reposição na chamada, o lançamento vai para lá (ver marcarReposicao).
+async function recarregarPresencaDaAulaPerdida(rep) {
+  const aluno = state.ALUNOS.find(a => a.id === rep.aluno_id);
+  if (!aluno) return;
+  const turmaId = turmaDaAulaPerdida(rep, aluno);
+  const { data, error } = await buscarPresenca(turmaId, aluno.id, rep.aula);
+  if (error) return;
+  const key = `${turmaId}_${rep.aula}`;
+  if (!state.PRESENCAS[key]) state.PRESENCAS[key] = {};
+  state.PRESENCAS[key][aluno.id] = data?.status || null;
+}
+
+// Mantém o painel em dia com as reposições sem recarregar a página: quando um
+// aluno confirma um horário pelo link público (mostra um toast e ele já passa
+// a aparecer na chamada da turma escolhida) e quando outra pessoa marca ou
+// cancela uma reposição. Chamado uma vez, logo após o login.
 export function iniciarNotificacoesReposicoes() {
-  assinarMudancasReposicoes(async (repAtualizada) => {
-    const aluno = state.ALUNOS.find(a => a.id === repAtualizada.aluno_id);
-    const opcao = repAtualizada.opcao_escolhida_id ? await buscarOpcaoReposicao(repAtualizada.opcao_escolhida_id) : null;
-    const turma = opcao ? state.TURMAS.find(t => t.id === opcao.turma_destino_id) : null;
+  assinarMudancasReposicoes(async (nova) => {
+    const anterior = state.REPOSICOES.find(r => r.id === nova.id);
+    // Eco de uma mudança feita nesta mesma aba (marcar na chamada, cancelar):
+    // o cache já foi atualizado na hora, não há o que refazer.
+    if (anterior && anterior.status === nova.status && anterior.opcao_escolhida_id === nova.opcao_escolhida_id) return;
 
-    showToast(`${aluno?.nome || 'Um aluno'} marcou reposição: ${formatData(opcao?.data)}${turma ? ' — ' + turma.turma : ''}`, 'blue');
+    // Recarrega a lista inteira em vez de remendar o cache: uma reposição
+    // criada por outra pessoa depois do login nem estaria nele, e sem as
+    // opções dela não dá pra saber em que turma o aluno vai repor.
+    state.REPOSICOES = await carregarReposicoes();
+    const rep = state.REPOSICOES.find(r => r.id === nova.id);
+    if (rep) await recarregarPresencaDaAulaPerdida(rep);
 
-    const cache = (state.REPOSICOES || []).find(r => r.id === repAtualizada.id);
-    if (cache) {
-      cache.status = repAtualizada.status;
-      cache.opcao_escolhida_id = repAtualizada.opcao_escolhida_id;
-      cache.confirmado_em = repAtualizada.confirmado_em;
+    if (rep && rep.status === 'agendada' && (!anterior || anterior.status === 'aberta')) {
+      const aluno = state.ALUNOS.find(a => a.id === rep.aluno_id);
+      const opcao = opcaoEscolhida(rep);
+      const turma = opcao ? state.TURMAS.find(t => t.id === opcao.turma_destino_id) : null;
+      showToast(`${aluno?.nome || 'Um aluno'} marcou reposição: ${formatData(opcao?.data)}${turma ? ' — ' + turma.turma : ''}`, 'blue');
     }
-    aplicarFiltroReposicoes();
+    atualizarTelas();
   });
+}
+
+function pillReposicao(r) {
+  const opcao = opcaoEscolhida(r);
+  if (r.status === 'agendada' && opcao) {
+    const turma = state.TURMAS.find(t => t.id === opcao.turma_destino_id);
+    return `<span class="rep-pill ${STATUS_INFO.agendada.cls}">${formatData(opcao.data)} · ${escapeHtml(turma?.turma) || '?'}</span>`;
+  }
+  const info = (r.status === 'concluida' && RESULTADO_INFO[resultadoReposicao(r)]) || STATUS_INFO[r.status] || STATUS_INFO.aberta;
+  return `<span class="rep-pill ${info.cls}">${info.label}</span>`;
 }
 
 export function aplicarFiltroReposicoes() {
@@ -59,23 +98,15 @@ export function aplicarFiltroReposicoes() {
   const busca = (document.getElementById('busca-reposicoes') || {}).value?.toLowerCase() || '';
   const fStatus = document.getElementById('f-status-reposicoes')?.value || '';
 
-  let lista = state.REPOSICOES || [];
+  let lista = state.REPOSICOES;
   lista = lista.map(r => ({ ...r, aluno: state.ALUNOS.find(a => a.id === r.aluno_id) }));
   if (busca) lista = lista.filter(r => r.aluno?.nome?.toLowerCase().includes(busca));
   if (fStatus) lista = lista.filter(r => r.status === fStatus);
 
   tbody.innerHTML = lista.map(r => {
     const turmaOrigem = state.TURMAS.find(t => t.id === r.turma_origem_id);
-    const st = STATUS_INFO[r.status] || STATUS_INFO.aberta;
     const opcoes = r.reposicao_opcoes || [];
-    const opcaoEscolhida = opcoes.find(o => o.id === r.opcao_escolhida_id);
-    const turmaEscolhida = opcaoEscolhida ? state.TURMAS.find(t => t.id === opcaoEscolhida.turma_destino_id) : null;
-
-    // A informação mais importante (o que o aluno escolheu, ou se ainda não
-    // escolheu) fica logo ao lado do nome — não escondida numa coluna à parte.
-    const pill = r.status === 'agendada' && opcaoEscolhida
-      ? `<span class="rep-pill ${st.cls}">${formatData(opcaoEscolhida.data)} · ${escapeHtml(turmaEscolhida?.turma) || '?'}</span>`
-      : `<span class="rep-pill ${st.cls}">${st.label}</span>`;
+    const turmaEscolhida = state.TURMAS.find(t => t.id === opcaoEscolhida(r)?.turma_destino_id);
 
     const opcoesTxt = opcoes.length ? opcoes.map(o => {
       const td = state.TURMAS.find(t => t.id === o.turma_destino_id);
@@ -83,11 +114,13 @@ export function aplicarFiltroReposicoes() {
       return `<div class="rep-opcao-item${marcada ? ' escolhida' : ''}">${formatData(o.data)} — ${escapeHtml(td?.turma) || '?'}${marcada ? ' ✓' : ''}</div>`;
     }).join('') : '<span class="muted">—</span>';
 
+    // A informação mais importante (o que o aluno escolheu, ou se ainda não
+    // escolheu) fica logo ao lado do nome — não escondida numa coluna à parte.
     return `<tr class="${r.aluno?.experimental ? 'row-experimental' : ''}">
       <td>
         <div class="rep-aluno-cell">
           <span class="rep-aluno-nome">${escapeHtml(r.aluno?.nome) || '—'}</span>
-          ${pill}
+          ${pillReposicao(r)}
         </div>
       </td>
       <td style="color:var(--text-3);">${escapeHtml(turmaOrigem?.turma) || '—'} · ${escapeHtml(r.aula)}</td>
@@ -96,7 +129,7 @@ export function aplicarFiltroReposicoes() {
       <td>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-sec" onclick="copiarLinkReposicaoLista('${r.token}')" title="Copiar link de agendamento">Link</button>
-          ${r.status === 'agendada' ? `<button class="btn-save" onclick="concluirReposicaoAcao(event, ${r.id})" title="Marcar a aula de origem como reposição (R) feita">Concluir</button>` : ''}
+          ${(r.status === 'agendada' || r.status === 'concluida') && turmaEscolhida ? `<button class="btn-sec" onclick="abrirChamadaReposicao(${r.id})" title="Abrir a chamada de ${escapeHtml(turmaEscolhida.turma)} na ${escapeHtml(r.aula)} — é lá que a reposição é marcada">Chamada</button>` : ''}
           ${(r.status === 'aberta' || r.status === 'agendada') ? `<button class="btn-danger" onclick="cancelarReposicaoAcao(event, ${r.id})">Cancelar</button>` : ''}
         </div>
       </td>
@@ -111,6 +144,18 @@ export function copiarLinkReposicaoLista(token) {
     .catch(() => showToast(link, 'blue'));
 }
 
+// Leva direto para a chamada da turma escolhida, já na aula a repor — é lá
+// que o aluno aparece com o aviso "Reposição" e a presença é marcada.
+export function abrirChamadaReposicao(id) {
+  const r = state.REPOSICOES.find(x => x.id === id);
+  const turma = r && state.TURMAS.find(t => t.id === opcaoEscolhida(r)?.turma_destino_id);
+  if (!turma) return;
+  goTab('turmas');
+  abrirChamada(turma.id);
+  if (aulasDaTurma(turma).includes(r.aula)) selecionarAula(r.aula);
+  else showToast(`A turma ${turma.turma} não tem a ${r.aula}.`, 'red');
+}
+
 export async function cancelarReposicaoAcao(e, id) {
   // event.currentTarget só é válido durante o disparo síncrono do evento —
   // depois de um `await` (aqui, esperando a resposta do diálogo de
@@ -119,7 +164,7 @@ export async function cancelarReposicaoAcao(e, id) {
   const btn = e.currentTarget;
   const ok = await confirmar({
     titulo: 'Cancelar esta reposição?',
-    mensagem: 'O link deixará de funcionar.',
+    mensagem: 'O link deixará de funcionar e, se o aluno já tinha escolhido um horário, ele sai da chamada daquela turma.',
     textoConfirmar: 'Cancelar reposição',
     perigo: true,
   });
@@ -134,40 +179,6 @@ export async function cancelarReposicaoAcao(e, id) {
   }
   const r = state.REPOSICOES.find(x => x.id === id);
   if (r) r.status = 'cancelada';
-  aplicarFiltroReposicoes();
-  showToast('Reposição cancelada.', 'red');
-}
-
-export async function concluirReposicaoAcao(e, id) {
-  const r = state.REPOSICOES.find(x => x.id === id);
-  if (!r) return;
-  // Captura o botão ANTES do await — ver comentário em cancelarReposicaoAcao.
-  const btn = e.currentTarget;
-  const ok = await confirmar({
-    titulo: 'Marcar esta reposição como concluída?',
-    mensagem: 'Isso vai registrar "Gravação (R)" na aula de origem do aluno.',
-    textoConfirmar: 'Concluir',
-  });
-  if (!ok) return;
-
-  btn.disabled = true;
-  btn.textContent = 'Concluindo…';
-
-  const { error } = await salvarPresenca(r.turma_origem_id, r.aluno_id, r.aula, 'R');
-  if (error) {
-    showToast('Erro ao registrar a presença de reposição.', 'red');
-    btn.disabled = false; btn.textContent = 'Concluir';
-    return;
-  }
-
-  const key = `${r.turma_origem_id}_${r.aula}`;
-  if (!state.PRESENCAS[key]) state.PRESENCAS[key] = {};
-  state.PRESENCAS[key][r.aluno_id] = 'R';
-
-  const { error: errStatus } = await concluirReposicao(id);
-  if (errStatus) { showToast('Presença gravada, mas houve erro ao marcar o caso como concluído.', 'red'); }
-  r.status = 'concluida';
-
   atualizarTelas();
-  showToast('Reposição concluída!');
+  showToast('Reposição cancelada.', 'red');
 }

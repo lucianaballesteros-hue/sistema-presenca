@@ -28,7 +28,7 @@ import {
 } from './features/dashboard/turmaModals.js';
 import { abrirModalNovoCurso, salvarNovoCurso } from './features/dashboard/cursoModals.js';
 
-import { abrirChamada, voltarDash, renderChamada, selecionarAula, marcar } from './features/chamada/chamadaView.js';
+import { abrirChamada, voltarDash, renderChamada, selecionarAula, marcar, marcarReposicao } from './features/chamada/chamadaView.js';
 
 import { renderTabelaAlunos, atualizarTurmasAlunos } from './features/alunos/alunosTable.js';
 import {
@@ -70,7 +70,7 @@ import {
 } from './features/reposicoes/reposicaoModal.js';
 import {
   renderReposicoes, aplicarFiltroReposicoes, copiarLinkReposicaoLista,
-  cancelarReposicaoAcao, concluirReposicaoAcao,
+  cancelarReposicaoAcao, abrirChamadaReposicao,
 } from './features/reposicoes/reposicoesView.js';
 
 // "API pública": tudo que o HTML (estático ou gerado via innerHTML) invoca
@@ -84,7 +84,7 @@ Object.assign(window, {
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
   toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario, verificarTurmaDuplicada,
   abrirModalNovoCurso, salvarNovoCurso,
-  abrirChamada, voltarDash, renderChamada, selecionarAula, marcar,
+  abrirChamada, voltarDash, renderChamada, selecionarAula, marcar, marcarReposicao,
   renderTabelaAlunos, atualizarTurmasAlunos,
   abrirModalAluno, abrirMenuAluno, fecharMenuAluno, toggleInativo, toggleExperimental, cancelarMatricula, removerExperimental,
   abrirModalEditar, salvarEdicao, abrirModalTransferir, confirmarTransferencia,
@@ -107,7 +107,7 @@ Object.assign(window, {
   removerOpcaoReposicao, salvarReposicao, copiarLinkReposicao, abrirPaginaReposicaoGerada,
   renderSugestoesReposicao, usarSugestaoReposicao,
   renderReposicoes, aplicarFiltroReposicoes, copiarLinkReposicaoLista,
-  cancelarReposicaoAcao, concluirReposicaoAcao,
+  cancelarReposicaoAcao, abrirChamadaReposicao,
   toggleSenha, fecharModal,
   responderConfirm,
 });
