@@ -39,6 +39,12 @@ export async function removerPresenca(turmaId, alunoId, aula) {
   return sb.from('presencas').delete().eq('turma_id', turmaId).eq('aluno_id', alunoId).eq('aula', aula);
 }
 
+// Grava o status, ou apaga o registro quando não há status ("sem registro") —
+// usado para devolver uma presença ao valor anterior depois de uma falha.
+export async function gravarPresenca(turmaId, alunoId, aula, status) {
+  return status ? salvarPresenca(turmaId, alunoId, aula, status) : removerPresenca(turmaId, alunoId, aula);
+}
+
 export async function moverPresencasDeTurma(alunoId, deTurmaId, paraTurmaId) {
   return sb.from('presencas').update({ turma_id: paraTurmaId }).eq('aluno_id', alunoId).eq('turma_id', deTurmaId);
 }

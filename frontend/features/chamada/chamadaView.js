@@ -5,7 +5,7 @@ import {
   opcaoEscolhida, turmaDaAulaPerdida, resultadoReposicao, reposicoesNaAula, reposicaoDaAulaPerdida,
 } from '../../../backend/domain/reposicoes.js';
 import { escapeHtml, escapeAttr, showToast } from '../../shared/dom.js';
-import { salvarPresenca, removerPresenca } from '../../../backend/api/presencasRepo.js';
+import { salvarPresenca, removerPresenca, gravarPresenca } from '../../../backend/api/presencasRepo.js';
 import { atualizarStatusReposicao } from '../../../backend/api/reposicoesRepo.js';
 import { atualizarTelas } from '../../shared/refresh.js';
 
@@ -233,10 +233,6 @@ export async function marcar(alunoId, val) {
     if (statusEl) statusEl.textContent = '';
     showToast('Erro ao salvar. Tente novamente.', 'red');
   }
-}
-
-function gravarPresenca(turmaId, alunoId, aula, val) {
-  return val ? salvarPresenca(turmaId, alunoId, aula, val) : removerPresenca(turmaId, alunoId, aula);
 }
 
 // Marcação de um aluno que veio repor aula nesta turma. O lançamento não fica
