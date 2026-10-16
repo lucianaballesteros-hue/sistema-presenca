@@ -53,6 +53,19 @@
   color: var(--text);
 }
 
+/* Item que é link de verdade, não aba do mesmo app: o cadastro online mora
+   em páginas separadas. Precisa das mesmas medidas dos botões, sem o
+   sublinhado e o alinhamento de linha que um <a> traz por padrão. */
+a.nav-btn {
+  display: inline-block;
+  text-decoration: none;
+  line-height: normal;
+}
+
+a.nav-btn:hover {
+  background: var(--primary-soft);
+}
+
 @media(max-width:768px) {
   .nav {
     padding: 0 var(--space-2);

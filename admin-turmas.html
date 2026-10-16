@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<!--
+  PREVIEW — Área de Turmas: gerar links de cadastro.
+
+  Página autônoma para revisão visual antes de virar aba do index.html. Usa os
+  arquivos de frontend/styles/, então é o padrão real do sistema
+  (docs/DESIGN-SYSTEM.md), não uma maquete à parte.
+
+  Turmas: dados REAIS do Sponte (GetTurmas, somente leitura).
+  Links:  gravados localmente em .dev-data/ até sql/cadastros.sql ser aplicado.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turmas — Links de cadastro</title>
+<link rel="icon" href="frontend/img/favicon.png">
+<script src="frontend/js/sessao.js"></script>
+<script>
+  try {
+    const t = localStorage.getItem('tema');
+    if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="frontend/styles/base/reset.css">
+<link rel="stylesheet" href="frontend/styles/base/theme-tokens.css">
+<link rel="stylesheet" href="frontend/styles/base/liquid-glass.css">
+<link rel="stylesheet" href="frontend/styles/layout/header.css">
+<link rel="stylesheet" href="frontend/styles/layout/content.css">
+<link rel="stylesheet" href="frontend/styles/components/buttons.css">
+<link rel="stylesheet" href="frontend/styles/components/badges.css">
+<link rel="stylesheet" href="frontend/styles/components/forms.css">
+<link rel="stylesheet" href="frontend/styles/components/cards.css">
+<link rel="stylesheet" href="frontend/styles/components/tables.css">
+<link rel="stylesheet" href="frontend/styles/components/modals.css">
+<link rel="stylesheet" href="frontend/styles/components/toast.css">
+<link rel="stylesheet" href="frontend/styles/preview-admin.css">
+<style>
+.ver-mais{font-size:10.5px;font-weight:500;color:var(--text-muted);opacity:0;
+  transition:opacity .15s ease;white-space:nowrap;}
+.turma-card{cursor:pointer;}
+.turma-card:hover .ver-mais{opacity:1;}
+.turma-card-inativa{cursor:default;}
+
+.dt-sec{margin-bottom:18px;}
+.dt-sec h4{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-muted);margin:0 0 9px;}
+.dt-ficha{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;}
+.dt-item{border:1px solid var(--borda);border-radius:10px;padding:8px 10px;}
+.dt-item .r{font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;}
+.dt-item .v{font-size:15px;font-weight:700;margin-top:2px;}
+.dt-item .v small{font-size:11px;font-weight:500;color:var(--text-muted);}
+
+.dt-link{border:1px solid var(--borda);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+.dt-link-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.dt-link code{font-size:11.5px;color:var(--text-muted);}
+.dt-link-nums{display:flex;gap:14px;font-size:12px;margin-top:6px;flex-wrap:wrap;}
+.dt-link-nums b{font-size:13px;}
+.dt-acoes{display:flex;gap:6px;}
+.dt-acoes button{font-size:11.5px;padding:4px 9px;border-radius:7px;border:1px solid var(--borda);
+  background:transparent;color:inherit;cursor:pointer;font-family:inherit;}
+.dt-acoes button:hover{background:rgba(127,127,127,.12);}
+
+.dt-aluno{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:7px 2px;border-bottom:1px solid var(--borda);font-size:13px;}
+.dt-aluno:last-child{border-bottom:none;}
+.dt-aluno .sub{font-size:11.5px;color:var(--text-muted);}
+.dt-plat{display:flex;gap:4px;}
+.dt-plat span{font-size:10px;padding:2px 6px;border-radius:20px;border:1px solid var(--borda);
+  color:var(--text-muted);}
+.dt-plat span.on{color:#16a34a;border-color:rgba(22,163,74,.45);}
+.dt-vazio{padding:14px;font-size:13px;color:var(--text-muted);text-align:center;}
+
+/* --- Espelho da turma nas outras plataformas --- */
+.esp{border:1px solid var(--borda);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+.esp-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.esp-nome{font-size:13px;font-weight:600;}
+.esp-sub{font-size:11.5px;color:var(--text-muted);margin-top:2px;word-break:break-all;}
+.esp-pino{font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--borda);
+  color:var(--text-muted);white-space:nowrap;}
+.esp-pino.on{color:#16a34a;border-color:rgba(22,163,74,.45);}
+.esp-pino.off{color:#d97706;border-color:rgba(217,119,6,.45);}
+.esp-pino.falta{color:var(--text-muted);border-style:dashed;}
+.esp-pino.ruim{color:#dc2626;border-color:rgba(220,38,38,.45);}
+.esp-acoes{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px;}
+.esp-acoes button{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid var(--borda);
+  background:transparent;color:inherit;cursor:pointer;font-weight:600;}
+.esp-acoes button:hover:not(:disabled){background:rgba(127,127,127,.12);}
+.esp-acoes button:disabled{opacity:.45;cursor:not-allowed;}
+.esp-acoes button.primario{background:var(--primary);border-color:var(--primary);color:#fff;}
+.esp-acoes button.perigo{color:#dc2626;border-color:rgba(220,38,38,.4);}
+.esp-cascata{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--text-2);
+  margin-top:10px;line-height:1.45;}
+.esp-cascata input{margin-top:2px;flex-shrink:0;}
+.esp-aviso{font-size:12px;line-height:1.5;padding:9px 11px;border-radius:9px;margin-bottom:9px;
+  background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.35);color:#b45309;}
+.esp-erro{background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.35);color:#b91c1c;}
+.esp-ok{background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.35);color:#15803d;}
+.esp-cand{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 0;border-bottom:1px solid var(--borda);font-size:12.5px;}
+.esp-cand:last-child{border-bottom:none;}
+.esp-busca{display:flex;gap:7px;margin:8px 0;}
+.esp-busca input{flex:1;min-width:0;padding:7px 10px;border-radius:8px;
+  border:1px solid var(--borda);background:transparent;color:inherit;font-size:12.5px;}
+.turma-plats{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap;}
+.turma-plats span{font-size:9.5px;padding:2px 6px;border-radius:20px;
+  border:1px solid var(--borda);color:var(--text-muted);}
+.turma-plats span.on{color:#16a34a;border-color:rgba(22,163,74,.45);}
+.turma-plats span.ruim{color:#d97706;border-color:rgba(217,119,6,.45);}
+</style>
+</head>
+<body>
+
+<div id="faixa-escrita"></div>
+
+<header class="header">
+  <div class="header-logo">
+    <img class="logo-light" src="frontend/img/finexperts_pos preto.png" alt="Financial Experts">
+    <img class="logo-dark" src="frontend/img/financial-experts branco.png" alt="Financial Experts">
+  </div>
+  <div class="hright">
+    <span id="hname" style="font-size:12px;color:var(--text-3);">Preview · sem login</span>
+    <button class="theme-toggle" id="btn-tema" title="Alternar tema" aria-label="Alternar tema">
+      <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </div>
+</header>
+
+<nav class="nav-areas">
+  <!-- Volta para o sistema de presença. Sem isto, quem entra aqui fica
+       sem caminho de retorno a não ser o botão do navegador. -->
+  <a href="index.html" class="voltar-sistema" title="Voltar ao sistema de presença">← Presença</a>
+  <a href="admin-turmas.html" class="ativo">Turmas</a>
+  <a href="admin-alunos.html">Alunos <span class="contador-aba" id="badge-pendentes" style="display:none;">0</span></a>
+</nav>
+
+<main class="content">
+
+  <div class="preview-aviso">
+    <span>⚠️</span>
+    <div>
+      <strong>Preview.</strong> As turmas vêm do Sponte agora (<code>GetTurmas</code>,
+      somente leitura). Os links gerados ficam em <code>.dev-data/</code> até você
+      aplicar <code>sql/cadastros.sql</code> no Supabase.
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Turmas no filtro</div><div class="stat-val" id="kpi-turmas">—</div></div>
+    <div class="stat-card"><div class="stat-label">Vagas livres</div><div class="stat-val green" id="kpi-vagas">—</div></div>
+    <div class="stat-card"><div class="stat-label">Links ativos</div><div class="stat-val" id="kpi-links">—</div></div>
+    <div class="stat-card"><div class="stat-label">Total no Sponte</div><div class="stat-val" id="kpi-total">—</div></div>
+  </div>
+
+  <div class="filtros">
+    <div>
+      <label for="f-ano">Ano letivo</label>
+      <select id="f-ano"></select>
+    </div>
+    <div class="campo-busca">
+      <label for="f-busca">Buscar turma</label>
+      <input type="search" id="f-busca" placeholder="Nome da turma ou curso…" autocomplete="off">
+    </div>
+    <label class="toggle"><input type="checkbox" id="f-todas"> Mostrar encerradas e lotadas</label>
+  </div>
+
+  <div class="curso-pills" id="pills"></div>
+  <div class="contador-resultado" id="contador"></div>
+  <div id="lista"></div>
+
+  <h2 style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text-muted);text-transform:uppercase;margin:var(--space-8) 0 var(--space-4);padding-bottom:var(--space-3);border-bottom:2px solid var(--border-2);">
+    Links gerados
+  </h2>
+  <div id="lista-links"></div>
+
+</main>
+
+<!-- Modal: gerar link -->
+<div class="modal-bg" id="modal-link">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Gerar link de cadastro</span>
+      <button class="close-btn" id="btn-fechar" aria-label="Fechar">&times;</button>
+    </div>
+
+    <div class="resumo-turma">
+      <div class="nome" id="m-nome">—</div>
+      <div class="detalhe" id="m-detalhe">—</div>
+    </div>
+
+    <div id="m-form">
+      <div class="field">
+        <label for="m-plano">Plano de pagamento</label>
+        <select id="m-plano"><option value="">Carregando…</option></select>
+        <div class="field-error" id="m-erro-plano">Este curso não tem plano cadastrado no Sponte.</div>
+      </div>
+
+      <div class="field">
+        <label for="m-bolsa">Bolsa <span style="font-weight:400;color:var(--text-faded);">(opcional)</span></label>
+        <select id="m-bolsa"><option value="">Sem bolsa</option></select>
+      </div>
+
+      <div class="resumo-valor" id="m-resumo-valor" style="display:none;"></div>
+
+      <div class="field">
+        <label for="m-validade">Validade do link</label>
+        <select id="m-validade">
+          <option value="7">7 dias</option>
+          <option value="15" selected>15 dias</option>
+          <option value="30">30 dias</option>
+          <option value="0">Sem prazo</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="m-usos">Limite de cadastros</label>
+        <input type="number" id="m-usos" min="1" value="1">
+        <div class="field-error" id="m-erro">Informe pelo menos 1 cadastro.</div>
+      </div>
+
+      <div class="info-box">
+        <div>O limite é controlado do <strong>nosso</strong> lado. O Sponte informa
+        as vagas, mas não as reserva — dois alunos no mesmo link passariam da lotação.</div>
+      </div>
+    </div>
+
+    <div id="m-resultado" style="display:none;">
+      <div class="info-box" style="background:var(--green-soft);border-color:var(--green-border);color:var(--green-soft-text);">
+        <div>Link criado. Os cadastros ficam na aba <strong>Alunos</strong> aguardando
+        conferência — nada é enviado ao Sponte automaticamente.</div>
+      </div>
+      <div class="link-gerado">
+        <input type="text" id="m-url" readonly>
+        <button class="btn-save" id="btn-copiar">Copiar</button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-sec" id="btn-cancelar">Fechar</button>
+      <button class="btn-save" id="btn-gerar">Gerar link</button>
+    </div>
+  </div>
+</div>
+
+<!-- O que o nosso lado sabe de uma turma: links gerados e quem respondeu.
+     A turma em si vem do Sponte; o resto, do nosso banco. -->
+<div class="modal-bg" id="modal-turma">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-header">
+      <span class="modal-title" id="dt-titulo">Turma</span>
+      <button class="close-btn" id="dt-fechar" aria-label="Fechar">&times;</button>
+    </div>
+    <div id="dt-corpo"><div class="dt-vazio">Carregando…</div></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script type="module">
+const estado = {
+  turmas: [], anos: [], totalGeral: 0, linksPorTurma: {}, links: [],
+  ano: null, busca: '', curso: '', mostrarTodas: false, turmaSelecionada: null,
+  planos: [], bolsas: [],
+  /** sponte_turma_id → ids no Presença e no League. */
+  mapaTurmas: {},
+  /** Cache do último detalhe aberto, para as ações não recarregarem tudo. */
+  detalhe: null,
+};
+const $ = (id) => document.getElementById(id);
+
+/**
+ * O nome segue a convenção da escola?
+ *
+ * Cópia do `lerNomeTurma` do servidor, de propósito: é uma regex, e pedir ao
+ * servidor para validar cada um dos 49 nomes só para pintar um selo seria
+ * uma ida à rede por turma.
+ *
+ *     ELAS Quarta 14:00 PR 2/26
+ *
+ * ⚠️ Se a convenção mudar, muda nos dois lugares — o teste
+ * `turma-nome.test.ts` cobre o do servidor.
+ */
+const PADRAO_NOME = /^(.+?)\s+(Domingo|Segunda|Terça|Quarta|Quinta|Sexta|Sábado)\s+(\d{1,2}:\d{2})\s+(PR|ON|EXT|HB)\s+([12])\/(\d{2,4})$/i;
+const nomeNoPadrao = (nome) => PADRAO_NOME.test(String(nome ?? '').trim());
+
+$('btn-tema').addEventListener('click', () => {
+  const escuro = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', escuro ? 'light' : 'dark');
+  try { localStorage.setItem('tema', escuro ? 'light' : 'dark'); } catch (e) {}
+});
+
+/**
+ * Avisa, em vermelho e no topo, quando a escrita no Sponte está ligada.
+ *
+ * Sem isso, a diferença entre "simulando" e "gravando de verdade no ERP da
+ * escola" seria invisível — e não há como desfazer uma gravação.
+ */
+async function conferirEstado() {
+  try {
+    const r = await fetch('/api/estado', { headers: Sessao.cabecalho() });
+    const d = await r.json();
+    if (!d.escritaLiberada) return;
+    $('faixa-escrita').innerHTML = `
+      <div class="faixa-escrita${d.modoTeste ? ' teste' : ''}">
+        ${d.modoTeste
+          ? `⚠️ Gravando no Sponte de verdade (cliente <code>${d.codigoCliente}</code>) — registros marcados como <code>[TESTE-SISTEMA]</code> e precisam ser apagados à mão depois`
+          : `🔴 ESCRITA REAL SEM MARCAÇÃO no Sponte (cliente <code>${d.codigoCliente}</code>) — não há exclusão na API`}
+      </div>`;
+  } catch { /* servidor antigo sem o endpoint: segue sem faixa */ }
+}
+
+function toast(msg, cor = 'green') {
+  const el = document.createElement('div');
+  el.className = `toast-item ${cor}`;
+  el.textContent = msg;
+  el.addEventListener('click', () => el.remove());
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+const escapar = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const encurtar = (s, n) => { s = String(s ?? ''); return s.length > n ? s.slice(0, n-1) + '…' : s; };
+const dataBr = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR') : '—';
+
+/* --- Carga ------------------------------------------------------- */
+async function carregar() {
+  $('lista').innerHTML = `<div class="loading"><span class="spinner"></span>Consultando o Sponte…</div>`;
+  const params = new URLSearchParams();
+  if (estado.ano) params.set('ano', estado.ano);
+  if (estado.mostrarTodas) params.set('todas', '1');
+
+  try {
+    const r = await fetch(`/api/sponte/turmas?${params}`, { headers: Sessao.cabecalho() });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Falha na consulta');
+
+    estado.turmas = d.turmas;
+    estado.totalGeral = d.totalGeral;
+    estado.linksPorTurma = d.linksPorTurma || {};
+    estado.mapaTurmas = d.mapaTurmas || {};
+    if (!estado.anos.length) { estado.anos = d.anos; montarAnos(); }
+    montarPills();
+    render();
+  } catch (erro) {
+    $('lista').innerHTML = `
+      <div class="empty" style="padding:3rem;">
+        <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
+        <div style="color:var(--text-2);font-size:13px;margin-bottom:6px;">Não foi possível consultar as turmas no Sponte.</div>
+        <div style="font-size:11.5px;color:var(--text-faded);">${escapar(erro.message)}</div>
+      </div>`;
+  }
+  carregarLinks();
+  atualizarBadge();
+}
+
+async function carregarLinks() {
+  try {
+    const r = await fetch('/api/links', { headers: Sessao.cabecalho() });
+    const d = await r.json();
+    estado.links = d.links || [];
+    renderLinks();
+    $('kpi-links').textContent = estado.links.filter(l => !l.revogadoEm && l.usos < l.limiteUsos).length;
+  } catch {}
+}
+
+async function atualizarBadge() {
+  try {
+    const r = await fetch('/api/cadastros?status=pendente', { headers: Sessao.cabecalho() });
+    const d = await r.json();
+    const n = d.cadastros?.length ?? 0;
+    const b = $('badge-pendentes');
+    b.textContent = n;
+    b.style.display = n > 0 ? 'inline-flex' : 'none';
+  } catch {}
+}
+
+function montarAnos() {
+  const atual = new Date().getFullYear();
+  $('f-ano').innerHTML = `<option value="">Todos os anos</option>` +
+    estado.anos.map(a => `<option value="${a}"${a === atual ? ' selected' : ''}>${a}</option>`).join('');
+  if (estado.anos.includes(atual)) estado.ano = atual;
+}
+
+function montarPills() {
+  const cursos = [...new Set(estado.turmas.map(t => t.curso).filter(Boolean))].sort();
+  $('pills').innerHTML =
+    `<button class="cpill${estado.curso === '' ? ' active' : ''}" data-curso="">Todos<span class="cpill-count">${estado.turmas.length}</span></button>` +
+    cursos.map(c => {
+      const n = estado.turmas.filter(t => t.curso === c).length;
+      return `<button class="cpill${estado.curso === c ? ' active' : ''}" data-curso="${escapar(c)}">${escapar(encurtar(c, 28))}<span class="cpill-count">${n}</span></button>`;
+    }).join('');
+  $('pills').querySelectorAll('.cpill').forEach(b =>
+    b.addEventListener('click', () => { estado.curso = b.dataset.curso; montarPills(); render(); }));
+}
+
+/* --- Render turmas ----------------------------------------------- */
+function visiveis() {
+  const q = estado.busca.trim().toLowerCase();
+  return estado.turmas.filter(t => {
+    if (estado.curso && t.curso !== estado.curso) return false;
+    return !q || `${t.nome} ${t.curso}`.toLowerCase().includes(q);
+  });
+}
+
+function render() {
+  const lista = visiveis();
+  $('kpi-turmas').textContent = lista.length;
+  $('kpi-vagas').textContent = lista.reduce((s, t) => s + t.vagasLivres, 0);
+  $('kpi-total').textContent = estado.totalGeral;
+  $('contador').textContent = lista.length === estado.turmas.length
+    ? `${lista.length} turma${lista.length === 1 ? '' : 's'}`
+    : `${lista.length} de ${estado.turmas.length} turmas`;
+
+  if (!lista.length) {
+    $('lista').innerHTML = `
+      <div class="empty" style="padding:3rem;">
+        <div style="font-size:28px;margin-bottom:12px;">🔍</div>
+        <div style="color:var(--text-2);font-size:13px;">Nenhuma turma corresponde aos filtros.</div>
+        <div style="font-size:11.5px;color:var(--text-faded);margin-top:6px;">Tente outro ano letivo ou limpe a busca.</div>
+      </div>`;
+    return;
+  }
+
+  $('lista').innerHTML = `<div class="turmas-grid">${lista.map(cardTurma).join('')}</div>`;
+  $('lista').querySelectorAll('[data-gerar]').forEach(b =>
+    b.addEventListener('click', (e) => {
+      // Sem isto o clique sobe para o card e abriria o detalhe junto com
+      // o formulário de gerar link.
+      e.stopPropagation();
+      abrirModal(Number(b.dataset.gerar));
+    }));
+
+  $('lista').querySelectorAll('[data-detalhe]').forEach(c =>
+    c.addEventListener('click', () => abrirDetalhe(Number(c.dataset.detalhe))));
+}
+
+function cardTurma(t) {
+  const encerrada = t.situacao.toLowerCase() === 'encerrada';
+  const lotada = t.maxAlunos > 0 && t.vagasLivres <= 0;
+  const pct = t.maxAlunos > 0 ? Math.min(100, (t.vagasOcupadas / t.maxAlunos) * 100) : 0;
+  const cor = pct >= 100 ? 'var(--red-bar)' : pct >= 80 ? 'var(--amber-bar)' : 'var(--green-bar)';
+  const nLinks = estado.linksPorTurma[t.turmaId] ?? 0;
+
+  // Onde esta turma já existe além do Sponte. O selo apagado é o aviso que
+  // interessa: turma sem par no Presença não aceita aluno na chamada, e
+  // descobrir isso no dia da aula é tarde.
+  const m = estado.mapaTurmas[t.turmaId] ?? {};
+  const plats = `
+    <div class="turma-plats">
+      <span class="${m.presencaTurmaId ? 'on' : ''}">Presença</span>
+      <span class="${m.leagueClassId ? 'on' : ''}">League</span>
+      ${nomeNoPadrao(t.nome) ? '' : '<span class="ruim" title="Fora da convenção de nome: não casa automaticamente com as outras plataformas">nome fora do padrão</span>'}
+    </div>`;
+
+  return `
+    <div class="turma-card${encerrada ? ' turma-card-inativa' : ''}" data-detalhe="${t.turmaId}">
+      <div class="turma-topo">
+        <div style="min-width:0;">
+          <div class="turma-nome">${escapar(t.nome)} <span class="ver-mais">ver detalhes</span></div>
+          <div class="turma-curso">${escapar(t.curso || 'Sem curso')}</div>
+        </div>
+        <span class="badge ${encerrada ? 'badge-gray' : lotada ? 'badge-red' : 'badge-green'}">
+          ${encerrada ? 'Encerrada' : lotada ? 'Lotada' : 'Aberta'}
+        </span>
+      </div>
+      <div class="turma-meta">
+        <span>📅 ${t.anoLetivo}</span>
+        ${t.turno ? `<span>🕐 ${escapar(t.turno)}</span>` : ''}
+        ${t.professorRegente
+          ? `<span>👤 ${escapar(encurtar(t.professorRegente, 22))}</span>`
+          : `<span class="sem-professor">sem professor</span>`}
+        ${nLinks ? `<span style="color:var(--primary);">🔗 ${nLinks} link${nLinks > 1 ? 's' : ''}</span>` : ''}
+      </div>
+      <div class="vagas-linha">
+        <div class="vagas-bar"><div class="vagas-fill" style="width:${pct}%;background:${cor};"></div></div>
+        <span class="vagas-num">${t.vagasOcupadas}/${t.maxAlunos || '∞'}</span>
+      </div>
+      ${plats}
+      <button class="btn-chamada" data-gerar="${t.turmaId}" data-nao-abrir="1" ${encerrada ? 'disabled style="opacity:.5;cursor:not-allowed;"' : ''}>
+        ${encerrada ? 'Turma encerrada' : 'Gerar link de cadastro'}
+      </button>
+    </div>`;
+}
+
+/* --- Detalhe da turma --------------------------------------------- */
+
+/**
+ * `relatorio` é o que a última ação devolveu: reabrir o detalhe depois de
+ * ativar uma turma apagaria da tela justamente o que acabou de acontecer.
+ */
+async function abrirDetalhe(turmaId, relatorio) {
+  $('modal-turma').classList.add('open');
+  $('dt-titulo').textContent = 'Turma';
+  $('dt-corpo').innerHTML = '<div class="dt-vazio">Carregando…</div>';
+
+  try {
+    const d = await (await fetch(`/api/turmas/${turmaId}/detalhe`,
+      { headers: Sessao.cabecalho() })).json();
+    estado.detalhe = d;
+    $('dt-titulo').textContent = d.turma?.nome ?? 'Turma';
+    $('dt-corpo').innerHTML = montarDetalhe(d);
+    if (relatorio) {
+      $('esp-resultado').innerHTML = relatorio;
+      ligarSeletorDeLiga(turmaId);
+    }
+
+    /* --- Ações do espelho nas outras plataformas --- */
+    $('dt-corpo').querySelectorAll('[data-esp]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        const cascata = $('esp-cascata')?.checked === true;
+        const nome = d.turma?.nome ?? '';
+
+        switch (b.dataset.esp) {
+          case 'propagar':
+            return acaoEspelho(turmaId, 'propagar', {});
+
+          case 'vincular-busca':
+            // A primeira palavra do nome é o melhor ponto de partida: o
+            // nome inteiro raramente bate, o programa quase sempre bate.
+            return abrirBuscaVinculo(turmaId, nome.split(/\s+/)[0] ?? nome);
+
+          case 'sincronizar':
+            return acaoEspelho(turmaId, 'sincronizar', {});
+
+          case 'ativar': {
+            const extra = cascata
+              ? '\n\nTambém serão ATIVADOS os alunos desta turma que concluíram o cadastro.'
+              : '';
+            if (!confirm(`Ativar "${nome}" no Presença e no LeagueInvest?` +
+                         `\n\nA turma será criada onde não existir.${extra}`)) return;
+            return acaoEspelho(turmaId, 'situacao', { ativa: true, cascata });
+          }
+
+          case 'desativar': {
+            const extra = cascata
+              ? '\n\nTambém serão DESATIVADOS todos os alunos desta turma: eles saem ' +
+                'da chamada e perdem o acesso ao conteúdo.'
+              : '';
+            if (!confirm(`Desativar "${nome}" no Presença e no LeagueInvest?` +
+                         `\n\nA turma sai dos filtros e o conteúdo some para quem está ` +
+                         `nela.${extra}`)) return;
+            return acaoEspelho(turmaId, 'situacao', { ativa: false, cascata });
+          }
+        }
+      }));
+
+    $('dt-corpo').querySelectorAll('[data-copiar]').forEach((b) =>
+      b.addEventListener('click', () => {
+        navigator.clipboard?.writeText(b.dataset.copiar);
+        toast('Link copiado', 'green');
+      }));
+    $('dt-corpo').querySelectorAll('[data-revogar]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        if (!confirm('Revogar este link? Quem já tiver aberto não consegue enviar.')) return;
+        await fetch(`/api/links/${b.dataset.revogar}/revogar`,
+          { method: 'POST', headers: Sessao.cabecalho() });
+        abrirDetalhe(turmaId);
+        carregarLinks();
+      }));
+  } catch (e) {
+    $('dt-corpo').innerHTML = `<div class="dt-vazio">Não deu para carregar: ${escapar(e.message)}</div>`;
+  }
+}
+
+function montarDetalhe(d) {
+  const t = d.turma, r = d.resumo;
+  const num = (rot, v, sub) =>
+    `<div class="dt-item"><div class="r">${rot}</div><div class="v">${v}${
+      sub ? ` <small>${sub}</small>` : ''}</div></div>`;
+
+  // A turma vem do Sponte; estes números, do nosso banco. Separados de
+  // propósito: misturá-los faria parecer que o Sponte sabe quem respondeu.
+  const ficha = `
+    <div class="dt-sec">
+      <h4>No Sponte</h4>
+      <div class="dt-ficha">
+        ${num('Curso', escapar(t?.curso || '—'))}
+        ${num('Professor', escapar(t?.professorRegente || 'sem professor'))}
+        ${num('Turno', escapar(t?.turno || '—'))}
+        ${num('Vagas', `${t?.vagasOcupadas ?? '—'}<small>/${t?.maxAlunos || '∞'}</small>`)}
+        ${num('Situação', escapar(t?.situacao || '—'))}
+        ${num('Ano', t?.anoLetivo ?? '—')}
+      </div>
+    </div>`;
+
+  const numeros = `
+    <div class="dt-sec">
+      <h4>Cadastros por este sistema</h4>
+      <div class="dt-ficha">
+        ${num('Responderam', r.concluidos)}
+        ${num('Começaram e pararam', r.rascunhos)}
+        ${num('No Sponte', r.noSponte)}
+        ${num('No Presença', r.noPresenca)}
+        ${num('No League', r.noLeague)}
+        ${num('Pagaram', r.pagos)}
+      </div>
+    </div>`;
+
+  const links = `
+    <div class="dt-sec">
+      <h4>Links gerados (${d.links.length})</h4>
+      ${d.links.length ? d.links.map((l) => {
+        const url = `${location.origin}/cadastro.html?t=${l.token}`;
+        const morto = l.revogadoEm || l.usos >= l.limiteUsos
+          || (l.expiraEm && new Date(l.expiraEm) < new Date());
+        return `<div class="dt-link">
+          <div class="dt-link-topo">
+            <code>${escapar(l.token.slice(0, 12))}…</code>
+            <div class="dt-acoes">
+              <button data-copiar="${escapar(url)}">Copiar</button>
+              ${morto ? '' : `<button data-revogar="${l.id}">Revogar</button>`}
+            </div>
+          </div>
+          <div class="dt-link-nums">
+            <span><b>${l.responderam}</b> responderam</span>
+            ${l.rascunhos ? `<span><b>${l.rascunhos}</b> pararam no meio</span>` : ''}
+            <span>${l.usos}/${l.limiteUsos} usos</span>
+            <span>${l.revogadoEm ? 'revogado'
+              : l.expiraEm ? 'vence ' + new Date(l.expiraEm).toLocaleDateString('pt-BR')
+              : 'sem prazo'}</span>
+          </div>
+        </div>`;
+      }).join('') : '<div class="dt-vazio">Nenhum link gerado para esta turma.</div>'}
+    </div>`;
+
+  const alunos = `
+    <div class="dt-sec">
+      <h4>Quem respondeu (${d.cadastros.length})</h4>
+      ${d.cadastros.length ? d.cadastros.map((c) => `
+        <div class="dt-aluno">
+          <div>
+            <div>${escapar(c.nome || '(sem nome)')}</div>
+            <div class="sub">${c.status}${c.parcelas ? ` · ${c.parcelas}× ${brl(c.valorParcela)}` : ''}
+              · ${new Date(c.criadoEm).toLocaleDateString('pt-BR')}</div>
+          </div>
+          <div class="dt-plat">
+            <span class="${c.sponteAlunoId ? 'on' : ''}">Sponte</span>
+            <span class="${c.presencaAlunoId ? 'on' : ''}">Presença</span>
+            <span class="${c.leagueUserId ? 'on' : ''}">League</span>
+          </div>
+        </div>`).join('')
+        : '<div class="dt-vazio">Ninguém respondeu ainda.</div>'}
+    </div>`;
+
+  return ficha + secaoEspelho(d) + numeros + links + alunos;
+}
+
+/* --- A turma nas outras duas plataformas -------------------------- *
+ *
+ * O Sponte é a fonte: a turma nasce lá. Esta seção é o espelho dela no
+ * Presença e no LeagueInvest — o que existe, o que está ligado, e os botões
+ * que levam uma coisa à outra.
+ * ------------------------------------------------------------------ */
+
+function secaoEspelho(d) {
+  const p = d.plataformas?.presenca ?? {};
+  const l = d.plataformas?.league ?? {};
+  const faltaAlguma = !p.id || (l.configurado && !l.id);
+
+  const aviso = d.nomePadronizado === false ? `
+    <div class="esp-aviso">
+      O nome <b>${escapar(d.turma?.nome ?? '')}</b> está fora da convenção
+      (<code>ELAS Quarta 14:00 PR 2/26</code>). A turma pode ser criada com esse nome
+      — é o que casa com o Sponte —, mas o <b>dia e o horário da chamada ficam em
+      branco</b>, porque não há como lê-los do nome. Corrigir no Sponte resolve de vez.
+    </div>` : '';
+
+  const semLeague = !l.configurado ? `
+    <div class="esp-aviso">
+      O LeagueInvest não está configurado neste ambiente: as ações abaixo valem
+      só para o Presença.
+    </div>` : '';
+
+  return `
+    <div class="dt-sec">
+      <h4>Nas outras plataformas</h4>
+      ${aviso}${semLeague}
+      ${linhaPlataforma('Presença', p, 'presenca')}
+      ${l.configurado ? linhaPlataforma('LeagueInvest', l, 'league') : ''}
+
+      <div class="esp-acoes">
+        ${faltaAlguma ? `<button class="primario" data-esp="propagar">
+          Criar onde falta</button>` : ''}
+        ${faltaAlguma ? `<button data-esp="vincular-busca">
+          Vincular a uma turma existente</button>` : ''}
+        <button data-esp="ativar">Ativar nas plataformas</button>
+        <button class="perigo" data-esp="desativar">Desativar nas plataformas</button>
+        ${(p.id || l.id) ? `<button data-esp="sincronizar"
+          title="Leva o nome, o curso e o professor do Sponte para as outras">
+          Atualizar com os dados do Sponte</button>` : ''}
+      </div>
+
+      <label class="esp-cascata">
+        <input type="checkbox" id="esp-cascata">
+        <span>Aplicar também aos <b>alunos</b> desta turma.
+          Ao ativar, inclui só quem concluiu o cadastro (aprovado ou enviado) —
+          rascunho e pendente ficam de fora. Ao desativar, sai todo mundo que
+          tem cadastro em alguma plataforma.</span>
+      </label>
+
+      <div id="esp-resultado"></div>
+      <div id="esp-busca-caixa"></div>
+    </div>`;
+}
+
+function linhaPlataforma(rotulo, s, chave) {
+  let pino, texto;
+  if (!s.id) {
+    pino = '<span class="esp-pino falta">não existe</span>';
+    texto = 'Nenhuma turma vinculada.';
+  } else if (s.ausente) {
+    // Id gravado que não acha a turma: alguém a apagou de lá.
+    pino = '<span class="esp-pino ruim">id órfão</span>';
+    texto = `O id ${escapar(s.id)} está gravado aqui, mas a turma não existe mais lá.`;
+  } else {
+    pino = s.ativa
+      ? '<span class="esp-pino on">ativa</span>'
+      : '<span class="esp-pino off">desativada</span>';
+    texto = escapar(s.nome ?? '')
+      + (s.ligaNome ? ` · liga ${escapar(s.ligaNome)}` : '')
+      + ` · id ${escapar(s.id)}`;
+  }
+
+  return `
+    <div class="esp" data-plat="${chave}">
+      <div class="esp-topo">
+        <div style="min-width:0;">
+          <div class="esp-nome">${rotulo}</div>
+          <div class="esp-sub">${texto}</div>
+        </div>
+        ${pino}
+      </div>
+      ${s.erro ? `<div class="esp-aviso esp-erro" style="margin:9px 0 0;">
+        Última falha: ${escapar(s.erro)}</div>` : ''}
+    </div>`;
+}
+
+/**
+ * Executa uma ação de espelho e mostra o que aconteceu em cada plataforma.
+ *
+ * Nunca esconde a falha parcial: criar no Presença e falhar no League é o
+ * caso mais comum, e dizer só "pronto" deixaria a turma meio criada sem
+ * ninguém saber.
+ */
+async function acaoEspelho(turmaId, acao, corpo = {}) {
+  const caixa = $('esp-resultado');
+  const botoes = [...document.querySelectorAll('[data-esp]')];
+  botoes.forEach((b) => { b.disabled = true; });
+  caixa.innerHTML = `<div class="esp-aviso">Falando com as plataformas…</div>`;
+
+  try {
+    const r = await fetch(`/api/turmas/${turmaId}/${acao}`, {
+      method: 'POST',
+      headers: { ...Sessao.cabecalho(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Falha na operação');
+
+    caixa.innerHTML = relatorioEspelho(d);
+    ligarSeletorDeLiga(turmaId);
+    toast(d.ok ? 'Pronto' : 'Feito em parte — veja o detalhe', d.ok ? 'green' : 'blue');
+
+    // Recarrega para o selo do card e a situação refletirem o que mudou.
+    await carregar();
+    const aberto = $('modal-turma').classList.contains('open');
+    if (aberto) await abrirDetalhe(turmaId, relatorioEspelho(d));
+  } catch (e) {
+    caixa.innerHTML = `<div class="esp-aviso esp-erro">${escapar(e.message)}</div>`;
+    botoes.forEach((b) => { b.disabled = false; });
+  }
+}
+
+function relatorioEspelho(d) {
+  const linhas = (d.resultados ?? []).map((r) => {
+    const nome = r.plataforma === 'presenca' ? 'Presença' : 'LeagueInvest';
+    const classe = r.ok ? 'esp-ok' : r.acao === 'ambigua' ? '' : 'esp-erro';
+    return `<div class="esp-aviso ${classe}" style="margin-bottom:6px;">
+      <b>${nome}:</b> ${escapar(r.mensagem)}</div>`;
+  });
+
+  for (const a of d.avisos ?? []) {
+    linhas.push(`<div class="esp-aviso" style="margin-bottom:6px;">${escapar(a)}</div>`);
+  }
+
+  if (d.cascata) {
+    const c = d.cascata;
+    linhas.push(`<div class="esp-aviso ${c.falhas ? '' : 'esp-ok'}" style="margin-bottom:6px;">
+      <b>Alunos:</b> ${c.ok} de ${c.total} processado${c.total === 1 ? '' : 's'}${
+        c.falhas ? ` · ${c.falhas} com falha` : ''}
+      ${c.falhas ? `<div style="margin-top:6px;font-size:11.5px;">${
+        c.alunos.filter((a) => !a.ok).slice(0, 8)
+          .map((a) => `${escapar(a.nome)}: ${escapar(a.mensagem)}`).join('<br>')
+      }</div>` : ''}</div>`);
+    if (!c.total) {
+      linhas.push(`<div class="esp-aviso" style="margin-bottom:6px;">
+        <b>Alunos:</b> nenhum aluno desta turma entrava no critério — nada foi mexido.</div>`);
+    }
+  }
+
+  // Quando falta decidir a liga, a mensagem sozinha não adianta: a tela tem
+  // que oferecer a escolha ali mesmo.
+  if ((d.resultados ?? []).some((r) => r.precisaLiga)) {
+    linhas.push(`
+      <div class="esp" id="esp-liga" style="margin-top:4px;">
+        <div class="esp-nome">Em qual liga esta turma deve nascer?</div>
+        <div class="esp-sub">
+          No LeagueInvest é a liga que define o conteúdo que o aluno enxerga.
+          Se esta turma não deve existir lá, é só não escolher nada — o Presença
+          já foi tratado.
+        </div>
+        <div class="esp-busca">
+          <select id="esp-liga-sel" style="flex:1;min-width:0;padding:7px 10px;
+            border-radius:8px;border:1px solid var(--borda);background:transparent;
+            color:inherit;font-size:12.5px;">
+            <option value="">Carregando as ligas…</option>
+          </select>
+          <button id="esp-liga-ok" disabled>Criar nesta liga</button>
+        </div>
+      </div>`);
+  }
+
+  return linhas.join('') || '<div class="esp-aviso esp-ok">Nada a fazer.</div>';
+}
+
+/**
+ * Preenche o seletor de liga e liga o botão.
+ *
+ * Chamado depois de pintar o relatório, porque o seletor só existe quando a
+ * operação parou pedindo a liga.
+ */
+async function ligarSeletorDeLiga(turmaId) {
+  const sel = $('esp-liga-sel');
+  const ok = $('esp-liga-ok');
+  if (!sel || !ok) return;
+
+  try {
+    const r = await fetch('/api/league/ligas', { headers: Sessao.cabecalho() });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Falha ao listar as ligas');
+
+    sel.innerHTML = '<option value="">— escolha a liga —</option>'
+      + (d.ligas ?? []).map((l) =>
+          `<option value="${escapar(l.id)}">${escapar(l.nome)}</option>`).join('');
+
+    sel.addEventListener('change', () => { ok.disabled = !sel.value; });
+    ok.addEventListener('click', () => {
+      if (!sel.value) return;
+      const nome = sel.options[sel.selectedIndex].text;
+      if (!confirm(`Criar esta turma no LeagueInvest, na liga "${nome}"?`)) return;
+      acaoEspelho(turmaId, 'propagar', { ligaId: sel.value });
+    });
+  } catch (e) {
+    sel.innerHTML = `<option value="">${escapar(e.message)}</option>`;
+  }
+}
+
+/**
+ * Busca manual, para quando não há como adivinhar qual turma é a certa.
+ *
+ * Vincular ao id errado é pior que não vincular: o sistema para de procurar
+ * e passa a matricular na turma errada com toda a confiança. Por isso a
+ * escolha é sempre de uma pessoa.
+ */
+function abrirBuscaVinculo(turmaId, nomeSugerido) {
+  const caixa = $('esp-busca-caixa');
+  caixa.innerHTML = `
+    <div class="esp" style="margin-top:10px;">
+      <div class="esp-nome">Vincular a uma turma que já existe</div>
+      <div class="esp-sub">Busque pelo nome e escolha. O id fica gravado para sempre.</div>
+      <div class="esp-busca">
+        <input id="esp-termo" placeholder="parte do nome da turma"
+               value="${escapar(nomeSugerido ?? '')}">
+        <button data-esp-busca="1">Buscar</button>
+      </div>
+      <div id="esp-cands"></div>
+    </div>`;
+
+  const buscar = async () => {
+    const termo = $('esp-termo').value.trim();
+    const alvo = $('esp-cands');
+    if (termo.length < 2) { alvo.innerHTML = '<div class="dt-vazio">Digite ao menos 2 letras.</div>'; return; }
+    alvo.innerHTML = '<div class="dt-vazio">Buscando…</div>';
+
+    try {
+      const r = await fetch(`/api/turmas/candidatas?termo=${encodeURIComponent(termo)}`,
+        { headers: Sessao.cabecalho() });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || 'Falha na busca');
+
+      const linha = (rot, nome, sub, campo, id) => `
+        <div class="esp-cand">
+          <div style="min-width:0;">
+            <div>${escapar(nome)}</div>
+            <div class="esp-sub">${rot}${sub ? ' · ' + escapar(sub) : ''}</div>
+          </div>
+          <button data-vinc-campo="${campo}" data-vinc-id="${escapar(id)}">Vincular</button>
+        </div>`;
+
+      const partes = [
+        ...(d.presenca ?? []).map((t) => linha('Presença', t.turma,
+          `${t.curso || ''}${t.ativa ? '' : ' · desativada'}`, 'presencaTurmaId', t.id)),
+        ...(d.league ?? []).map((t) => linha('LeagueInvest', t.nome,
+          `${t.ligaNome || ''}${t.ativa ? '' : ' · desativada'}`, 'leagueClassId', t.id)),
+      ];
+
+      alvo.innerHTML = partes.length ? partes.join('')
+        : '<div class="dt-vazio">Nada encontrado com esse nome.</div>';
+
+      alvo.querySelectorAll('[data-vinc-id]').forEach((b) =>
+        b.addEventListener('click', async () => {
+          await acaoEspelho(turmaId, 'vincular',
+            { [b.dataset.vincCampo]: b.dataset.vincId });
+        }));
+    } catch (e) {
+      alvo.innerHTML = `<div class="esp-aviso esp-erro">${escapar(e.message)}</div>`;
+    }
+  };
+
+  caixa.querySelector('[data-esp-busca]').addEventListener('click', buscar);
+  $('esp-termo').addEventListener('keydown', (e) => { if (e.key === 'Enter') buscar(); });
+  buscar();
+}
+
+$('dt-fechar').addEventListener('click', () => $('modal-turma').classList.remove('open'));
+$('modal-turma').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-turma') $('modal-turma').classList.remove('open');
+});
+
+/* --- Render links ------------------------------------------------ */
+function renderLinks() {
+  if (!estado.links.length) {
+    $('lista-links').innerHTML = `
+      <div class="empty" style="padding:2.5rem;">
+        <div style="font-size:24px;margin-bottom:10px;">🔗</div>
+        <div style="color:var(--text-2);font-size:13px;">Nenhum link gerado ainda.</div>
+        <div style="font-size:11.5px;color:var(--text-faded);margin-top:6px;">
+          Escolha uma turma acima e clique em “Gerar link de cadastro”.
+        </div>
+      </div>`;
+    return;
+  }
+
+  $('lista-links').innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>Turma</th><th>Situação</th><th>Usos</th><th>Cadastros</th>
+        <th>Validade</th><th>Criado</th><th></th>
+      </tr></thead>
+      <tbody>${estado.links.map(linhaLink).join('')}</tbody>
+    </table></div>`;
+
+  $('lista-links').querySelectorAll('[data-copiar]').forEach(b =>
+    b.addEventListener('click', () => copiar(b.dataset.copiar)));
+  $('lista-links').querySelectorAll('[data-revogar]').forEach(b =>
+    b.addEventListener('click', () => revogar(Number(b.dataset.revogar))));
+}
+
+function linhaLink(l) {
+  const expirado = l.expiraEm && new Date(l.expiraEm) < new Date();
+  const esgotado = l.usos >= l.limiteUsos;
+  const [rotulo, cor] = l.revogadoEm ? ['Revogado', 'badge-red']
+    : expirado ? ['Expirado', 'badge-gray']
+    : esgotado ? ['Esgotado', 'badge-blue']
+    : ['Ativo', 'badge-green'];
+  const morto = l.revogadoEm || expirado || esgotado;
+
+  return `
+    <tr${morto ? ' class="row-inativo"' : ''}>
+      <td><div style="font-weight:600;">${escapar(encurtar(l.turmaNome, 34))}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${escapar(l.cursoNome || '—')}</div></td>
+      <td><span class="badge ${cor}">${rotulo}</span></td>
+      <td>${l.usos}/${l.limiteUsos}</td>
+      <td>${l.cadastros || 0}</td>
+      <td>${l.expiraEm ? dataBr(l.expiraEm) : 'sem prazo'}</td>
+      <td>${dataBr(l.criadoEm)}</td>
+      <td style="white-space:nowrap;text-align:right;">
+        <button class="btn-sec" style="padding:4px 10px;font-size:11px;" data-copiar="${escapar(l.token)}">Copiar</button>
+        ${!morto ? `<button class="btn-danger" style="padding:4px 10px;font-size:11px;" data-revogar="${l.id}">Revogar</button>` : ''}
+      </td>
+    </tr>`;
+}
+
+async function copiar(token) {
+  const url = `${location.origin}/cadastro.html?t=${token}`;
+  try { await navigator.clipboard.writeText(url); toast('Link copiado', 'blue'); }
+  catch { prompt('Copie o link:', url); }
+}
+
+async function revogar(id) {
+  const r = await fetch(`/api/links/${id}/revogar`, { method: 'POST', headers: Sessao.cabecalho() });
+  if (r.ok) { toast('Link revogado', 'blue'); carregarLinks(); carregar(); }
+}
+
+/* --- Modal ------------------------------------------------------- */
+const brl = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+async function abrirModal(turmaId) {
+  const t = estado.turmas.find(x => x.turmaId === turmaId);
+  if (!t) return;
+  estado.turmaSelecionada = t;
+  estado.planos = [];
+  $('m-nome').textContent = t.nome;
+  $('m-detalhe').textContent =
+    `${t.curso || 'Sem curso'} · ${t.turno || 'sem turno'} · ${t.vagasLivres} vaga${t.vagasLivres === 1 ? '' : 's'} livre${t.vagasLivres === 1 ? '' : 's'}`;
+  $('m-resultado').style.display = 'none';
+  $('m-form').style.display = 'block';
+  $('m-erro').style.display = 'none';
+  $('m-erro-plano').style.display = 'none';
+  $('m-resumo-valor').style.display = 'none';
+  $('m-usos').value = Math.max(1, Math.min(t.vagasLivres || 1, 10));
+  $('btn-gerar').disabled = true;
+  $('btn-gerar').style.display = '';
+  $('btn-gerar').textContent = 'Gerar link';
+  $('m-plano').innerHTML = '<option value="">Carregando…</option>';
+  $('modal-link').classList.add('open');
+
+  await carregarCondicoes(t.cursoId);
+}
+
+async function carregarCondicoes(cursoId) {
+  try {
+    const [rp, rb] = await Promise.all([
+      fetch(`/api/sponte/planos?cursoId=${cursoId}`, { headers: Sessao.cabecalho() }),
+      fetch('/api/sponte/bolsas', { headers: Sessao.cabecalho() }),
+    ]);
+    const dp = await rp.json();
+    const db = await rb.json();
+
+    estado.planos = dp.planos || [];
+    estado.bolsas = db.bolsas || [];
+
+    if (!estado.planos.length) {
+      // Acontece nos 14 cursos inativos da escola. O link ainda pode ser
+      // gerado — só não mostra valor ao aluno.
+      $('m-plano').innerHTML = '<option value="">Sem plano cadastrado</option>';
+      $('m-erro-plano').style.display = 'block';
+      $('btn-gerar').disabled = false;
+      return;
+    }
+
+    $('m-plano').innerHTML = estado.planos.map(p =>
+      `<option value="${p.planoCursoId}"${p.planoCursoId === dp.preferidoId ? ' selected' : ''}>
+         ${escapar(p.descricao)} — ${brl(p.mensalidade.valorParcela)} × ${p.mensalidade.parcelas}
+       </option>`).join('');
+
+    $('m-bolsa').innerHTML = '<option value="">Sem bolsa</option>' +
+      estado.bolsas.map(b =>
+        `<option value="${b.bolsaId}">${escapar(b.descricao)}</option>`).join('');
+
+    $('btn-gerar').disabled = false;
+    atualizarResumoValor();
+  } catch {
+    $('m-plano').innerHTML = '<option value="">Falha ao carregar planos</option>';
+    $('btn-gerar').disabled = false;
+  }
+}
+
+/**
+ * Prévia do valor. É só informativa — o servidor recalcula a partir dos ids na
+ * hora de criar o link, então o que o navegador mostra aqui nunca vira preço.
+ */
+function atualizarResumoValor() {
+  const p = estado.planos.find(x => x.planoCursoId === Number($('m-plano').value));
+  if (!p) { $('m-resumo-valor').style.display = 'none'; return; }
+
+  const b = estado.bolsas.find(x => x.bolsaId === Number($('m-bolsa').value));
+  const cheia = p.mensalidade.valorParcela;
+  const parcela = b
+    ? (b.tipoDesconto === '%' ? cheia * (1 - b.desconto / 100) : Math.max(0, cheia - b.desconto))
+    : cheia;
+  const total = p.total - (cheia - parcela) * p.mensalidade.parcelas;
+
+  $('m-resumo-valor').innerHTML = `
+    <div class="valor-linha">
+      <span>Mensalidade</span>
+      <strong>${b ? `<s>${brl(cheia)}</s> ` : ''}${brl(parcela)} × ${p.mensalidade.parcelas}</strong>
+    </div>
+    ${p.matricula.total > 0 ? `<div class="valor-linha"><span>Matrícula</span><strong>${brl(p.matricula.valorParcela)} × ${p.matricula.parcelas}</strong></div>` : ''}
+    ${p.material.total > 0 ? `<div class="valor-linha"><span>Material</span><strong>${brl(p.material.valorParcela)} × ${p.material.parcelas}</strong></div>` : ''}
+    <div class="valor-linha total"><span>Total do contrato</span><strong>${brl(total)}</strong></div>
+    ${b ? `<div class="valor-obs">Bolsa aplicada sobre a mensalidade. Confirme o alcance do desconto antes de gerar cobrança.</div>` : ''}`;
+  $('m-resumo-valor').style.display = 'block';
+}
+
+$('m-plano').addEventListener('change', atualizarResumoValor);
+$('m-bolsa').addEventListener('change', atualizarResumoValor);
+const fechar = () => $('modal-link').classList.remove('open');
+$('btn-fechar').addEventListener('click', fechar);
+$('btn-cancelar').addEventListener('click', fechar);
+$('modal-link').addEventListener('click', e => { if (e.target.id === 'modal-link') fechar(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fechar(); });
+
+$('btn-gerar').addEventListener('click', async () => {
+  const usos = Number($('m-usos').value);
+  if (!Number.isInteger(usos) || usos < 1) { $('m-erro').style.display = 'block'; return; }
+  $('m-erro').style.display = 'none';
+
+  const t = estado.turmaSelecionada;
+  $('btn-gerar').disabled = true;
+  $('btn-gerar').textContent = 'Gerando…';
+
+  try {
+    const r = await fetch('/api/links', {
+      method: 'POST',
+      headers: Sessao.cabecalho({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        turmaId: t.turmaId, cursoId: t.cursoId, turmaNome: t.nome,
+        cursoNome: t.curso, turmaTurno: t.turno,
+        limiteUsos: usos, diasValidade: Number($('m-validade').value),
+        planoCursoId: Number($('m-plano').value) || null,
+        bolsaId: Number($('m-bolsa').value) || null,
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Falha ao gerar');
+
+    $('m-url').value = `${location.origin}/cadastro.html?t=${d.link.token}`;
+    $('m-form').style.display = 'none';
+    $('m-resultado').style.display = 'block';
+    $('btn-gerar').style.display = 'none';
+    toast(`Link gerado para ${encurtar(t.nome, 26)}`, 'green');
+    carregarLinks();
+    carregar();
+  } catch (erro) {
+    toast(erro.message, 'red');
+    $('btn-gerar').disabled = false;
+    $('btn-gerar').textContent = 'Gerar link';
+  }
+});
+
+$('btn-copiar').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('m-url').value); toast('Link copiado', 'blue'); }
+  catch { $('m-url').select(); toast('Selecione e copie com Ctrl+C', 'blue'); }
+});
+
+/* --- Filtros ----------------------------------------------------- */
+$('f-ano').addEventListener('change', e => {
+  estado.ano = e.target.value ? Number(e.target.value) : null; estado.curso = ''; carregar();
+});
+$('f-todas').addEventListener('change', e => {
+  estado.mostrarTodas = e.target.checked; estado.curso = ''; carregar();
+});
+let deb;
+$('f-busca').addEventListener('input', e => {
+  clearTimeout(deb);
+  deb = setTimeout(() => { estado.busca = e.target.value; render(); }, 180);
+});
+
+// Nada é carregado antes de saber quem está olhando: a tela de login
+// cobre a página até um administrador entrar.
+Sessao.exigirAdmin().then((quem) => {
+  const h = document.getElementById('hname');
+  if (h) { h.textContent = `${quem.nome} · sair`; h.style.cursor = 'pointer';
+           h.title = quem.email; h.addEventListener('click', Sessao.sair); }
+  iniciar();
+});
+
+function iniciar() {
+  conferirEstado();
+carregar();
+}
+</script>
+</body>
+</html>

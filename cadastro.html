@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<!--
+  Cadastro público do aluno — experiência completa.
+
+  Superfície PÚBLICA (docs/DESIGN-SYSTEM.md §1): tokens próprios, sem
+  theme-tokens.css, sem alternador de tema, sem nav, mobile-first. Segue o
+  isolamento de reposicao.html — nada de frontend/state/, features/ ou
+  backend/api/ entra aqui.
+
+  POR QUE EM ETAPAS
+  O Sponte precisa de nome, CPF, nascimento, contato, endereço e — para menor de
+  idade — responsável. São uns quinze campos. Numa tela só, no celular, isso é
+  uma parede de rolagem e abandono. Em cinco etapas curtas cada uma cabe na
+  tela, e o progresso fica visível.
+
+  Nada sai do navegador antes da última etapa, então voltar e corrigir é livre.
+
+  A gravação no Sponte continua atrás de trava (SPONTE_ESCRITA no servidor):
+  InsertAlunos3 é irreversível e ainda não há ambiente de testes.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadastro — Financial Experts</title>
+<link rel="icon" href="frontend/img/favicon.png">
+<style>
+:root{
+  --bg:#eef2f9; --bg-accent:#dbe6fb;
+  --surface:#ffffff; --surface-2:#f7f9fc; --border:#e6e9f0;
+  --text:#111111; --text-2:#4b5563; --text-3:#7a7f8a;
+  --primary:#1d4ed8; --primary-hover:#1e40af; --primary-soft:#e8eefe;
+  --green:#059669; --green-soft:#e3f8ee;
+  --amber:#b45309; --amber-soft:#fdf4e3;
+  --red:#dc2626; --red-soft:#fdecec;
+  --gray-soft:#f0f1f4;
+  --shadow:0 20px 45px -20px rgba(29,78,216,.25), 0 2px 8px rgba(0,0,0,.04);
+  --glass-tint:rgba(255,255,255,.68); --glass-tint-2:rgba(255,255,255,.55);
+  --glass-border:rgba(255,255,255,.6);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b1120; --bg-accent:#0f1c3d;
+    --surface:#161f33; --surface-2:#1b2540; --border:#2a3654;
+    --text:#e7ebf5; --text-2:#aab3c5; --text-3:#7d879c;
+    --primary:#5b8def; --primary-hover:#7ba3f3; --primary-soft:#1c2b4d;
+    --green:#3ddc9a; --green-soft:#0f2e26;
+    --amber:#fbbf24; --amber-soft:#3a2e10;
+    --red:#f87171; --red-soft:#3a1a1a;
+    --gray-soft:#232e4a;
+    --shadow:0 20px 45px -20px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.3);
+    --glass-tint:rgba(22,31,51,.62); --glass-tint-2:rgba(22,31,51,.5);
+    --glass-border:rgba(255,255,255,.08);
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;}
+}
+
+*{box-sizing:border-box;}
+html,body{width:100%;max-width:100%;overflow-x:hidden;}
+body{
+  margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:radial-gradient(900px 500px at 50% -10%, var(--bg-accent), transparent 60%), var(--bg);
+  min-height:100vh;
+}
+.page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:36px 16px;}
+.brand{margin-bottom:20px;}
+.brand-logo{height:26px;width:auto;opacity:.9;}
+.brand-logo-dark{display:none;}
+@media (prefers-color-scheme: dark){
+  .brand-logo-light{display:none;}
+  .brand-logo-dark{display:inline-block;}
+}
+
+.card{
+  background:var(--glass-tint);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid var(--glass-border);border-radius:22px;
+  box-shadow:var(--shadow);padding:30px 24px;width:100%;max-width:440px;text-align:center;
+}
+.fade-in{animation:fadeIn .3s ease both;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.icon-badge{
+  width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:26px;margin:0 auto 14px;
+}
+.icon-badge-blue{background:var(--primary-soft);}
+.icon-badge-green{background:var(--green-soft);}
+.icon-badge-red{background:var(--red-soft);}
+.icon-badge-amber{background:var(--amber-soft);}
+.icon-badge-gray{background:var(--gray-soft);}
+
+h1{font-size:20px;margin:0 0 8px;color:var(--text);font-weight:700;}
+.sub{font-size:13.5px;color:var(--text-2);margin:0 0 4px;line-height:1.5;}
+.muted{font-size:12px;color:var(--text-3);}
+.footer-msg{margin-top:16px;}
+
+/* --- Progresso --- */
+.stepper{display:flex;align-items:center;gap:5px;margin-bottom:20px;}
+.step-dot{flex:1;height:4px;border-radius:99px;background:var(--border);transition:background .3s ease;}
+.step-dot.feito{background:var(--green);}
+.step-dot.atual{background:var(--primary);}
+.step-rotulo{
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-3);text-align:left;margin-bottom:6px;
+}
+
+/* --- Turma e valores --- */
+.turma-box{
+  background:var(--glass-tint-2);border:1px solid var(--glass-border);border-radius:14px;
+  padding:14px 16px;margin:18px 0;text-align:left;
+}
+.turma-box .rotulo{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;}
+.turma-box .nome{font-size:14px;font-weight:700;color:var(--text);line-height:1.35;}
+.turma-box .detalhe{font-size:12px;color:var(--text-2);margin-top:4px;}
+
+.valor-box{margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);}
+.valor-destaque{display:flex;align-items:baseline;justify-content:center;gap:7px;flex-wrap:wrap;}
+.valor-cheio{font-size:13px;color:var(--text-3);text-decoration:line-through;}
+.valor-parcela{font-size:22px;font-weight:800;color:var(--primary);line-height:1.1;}
+.valor-vezes{font-size:13px;font-weight:600;color:var(--text-2);}
+.valor-total{font-size:12px;color:var(--text-2);margin-top:5px;}
+.valor-total strong{color:var(--text);font-weight:700;}
+.valor-nota{font-size:10.5px;color:var(--text-3);margin-top:7px;line-height:1.45;}
+
+/* --- Formulário --- */
+form{text-align:left;}
+.campo{margin-bottom:13px;}
+.campo label{display:block;font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:5px;}
+.campo .opcional{font-weight:400;color:var(--text-3);}
+.campo input,.campo select{
+  width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:12px;
+  font-size:15px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;
+  transition:border-color .18s ease, box-shadow .18s ease;
+}
+.campo input:focus,.campo select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(29,78,216,.12);}
+.campo input[aria-invalid="true"]{border-color:var(--red);}
+.campo .ajuda{font-size:11px;color:var(--text-3);margin-top:4px;}
+.erro-campo{font-size:11.5px;color:var(--red);margin-top:4px;display:none;}
+.erro-campo.visivel{display:block;}
+
+/* Seletor de parcelamento: a escolha principal da etapa, então maior que
+   um campo comum e com o resumo logo abaixo. */
+.sel-parcelas{font-size:16px !important;font-weight:600;}
+.resumo-parcelas{
+  margin-top:10px;padding:11px 13px;border-radius:12px;line-height:1.55;
+  background:var(--surface-2);border:1px solid var(--border);
+  font-size:13px;color:var(--text-2);
+}
+.resumo-parcelas strong{color:var(--text);}
+
+.linha-dupla{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.linha-cep{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.linha-cidade{display:grid;grid-template-columns:2fr 1fr;gap:10px;}
+@media (max-width:380px){ .linha-dupla,.linha-cep,.linha-cidade{grid-template-columns:1fr;} }
+
+/* --- Pagamento --- */
+.pg-meios{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+@media (max-width:380px){ .pg-meios{grid-template-columns:1fr;} }
+.pg-meio{padding:12px 6px;}
+.pg-meio-nome{font-size:12.5px;}
+.pg-meio-sub{font-size:9.5px;text-align:center;line-height:1.2;}
+.pg-meio{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:13px 10px;border:1.5px solid var(--border);border-radius:14px;
+  background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit;
+  transition:border-color .18s ease, background .18s ease, transform .18s var(--spring);
+}
+.pg-meio:hover{border-color:var(--primary);}
+.pg-meio:active{transform:scale(.97);}
+.pg-meio.on{border-color:var(--primary);background:var(--primary-soft);}
+.pg-meio-ico{font-size:21px;line-height:1;}
+.pg-meio-nome{font-size:13px;font-weight:700;}
+.pg-meio-sub{font-size:10.5px;color:var(--text-3);}
+.pg-meio.on .pg-meio-sub{color:var(--text-2);}
+.pg-resumo{
+  background:var(--primary-soft);border-radius:12px;padding:11px 13px;
+  font-size:12.5px;color:var(--text);text-align:center;line-height:1.5;margin-bottom:4px;
+}
+.pg-resumo strong{font-weight:700;}
+
+/* --- Revisão --- */
+.revisao{text-align:left;}
+.rev-grupo{margin-bottom:14px;}
+.rev-titulo{
+  font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-3);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;
+}
+.rev-editar{
+  font-size:11px;color:var(--primary);cursor:pointer;background:none;border:none;
+  font-family:inherit;text-transform:none;letter-spacing:0;font-weight:600;
+}
+.rev-linha{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:3px 0;}
+.rev-linha .k{color:var(--text-3);flex-shrink:0;}
+.rev-linha .v{color:var(--text);font-weight:600;text-align:right;word-break:break-word;}
+
+.aceite{
+  display:flex;align-items:flex-start;gap:10px;text-align:left;
+  background:var(--glass-tint-2);border:1.5px solid var(--glass-border);border-radius:14px;
+  padding:13px 14px;margin:16px 0 4px;cursor:pointer;
+}
+.aceite.erro{border-color:var(--red);}
+.aceite input{width:19px;height:19px;flex-shrink:0;margin:1px 0 0;accent-color:var(--primary);}
+.aceite span{font-size:12px;color:var(--text-2);line-height:1.5;}
+.aceite a{color:var(--primary);}
+
+/* --- Botões --- */
+.acoes{display:flex;gap:9px;margin-top:18px;}
+.btn-confirmar{
+  flex:1;padding:13px;background:var(--primary);color:#fff;border:none;
+  border-radius:12px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:background .15s ease, transform .18s var(--spring);
+}
+.btn-confirmar:hover:not(:disabled){background:var(--primary-hover);}
+.btn-confirmar:active:not(:disabled){transform:scale(.97);}
+.btn-confirmar:disabled{opacity:.55;cursor:not-allowed;}
+.btn-voltar{
+  padding:13px 18px;background:none;color:var(--text-2);border:1.5px solid var(--border);
+  border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;
+}
+.btn-voltar:hover{border-color:var(--text-3);color:var(--text);}
+
+.aviso-lgpd{font-size:11px;color:var(--text-3);margin-top:14px;line-height:1.5;}
+
+/* --- Checkout --- */
+.ck-passos{text-align:left;margin:18px 0;}
+.ck-passo{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12.5px;color:var(--text-3);}
+.ck-passo.feito{color:var(--text-2);}
+.ck-passo.atual{color:var(--text);font-weight:600;}
+.ck-bolinha{
+  width:18px;height:18px;border-radius:50%;flex-shrink:0;display:flex;
+  align-items:center;justify-content:center;font-size:10px;
+  border:1.5px solid var(--border);color:transparent;
+}
+.ck-passo.feito .ck-bolinha{background:var(--green);border-color:var(--green);color:#fff;}
+.ck-passo.atual .ck-bolinha{border-color:var(--primary);}
+.ck-passo.atual .ck-bolinha::after{
+  content:'';width:7px;height:7px;border-radius:50%;background:var(--primary);
+  animation:pulsa 1s ease-in-out infinite;
+}
+@keyframes pulsa{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.btn-pagar{
+  width:100%;padding:15px;background:var(--primary);color:#fff;border:none;
+  border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;
+  text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:6px;transition:background .15s ease, transform .18s var(--spring);
+}
+.btn-pagar:hover{background:var(--primary-hover);}
+.btn-pagar:active{transform:scale(.97);}
+.aviso-simulado{
+  background:var(--amber-soft);border:1px solid var(--amber);color:var(--amber);
+  border-radius:12px;padding:10px 13px;font-size:11.5px;line-height:1.5;margin:14px 0;text-align:left;
+}
+
+.spinner{
+  width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--primary);
+  border-radius:50%;animation:girar .7s linear infinite;margin:0 auto 16px;
+}
+@keyframes girar{to{transform:rotate(360deg);}}
+
+/* Só nesta preview. */
+.preview-bar{margin-top:24px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:440px;}
+.preview-bar button{
+  font-size:11px;padding:5px 11px;border-radius:99px;cursor:pointer;font-family:inherit;
+  border:1px solid var(--glass-border);background:var(--glass-tint-2);color:var(--text-2);
+}
+.preview-bar button.on{background:var(--primary);color:#fff;border-color:var(--primary);}
+.preview-nota{font-size:10.5px;color:var(--text-3);margin-top:10px;text-align:center;max-width:440px;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="brand">
+    <img class="brand-logo brand-logo-light" src="frontend/img/finexperts_pos preto.png" alt="Financial Experts">
+    <img class="brand-logo brand-logo-dark" src="frontend/img/financial-experts branco.png" alt="Financial Experts">
+  </div>
+
+  <div id="tela"></div>
+
+  <div class="preview-bar" id="preview-bar"></div>
+  <div class="preview-nota" id="preview-nota"></div>
+
+</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const tela = $('tela');
+
+const escapar = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const digitos = (v) => String(v ?? '').replace(/\D/g, '');
+
+/* ================================================================== *
+ * Estado
+ * ================================================================== */
+
+const TURMA = {
+  nome: 'Elas Quarta 14:00 PR 1/26',
+  curso: 'Elas',
+  turno: 'Vespertino',
+  vagasLivres: 12,
+  valorParcela: 586.56,
+  parcelas: 6,
+  valorTotal: 3519.36,
+  valorParcelaCheia: 637.56,
+};
+
+/** Tudo que o aluno preencheu. Só sai do navegador na última etapa. */
+/*
+ * Só o que a compra exige.
+ *
+ * Gênero, estado civil, RG, profissão, nacionalidade, cidade natal, empresa,
+ * operadora e os dois telefones extras existem no Sponte e continuam no banco —
+ * mas são preenchidos na conferência interna, não pelo aluno.
+ *
+ * Nenhum deles é obrigatório no ERP: na base real, 786 dos 949 alunos não têm
+ * gênero preenchido, e só `Nome` e `Situação` têm asterisco na tela do Sponte.
+ * Cada campo a mais aqui é um motivo a mais para desistir no meio.
+ */
+const form = {
+  // Pessoais
+  nome: '', cpf: '', nascimento: '',
+  // Contato
+  email: '', celular: '',
+  // Endereço
+  cep: '', endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '',
+  // Responsável (menor de 18)
+  respNome: '', respCpf: '', respParentesco: '', respCelular: '', respEmail: '',
+  // Comercial e pagamento
+  origemVenda: '',
+  // Em quantas mensalidades. Começa no máximo do plano, que é a condição
+  // que a escola anunciou — quem quiser menos vezes muda.
+  parcelas: null,
+  aceite: false,
+};
+
+const pagamento = { meios: [] };
+const estadoCheckout = {
+  id: null, link: null, simulado: false,
+  /**
+   * O segredo desta ficha, devolvido uma vez pelo envio.
+   *
+   * É o que autoriza o checkout: o id é sequencial e não prova nada. Vive
+   * só nesta aba — não vai para o localStorage, porque não deve sobreviver
+   * a ela nem ser lido por outra página do mesmo domínio.
+   */
+  token: null,
+};
+
+/** Id do rascunho no servidor. Null até a primeira etapa ser salva. */
+let rascunhoId = null;
+
+/**
+ * Grava o que já foi preenchido, a cada etapa concluída.
+ *
+ * Serve para o abandono não virar um registro perdido: se alguém desiste na
+ * etapa do endereço, a escola vê nome, CPF e contato na fila e pode ligar.
+ *
+ * **Não consome uso do link** — isso só acontece no envio final. E falha em
+ * silêncio: salvar o rascunho é conveniência para a escola, não parte do que o
+ * aluno pediu; um erro aqui não pode impedi-lo de continuar.
+ */
+async function salvarRascunho(etapa) {
+  if (!token) return;
+  try {
+    const r = await fetch(`/api/rascunho/${encodeURIComponent(token)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rascunhoId, etapa,
+        nome: form.nome, cpf: form.cpf,
+        dataNascimento: dataBrParaIso(form.nascimento),
+        email: form.email, celular: form.celular,
+        cep: form.cep, endereco: form.endereco, numeroEndereco: form.numero,
+        complemento: form.complemento, bairro: form.bairro,
+        cidade: form.cidade, uf: form.uf,
+        responsavelNome: form.respNome, responsavelCpf: form.respCpf,
+        responsavelParentesco: form.respParentesco,
+        responsavelCelular: form.respCelular, responsavelEmail: form.respEmail,
+        origemVenda: form.origemVenda,
+      }),
+    });
+    const d = await r.json();
+    if (d.ok && d.rascunhoId) rascunhoId = d.rascunhoId;
+  } catch { /* sem rede: o aluno continua, o rascunho se perde */ }
+}
+const token = new URLSearchParams(location.search).get('t');
+
+/* ================================================================== *
+ * Etapas
+ * ================================================================== */
+
+/**
+ * A etapa do responsável só existe para menor de 18.
+ *
+ * Derivar isso do nascimento — em vez de perguntar "é menor de idade?" — evita
+ * uma pergunta redundante e impede que alguém pule a etapa marcando a caixa
+ * errada.
+ */
+function idadeDoAluno() {
+  const iso = dataBrParaIso(form.nascimento);
+  if (!iso) return null;
+  const n = new Date(iso + 'T00:00:00');
+  if (Number.isNaN(n.getTime())) return null;
+  const hoje = new Date();
+  let i = hoje.getFullYear() - n.getFullYear();
+  const m = hoje.getMonth() - n.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < n.getDate())) i--;
+  return i;
+}
+const ehMenor = () => { const i = idadeDoAluno(); return i !== null && i >= 0 && i < 18; };
+
+const ETAPAS = [
+  { id: 'dados',       rotulo: 'Seus dados' },
+  { id: 'endereco',    rotulo: 'Endereço' },
+  { id: 'responsavel', rotulo: 'Responsável', so: ehMenor },
+  // A etapa pergunta só em quantas vezes. Forma de pagamento não se escolhe
+  // aqui: Pix, boleto ou cartão o aluno decide na página do Sponte Pay.
+  { id: 'parcelamento', rotulo: 'Parcelamento' },
+  { id: 'revisao',     rotulo: 'Revisão' },
+];
+
+const etapasAtivas = () => ETAPAS.filter((e) => !e.so || e.so());
+let etapaAtual = 0;
+
+function stepper() {
+  const lista = etapasAtivas();
+  const i = Math.min(etapaAtual, lista.length - 1);
+  return `
+    <div class="step-rotulo">Passo ${i + 1} de ${lista.length} · ${escapar(lista[i].rotulo)}</div>
+    <div class="stepper">
+      ${lista.map((_, k) => `<div class="step-dot ${k < i ? 'feito' : k === i ? 'atual' : ''}"></div>`).join('')}
+    </div>`;
+}
+
+/* ================================================================== *
+ * Blocos reaproveitados
+ * ================================================================== */
+
+function caixaTurma(comValor = true) {
+  return `
+    <div class="turma-box">
+      <div class="rotulo">Turma</div>
+      <div class="nome">${escapar(TURMA.nome)}</div>
+      <div class="detalhe">${escapar(TURMA.curso)} · ${escapar(TURMA.turno)} · ${TURMA.vagasLivres} vagas restantes</div>
+      ${comValor ? caixaValor() : ''}
+    </div>`;
+}
+
+/**
+ * Valores. Não exibe nome de plano nem de bolsa: são rótulos internos
+ * ("2026 Elas 8% - 6x", "Bolsa 10%") que não dizem nada a quem se cadastra e
+ * expõem a política de desconto da escola.
+ */
+function caixaValor() {
+  const total = TURMA.valorTotal
+    || (TURMA.valorParcela && TURMA.parcelas ? TURMA.valorParcela * TURMA.parcelas : 0);
+  if (!total) return '';
+
+  // O destaque é o total, porque é o que será cobrado: uma cobrança só. A
+  // mensalidade vira referência — ela diz quanto fica por mês se o aluno
+  // dividir no cartão, mas quem decide isso é ele, na página de pagamento.
+  return `
+    <div class="valor-box">
+      <div class="valor-destaque">
+        <span class="valor-parcela">${brl(total)}</span>
+      </div>
+      ${TURMA.parcelas > 1
+        ? `<div class="valor-total">ou até <strong>${TURMA.parcelas}×</strong> de
+             <strong>${brl(total / TURMA.parcelas)}</strong> no cartão</div>`
+        : ''}
+      <div class="valor-nota">Na próxima página você escolhe entre Pix, boleto ou cartão.</div>
+    </div>`;
+}
+
+const campo = (id, rotulo, attrs = '', ajuda = '', erro = '') => `
+  <div class="campo">
+    <label for="${id}">${rotulo}</label>
+    <input id="${id}" ${attrs}>
+    ${ajuda ? `<div class="ajuda">${ajuda}</div>` : ''}
+    <div class="erro-campo" id="e-${id}">${erro}</div>
+  </div>`;
+
+/* ================================================================== *
+ * Telas
+ * ================================================================== */
+
+const estados = {
+
+  validando: () => `
+    <div class="card fade-in">
+      <div class="spinner"></div>
+      <h1>Verificando o link</h1>
+      <p class="sub">Só um instante.</p>
+    </div>`,
+
+  /* ---------------- 1. Dados e contato ---------------- */
+  dados: () => `
+    <div class="card fade-in">
+      ${stepper()}
+      <div class="icon-badge icon-badge-blue">📝</div>
+      <h1>Confirme sua matrícula</h1>
+      <p class="sub">Só o essencial — leva menos de um minuto.</p>
+      ${caixaTurma()}
+      <form id="form" novalidate>
+        ${campo('nome', 'Nome completo', `type="text" autocomplete="name" value="${escapar(form.nome)}"`, '', 'Informe seu nome completo.')}
+        <div class="linha-dupla">
+          ${campo('cpf', 'CPF', `type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" value="${escapar(form.cpf)}"`, '', 'CPF inválido — confira os números.')}
+          ${campo('nascimento', 'Nascimento', `type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" value="${escapar(form.nascimento)}"`, '', 'Data inválida — use dd/mm/aaaa.')}
+        </div>
+        ${campo('email', 'E-mail', `type="email" autocomplete="email" value="${escapar(form.email)}"`, 'Vira seu acesso à plataforma de conteúdo.', 'E-mail inválido.')}
+        ${campo('celular', 'Celular (com DDD)', `type="tel" inputmode="numeric" maxlength="15" placeholder="(00) 00000-0000" value="${escapar(form.celular)}"`, 'Usamos este número no WhatsApp.', 'Informe um celular válido.')}
+        <div class="acoes">
+          <button type="submit" class="btn-confirmar">Continuar</button>
+        </div>
+      </form>
+    </div>`,
+
+  /* ---------------- 2. Endereço ---------------- */
+  endereco: () => `
+    <div class="card fade-in">
+      ${stepper()}
+      <div class="icon-badge icon-badge-blue">📍</div>
+      <h1>Onde você mora</h1>
+      <p class="sub">A escola precisa do endereço para o contrato.</p>
+      <form id="form" novalidate>
+        <div class="linha-cep">
+          ${campo('cep', 'CEP', `type="text" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${escapar(form.cep)}"`, '<span id="ajuda-cep">Preenchemos o resto para você.</span>', 'CEP inválido.')}
+          ${campo('numero', 'Número', `type="text" maxlength="10" placeholder="123 ou s/n" value="${escapar(form.numero)}"`, '', 'Informe o número.')}
+        </div>
+        ${campo('endereco', 'Rua / avenida', `type="text" autocomplete="street-address" value="${escapar(form.endereco)}"`, '', 'Informe o endereço.')}
+        ${campo('complemento', 'Complemento <span class="opcional">(opcional)</span>', `type="text" placeholder="Apto, bloco…" value="${escapar(form.complemento)}"`)}
+        ${campo('bairro', 'Bairro', `type="text" value="${escapar(form.bairro)}"`, '', 'Informe o bairro.')}
+        <div class="linha-cidade">
+          ${campo('cidade', 'Cidade', `type="text" value="${escapar(form.cidade)}"`, '', 'Informe a cidade.')}
+          ${campo('uf', 'UF', `type="text" maxlength="2" placeholder="MG" value="${escapar(form.uf)}"`, '', 'UF.')}
+        </div>
+        ${campo('origemVenda', 'Quem indicou ou de onde conheceu a escola? <span class="opcional">(opcional)</span>',
+          `type="text" value="${escapar(form.origemVenda)}"`,
+          'Se foi indicação, escreva o nome de quem indicou.')}
+        <div class="acoes">
+          <button type="button" class="btn-voltar" id="voltar">Voltar</button>
+          <button type="submit" class="btn-confirmar">Continuar</button>
+        </div>
+      </form>
+    </div>`,
+
+  /* ---------------- 3. Responsável (só menor) ---------------- */
+  responsavel: () => `
+    <div class="card fade-in">
+      ${stepper()}
+      <div class="icon-badge icon-badge-blue">👨‍👩‍👧</div>
+      <h1>Responsável</h1>
+      <p class="sub">Como ${escapar(primeiroNome())} tem ${idadeDoAluno()} anos, precisamos
+      dos dados de quem responde pela matrícula.</p>
+      <form id="form" novalidate>
+        ${campo('respNome', 'Nome completo do responsável', `type="text" autocomplete="name" value="${escapar(form.respNome)}"`, '', 'Informe o nome do responsável.')}
+        <div class="linha-dupla">
+          ${campo('respCpf', 'CPF', `type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" value="${escapar(form.respCpf)}"`, '', 'CPF inválido.')}
+          <div class="campo">
+            <label for="respParentesco">Parentesco</label>
+            <select id="respParentesco">
+              ${['', 'Mãe', 'Pai', 'Avó / Avô', 'Tia / Tio', 'Responsável legal', 'Outro']
+                .map((p) => `<option value="${p}"${form.respParentesco === p ? ' selected' : ''}>${p || 'Selecione'}</option>`).join('')}
+            </select>
+            <div class="erro-campo" id="e-respParentesco">Informe o parentesco.</div>
+          </div>
+        </div>
+        ${campo('respCelular', 'Celular do responsável', `type="tel" inputmode="numeric" maxlength="15" placeholder="(00) 00000-0000" value="${escapar(form.respCelular)}"`, '', 'Informe um celular válido.')}
+        ${campo('respEmail', 'E-mail do responsável', `type="email" autocomplete="email" value="${escapar(form.respEmail)}"`, 'Para onde vai o contrato e a cobrança.', 'E-mail inválido.')}
+        <div class="acoes">
+          <button type="button" class="btn-voltar" id="voltar">Voltar</button>
+          <button type="submit" class="btn-confirmar">Continuar</button>
+        </div>
+      </form>
+    </div>`,
+
+  /* ---------------- 4. Pagamento ---------------- */
+  /* ---------------- 4. Em quantas vezes ---------------- */
+  parcelamento: () => {
+    const max = TURMA.parcelas || 1;
+    const total = TURMA.valorTotal || (TURMA.valorParcela || 0) * max;
+    const escolhido = form.parcelas || max;
+
+    const opcao = (n) => {
+      const v = total / n;
+      return `<option value="${n}"${n === escolhido ? ' selected' : ''}>${
+        n === 1 ? `À vista — ${brl(total)}` : `${n}× de ${brl(v)}`
+      }</option>`;
+    };
+
+    return `
+    <div class="card fade-in">
+      ${stepper()}
+      <div class="icon-badge icon-badge-blue">💳</div>
+      <h1>Em quantas vezes?</h1>
+      <p class="sub">Você paga a primeira agora; as próximas chegam mês a mês.</p>
+      ${caixaTurma(false)}
+      <form id="form" novalidate>
+        <div class="campo">
+          <label for="parcelas">Parcelamento</label>
+          <select id="parcelas" class="sel-parcelas">
+            ${Array.from({ length: max }, (_, i) => opcao(i + 1)).join('')}
+          </select>
+        </div>
+        <div class="resumo-parcelas" id="resumo-parcelas"></div>
+        <div class="acoes">
+          <button type="button" class="btn-voltar" id="voltar">Voltar</button>
+          <button type="submit" class="btn-confirmar">Continuar</button>
+        </div>
+      </form>
+    </div>`;
+  },
+
+  /* ---------------- 5. Revisão ---------------- */
+  revisao: () => {
+    const l = (k, v) => v ? `<div class="rev-linha"><span class="k">${k}</span><span class="v">${escapar(v)}</span></div>` : '';
+    const ender = [form.endereco, form.numero].filter(Boolean).join(', ') +
+      (form.complemento ? ` — ${form.complemento}` : '');
+    return `
+    <div class="card fade-in">
+      ${stepper()}
+      <div class="icon-badge icon-badge-blue">🔍</div>
+      <h1>Confira antes de enviar</h1>
+      <p class="sub">Depois disso seus dados vão para a escola.</p>
+
+      <div class="revisao">
+        <div class="rev-grupo">
+          <div class="rev-titulo">Turma</div>
+          ${l('Turma', TURMA.nome)}
+          ${l('Curso', TURMA.curso)}
+        </div>
+
+        <div class="rev-grupo">
+          <div class="rev-titulo">Seus dados<button class="rev-editar" data-ir="dados">editar</button></div>
+          ${l('Nome', form.nome)}
+          ${l('CPF', form.cpf)}
+          ${l('Nascimento', dataBr(form.nascimento))}
+          ${l('E-mail', form.email)}
+          ${l('Celular', form.celular)}
+        </div>
+
+        <div class="rev-grupo">
+          <div class="rev-titulo">Endereço<button class="rev-editar" data-ir="endereco">editar</button></div>
+          ${l('Endereço', ender)}
+          ${l('Bairro', form.bairro)}
+          ${l('Cidade', [form.cidade, form.uf].filter(Boolean).join(' / '))}
+          ${l('CEP', form.cep)}
+        </div>
+
+        ${ehMenor() ? `
+        <div class="rev-grupo">
+          <div class="rev-titulo">Responsável<button class="rev-editar" data-ir="responsavel">editar</button></div>
+          ${l('Nome', form.respNome)}
+          ${l('Parentesco', form.respParentesco)}
+          ${l('CPF', form.respCpf)}
+          ${l('Celular', form.respCelular)}
+          ${l('E-mail', form.respEmail)}
+        </div>` : ''}
+
+        <div class="rev-grupo">
+          <div class="rev-titulo">Pagamento<button class="rev-editar" data-ir="pagamento">editar</button></div>
+          ${l('Indicação', form.origemVenda)}
+          ${l('Mensalidade', brl(TURMA.valorParcela))}
+          ${l('Mensalidades', TURMA.parcelas ? String(TURMA.parcelas) : '')}
+          ${l('Parcelamento', form.parcelas === 1 ? 'À vista'
+              : `${form.parcelas}× de ${brl(valorPrimeiraCobranca())}`)}
+          ${l('A pagar agora', brl(valorPrimeiraCobranca()))}
+          ${l('Total do curso', brl(TURMA.valorTotal))}
+          ${l('Total do curso', brl(TURMA.valorTotal))}
+        </div>
+      </div>
+
+      <label class="aceite" id="aceite-box">
+        <input type="checkbox" id="aceite" ${form.aceite ? 'checked' : ''}>
+        <span>Li e aceito os <a href="#" id="ver-termos">termos de matrícula</a> e autorizo
+        o uso dos meus dados para a matrícula e comunicação da escola.</span>
+      </label>
+      <div class="erro-campo" id="e-aceite" style="text-align:left;">É preciso aceitar os termos para continuar.</div>
+
+      <div class="acoes">
+        <button type="button" class="btn-voltar" id="voltar">Voltar</button>
+        <button type="button" class="btn-confirmar" id="enviar">Enviar e pagar</button>
+      </div>
+
+      <p class="aviso-lgpd">
+        Seus dados vão para o sistema acadêmico da escola e são usados apenas
+        para a sua matrícula.
+      </p>
+    </div>`;
+  },
+
+  /* ---------------- Checkout ---------------- */
+  preparando: () => `
+    <div class="card fade-in">
+      <div class="spinner"></div>
+      <h1>Preparando seu pagamento</h1>
+      <p class="sub">Não feche esta página.</p>
+      <div class="ck-passos" id="ck-passos" aria-live="polite"></div>
+    </div>`,
+
+  pagar: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-blue">💳</div>
+      <h1>Falta o pagamento</h1>
+      <p class="sub">Seu cadastro está reservado em <strong>${escapar(TURMA.nome)}</strong>.</p>
+
+      <div class="turma-box">
+        <div class="rotulo">A pagar</div>
+        <div class="nome">${brl(valorPrimeiraCobranca())}</div>
+        <div class="detalhe">Pix, boleto ou cartão — você escolhe na próxima página.</div>
+      </div>
+
+      ${estadoCheckout.simulado ? `
+        <div class="aviso-simulado">
+          <strong>Simulação.</strong> A gravação no sistema da escola está
+          desligada nesta preview, então o link abaixo não é um pagamento real.
+        </div>` : ''}
+
+      <a class="btn-pagar" href="${escapar(estadoCheckout.link || '#')}" target="_blank" rel="noopener noreferrer">
+        Ir para o pagamento
+      </a>
+
+      <p class="sub footer-msg">Sua vaga fica reservada até o pagamento ser
+      confirmado. Assim que entrar, você é matriculado na turma.</p>
+      <p class="muted">Já pagou? <a href="#" id="ja-paguei" style="color:var(--primary);">Verificar agora</a></p>
+    </div>`,
+
+  /**
+   * Matrícula feita, link ainda não.
+   *
+   * É o desfecho normal hoje: o Sponte não gera a fatura por API, então o
+   * link sai pela régua de cobrança (minutos a horas) ou pela secretaria. A
+   * tela promete o que o sistema consegue cumprir — nada mais.
+   */
+  aguardandoLink: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-green">✅</div>
+      <h1>Cadastro confirmado</h1>
+      <p class="sub">Sua vaga em <strong>${escapar(TURMA.nome)}</strong> está reservada.</p>
+
+      <div class="turma-box">
+        <div class="rotulo">A pagar</div>
+        <div class="nome">${brl(valorPrimeiraCobranca())}</div>
+        <div class="detalhe">Pix, boleto ou cartão — você escolhe na página de pagamento.</div>
+      </div>
+
+      <p class="sub footer-msg">
+        O link de pagamento chega em breve
+        ${form.celular ? `no WhatsApp <strong>${escapar(form.celular)}</strong>` : ''}
+        ${form.celular && form.email ? ' e ' : ''}
+        ${form.email ? `no e-mail <strong>${escapar(form.email)}</strong>` : ''}.
+      </p>
+      <p class="muted" id="espera-aviso">Pode deixar esta página aberta: se o
+      link sair agora, ele aparece aqui. Sua vaga continua reservada de
+      qualquer forma.</p>
+    </div>`,
+
+  pago: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-green">✅</div>
+      <h1>Matrícula confirmada</h1>
+      <p class="sub">Pagamento recebido. Você está matriculado em
+      <strong>${escapar(TURMA.nome)}</strong>.</p>
+      ${caixaTurma(false)}
+      <p class="sub footer-msg">A escola entra em contato com os próximos passos.</p>
+      <p class="muted">Pode fechar esta página.</p>
+    </div>`,
+
+  /* ---------------- Saídas ---------------- */
+  jaCadastrado: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-blue">👋</div>
+      <h1>Já recebemos seu cadastro</h1>
+      <p class="sub">Seus dados para <strong>${escapar(TURMA.nome)}</strong> já
+      estão com a escola e estão sendo conferidos.</p>
+      <p class="sub footer-msg">Não é preciso preencher de novo. Se tiver dúvida,
+      fale com a secretaria.</p>
+    </div>`,
+
+  lotada: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-amber">🔒</div>
+      <h1>Turma lotada</h1>
+      <p class="sub">As vagas de <strong>${escapar(TURMA.nome)}</strong> foram preenchidas.</p>
+      <p class="sub footer-msg">Fale com a escola para entrar em outra turma ou
+      na lista de espera.</p>
+    </div>`,
+
+  expirado: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-gray">⌛</div>
+      <h1>Este link expirou</h1>
+      <p class="sub">O prazo para usar este link de cadastro terminou.</p>
+      <p class="sub footer-msg">Peça um link novo para a escola.</p>
+    </div>`,
+
+  invalido: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-red">🔗</div>
+      <h1>Link inválido</h1>
+      <p class="sub">Não encontramos este link de cadastro.</p>
+      <p class="sub footer-msg">Confira se copiou o endereço inteiro, ou peça um
+      link novo para a escola.</p>
+    </div>`,
+
+  erro: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-red">⚠️</div>
+      <h1>Algo deu errado</h1>
+      <p class="sub">Não foi possível concluir seu cadastro agora.</p>
+      <p class="sub footer-msg">Tente novamente em alguns minutos. Se continuar,
+      fale com a escola.</p>
+    </div>`,
+};
+
+/* ================================================================== *
+ * Validação
+ * ================================================================== */
+
+/** CPF de verdade: dígitos verificadores, não só comprimento. */
+function cpfValido(valor) {
+  const c = digitos(valor);
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  for (let volta = 9; volta < 11; volta++) {
+    let soma = 0;
+    for (let i = 0; i < volta; i++) soma += Number(c[i]) * (volta + 1 - i);
+    let d = (soma * 10) % 11;
+    if (d === 10) d = 0;
+    if (d !== Number(c[volta])) return false;
+  }
+  return true;
+}
+const emailValido = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v).trim());
+const nomeValido = (v) => String(v).trim().length >= 3 && String(v).trim().includes(' ');
+
+const fmtCpf = (v) => digitos(v).slice(0, 11)
+  .replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+const fmtCel = (v) => {
+  const c = digitos(v).slice(0, 11);
+  return c.length <= 10
+    ? c.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2')
+    : c.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+};
+const fmtCep = (v) => digitos(v).slice(0, 8).replace(/(\d{5})(\d)/, '$1-$2');
+/** Máscara progressiva dd/mm/aaaa enquanto digita. */
+const fmtData = (v) => {
+  const d = digitos(v).slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+};
+
+/**
+ * `dd/mm/aaaa` → `aaaa-mm-dd`, ou `null` se a data não existir.
+ *
+ * Valida o dia dentro do mês em vez de confiar no construtor `Date`, que aceita
+ * 31/02 e devolve 3 de março — transformar data inválida em data plausível é
+ * pior que recusar.
+ */
+function dataBrParaIso(v) {
+  const m = String(v ?? '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const [, dd, mm, aaaa] = m;
+  const d = +dd, mes = +mm, a = +aaaa;
+  if (mes < 1 || mes > 12 || d < 1 || a < 1900) return null;
+  if (d > new Date(a, mes, 0).getDate()) return null;   // 31/04, 29/02 em ano comum
+  return `${aaaa}-${mm}-${dd}`;
+}
+
+/** Exibição: já está em dd/mm/aaaa, então é identidade. */
+const dataBr = (v) => v ?? '';
+const primeiroNome = () => (form.nome.trim().split(/\s+/)[0] || 'o aluno');
+
+function marcarErro(id, temErro) {
+  const c = $(id), e = $(`e-${id}`);
+  if (c) c.setAttribute('aria-invalid', String(temErro));
+  if (e) e.classList.toggle('visivel', temErro);
+}
+
+/** Valida a etapa e devolve o id do primeiro campo inválido, ou null. */
+function validarEtapa(etapa) {
+  const idade = idadeDoAluno();
+  const checagens = {
+    dados: {
+      nome: !nomeValido(form.nome),
+      cpf: !cpfValido(form.cpf),
+      // idade null cobre formato errado e data inexistente; < 0 cobre data futura.
+      nascimento: idade === null || idade < 0 || idade > 120,
+      email: !emailValido(form.email),
+      celular: digitos(form.celular).length < 10,
+    },
+    endereco: {
+      cep: digitos(form.cep).length !== 8,
+      numero: !form.numero.trim(),
+      endereco: !form.endereco.trim(),
+      bairro: !form.bairro.trim(),
+      cidade: !form.cidade.trim(),
+      uf: form.uf.trim().length !== 2,
+    },
+    responsavel: {
+      respNome: !nomeValido(form.respNome),
+      respCpf: !cpfValido(form.respCpf),
+      respParentesco: !form.respParentesco,
+      respCelular: digitos(form.respCelular).length < 10,
+      respEmail: !emailValido(form.respEmail),
+    },
+  }[etapa] ?? {};
+
+  let primeiro = null;
+  for (const [id, erro] of Object.entries(checagens)) {
+    marcarErro(id, erro);
+    if (erro && !primeiro) primeiro = id;
+  }
+  return primeiro;
+}
+
+/* ================================================================== *
+ * Ligações
+ * ================================================================== */
+
+/** Lê os inputs presentes na tela para o objeto `form`. */
+function coletar() {
+  for (const k of Object.keys(form)) {
+    const el = $(k);
+    if (!el) continue;
+    // O <select> de parcelamento devolve texto; o resto do código compara e
+    // divide por esse valor, então converte aqui em vez de espalhar Number().
+    form[k] = el.type === 'checkbox' ? el.checked
+      : el.tagName === 'SELECT' && /^\d+$/.test(el.value) ? Number(el.value)
+      : el.value;
+  }
+}
+
+function ligarComuns() {
+  const v = $('voltar');
+  if (v) v.addEventListener('click', () => { coletar(); irPara(etapaAtual - 1); });
+
+  for (const [id, fn] of [['cpf', fmtCpf], ['respCpf', fmtCpf], ['celular', fmtCel],
+                          ['respCelular', fmtCel], ['cep', fmtCep],
+                          ['nascimento', fmtData]]) {
+    const el = $(id);
+    if (el) el.addEventListener('input', (e) => { e.target.value = fn(e.target.value); });
+  }
+  const uf = $('uf');
+  if (uf) uf.addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2);
+  });
+
+  const f = $('form');
+  if (f) f.addEventListener('submit', (e) => {
+    e.preventDefault();
+    coletar();
+    const etapa = etapasAtivas()[etapaAtual].id;
+    const invalido = validarEtapa(etapa);
+    if (invalido) { $(invalido)?.focus(); return; }
+
+    // Grava antes de avançar — sem esperar: a próxima tela não depende disso.
+    salvarRascunho(etapa);
+    irPara(etapaAtual + 1);
+  });
+}
+
+/**
+ * Busca o endereço pelo CEP (ViaCEP — pública, sem chave).
+ *
+ * Falha em silêncio de propósito: com o serviço fora, o aluno preenche à mão.
+ * Virar erro bloquearia o cadastro por causa de uma conveniência.
+ */
+/** Último CEP consultado — evita repetir a busca a cada tecla e a cada blur. */
+let cepBuscado = '';
+
+/**
+ * Preenche o endereço pelo CEP (ViaCEP — pública, sem chave).
+ *
+ * Dispara ao completar os 8 dígitos, não no blur: quem digita o CEP e para,
+ * esperando, veria uma tela parada e concluiria que não funciona. O blur fica
+ * como rede, para o caso de alguém colar o CEP e sair direto.
+ *
+ * Falha em silêncio de propósito: com o serviço fora, a pessoa preenche à mão.
+ * Virar erro bloquearia o cadastro por causa de uma conveniência.
+ */
+function ligarCep() {
+  const el = $('cep');
+  if (!el) return;
+
+  const aviso = $('ajuda-cep');
+
+  async function buscar() {
+    const c = digitos(el.value);
+    if (c.length !== 8 || c === cepBuscado) return;
+    cepBuscado = c;
+
+    if (aviso) { aviso.textContent = 'Buscando endereço…'; aviso.style.color = 'var(--text-3)'; }
+
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${c}/json/`);
+      const d = await r.json();
+
+      if (d.erro) {
+        if (aviso) { aviso.textContent = 'CEP não encontrado — preencha o endereço abaixo.'; aviso.style.color = 'var(--amber)'; }
+        return;
+      }
+
+      // Sobrescreve mesmo o que já estava preenchido: se a pessoa corrigiu o
+      // CEP, manter a rua anterior produziria um endereço que não existe.
+      if (d.logradouro) $('endereco').value = d.logradouro;
+      if (d.bairro) $('bairro').value = d.bairro;
+      if (d.localidade) $('cidade').value = d.localidade;
+      if (d.uf) $('uf').value = d.uf;
+
+      if (aviso) { aviso.textContent = `${d.logradouro || 'Endereço'} — ${d.localidade}/${d.uf}`; aviso.style.color = 'var(--green)'; }
+
+      // Leva direto para o que falta: o número.
+      if (!$('numero').value) $('numero').focus();
+    } catch {
+      if (aviso) { aviso.textContent = 'Não foi possível buscar — preencha o endereço abaixo.'; aviso.style.color = 'var(--text-3)'; }
+    }
+  }
+
+  el.addEventListener('input', buscar);
+  el.addEventListener('blur', buscar);
+}
+
+/*
+  A escolha de meio de pagamento saiu daqui: a cobrança é única, no total,
+  e Pix, boleto ou cartão parcelado o aluno decide na página do Sponte Pay.
+  O que existia para montar essa etapa foi removido junto.
+*/
+
+/**
+ * Quanto será cobrado: o total do curso, de uma vez.
+ *
+ * Era a primeira mensalidade, de quando o plano tinha N parcelas. Agora a
+ * cobrança é única e o parcelamento acontece no cartão, dentro da página do
+ * Sponte Pay — então mostrar outra coisa aqui seria prometer um valor que o
+ * aluno não vai ver lá.
+ */
+function valorPrimeiraCobranca() {
+  const max = TURMA.parcelas || 1;
+  const total = TURMA.valorTotal || (TURMA.valorParcela || 0) * max;
+  return total / (form.parcelas || max);
+}
+
+/**
+ * A escolha de vezes.
+ *
+ * O resumo abaixo do seletor diz as duas coisas que importam e que não são
+ * a mesma: quanto sai **agora** e quanto é o curso inteiro. Mostrar só a
+ * parcela fazia o aluno achar que o curso custava isso.
+ */
+function ligarParcelamento() {
+  const sel = $('parcelas');
+  if (!sel) return;
+
+  const max = TURMA.parcelas || 1;
+  const total = TURMA.valorTotal || (TURMA.valorParcela || 0) * max;
+  if (!form.parcelas) form.parcelas = max;
+
+  const pintar = () => {
+    const n = Number(sel.value) || 1;
+    form.parcelas = n;
+    $('resumo-parcelas').innerHTML = n === 1
+      ? `<strong>${brl(total)}</strong> à vista. Você paga agora.`
+      : `Agora: <strong>${brl(total / n)}</strong> · depois mais ${n - 1} de
+         <strong>${brl(total / n)}</strong>, uma por mês · total
+         <strong>${brl(total)}</strong>`;
+  };
+
+  sel.addEventListener('change', pintar);
+  pintar();
+}
+
+function ligarRevisao() {
+  document.querySelectorAll('[data-ir]').forEach((b) => b.addEventListener('click', () => {
+    const i = etapasAtivas().findIndex((e) => e.id === b.dataset.ir);
+    if (i >= 0) irPara(i);
+  }));
+
+  const chk = $('aceite');
+  if (chk) chk.addEventListener('change', () => {
+    form.aceite = chk.checked;
+    $('e-aceite').classList.remove('visivel');
+    $('aceite-box').classList.remove('erro');
+  });
+
+  const termos = $('ver-termos');
+  if (termos) termos.addEventListener('click', (e) => {
+    e.preventDefault();
+    alert('Os termos de matrícula ainda não foram definidos pela escola.\n\n' +
+          'Antes de publicar, trocar por um link para o documento real.');
+  });
+
+  const env = $('enviar');
+  if (env) env.addEventListener('click', () => {
+    if (!form.aceite) {
+      $('e-aceite').classList.add('visivel');
+      $('aceite-box').classList.add('erro');
+      return;
+    }
+    env.disabled = true;
+    env.textContent = 'Enviando…';
+    enviar();
+  });
+}
+
+/* ================================================================== *
+ * Envio e checkout
+ * ================================================================== */
+
+async function enviar() {
+  if (!token) { mostrar('invalido'); return; }
+  try {
+    const r = await fetch(`/api/cadastro/${encodeURIComponent(token)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rascunhoId,
+        nome: form.nome, cpf: form.cpf,
+        // O Sponte e o banco querem ISO; o aluno digita no formato daqui.
+        dataNascimento: dataBrParaIso(form.nascimento),
+        email: form.email, celular: form.celular,
+        cep: form.cep, endereco: form.endereco, numeroEndereco: form.numero,
+        complemento: form.complemento, bairro: form.bairro,
+        cidade: form.cidade, uf: form.uf,
+        responsavelNome: form.respNome, responsavelCpf: form.respCpf,
+        responsavelParentesco: form.respParentesco,
+        responsavelCelular: form.respCelular, responsavelEmail: form.respEmail,
+        origemVenda: form.origemVenda,
+        parcelas: form.parcelas,
+        aceiteTermos: form.aceite,
+      }),
+    });
+    const d = await r.json();
+
+    if (!d.ok) { mostrar(d.motivo === 'link_indisponivel' ? 'expirado' : 'erro'); return; }
+    if (d.turmaNome) TURMA.nome = d.turmaNome;
+    if (d.duplicado) { mostrar('jaCadastrado'); return; }
+
+    if (d.precisaPagar && d.id) {
+      estadoCheckout.id = d.id;
+      estadoCheckout.token = d.tokenAcesso ?? null;
+      await iniciarCheckout();
+      return;
+    }
+    mostrar('pago');
+  } catch { mostrar('erro'); }
+}
+
+const PASSOS_CK = [
+  'Conferindo o CPF no sistema da escola',
+  'Criando o cadastro do aluno',
+  'Registrando a pré-matrícula na turma',
+  'Gerando o plano de pagamento',
+  'Localizando a cobrança',
+  'Preparando o pagamento',
+];
+
+/** Anima os passos: ritmo para a espera, não progresso real do servidor. */
+function animarPassos() {
+  const alvo = $('ck-passos');
+  if (!alvo) return null;
+  let i = 0;
+  const pinta = () => {
+    alvo.innerHTML = PASSOS_CK.map((t, k) => `
+      <div class="ck-passo ${k < i ? 'feito' : k === i ? 'atual' : ''}">
+        <span class="ck-bolinha">${k < i ? '✓' : ''}</span><span>${t}</span>
+      </div>`).join('');
+  };
+  pinta();
+  return setInterval(() => { if (i < PASSOS_CK.length - 1) { i++; pinta(); } }, 850);
+}
+
+const urlCheckout = () => `/api/checkout/${estadoCheckout.id}`;
+
+/**
+ * O segredo vai no cabeçalho, não na URL.
+ *
+ * URL entra no histórico, no Referer e em todo log de proxy pelo caminho.
+ * Um cabeçalho fica na requisição.
+ */
+const cabecalhoCheckout = () =>
+  estadoCheckout.token ? { 'X-Cadastro-Token': estadoCheckout.token } : {};
+
+async function iniciarCheckout() {
+  mostrar('preparando');
+  const anim = animarPassos();
+  try {
+    const r = await fetch(urlCheckout(), { method: 'POST', headers: cabecalhoCheckout() });
+    const d = await r.json();
+    clearInterval(anim);
+    if (!d.ok) { mostrar('erro'); return; }
+    estadoCheckout.link = d.link;
+    estadoCheckout.simulado = !!d.simulado;
+    // Sem link, o aluno recebe depois pela régua — não adianta mostrar um
+    // botão de pagar que não leva a lugar nenhum.
+    mostrar(d.link ? 'pagar' : 'aguardandoLink');
+  } catch { clearInterval(anim); mostrar('erro'); }
+}
+
+/**
+ * Fica perguntando se o link já saiu.
+ *
+ * Quem gera o link é alguém no Sponte, então ele costuma aparecer bem depois
+ * que o aluno fechou a página — por isso a tela não promete nada e continua
+ * valendo sozinha. Mas quando a escola gera logo, quem ainda está aqui paga
+ * sem precisar esperar mensagem nenhuma.
+ */
+let timerLink = null;
+
+function acompanharLink() {
+  clearInterval(timerLink);
+  if (!estadoCheckout.id) return;
+
+  const comecou = Date.now();
+  const INTERVALO = 20000;
+  const DESISTIR = 15 * 60 * 1000;   // depois disso, a mensagem é o canal
+
+  timerLink = setInterval(async () => {
+    if (Date.now() - comecou > DESISTIR) {
+      clearInterval(timerLink);
+      const av = $('espera-aviso');
+      if (av) av.textContent = 'O link chega por mensagem assim que a escola gerar. '
+        + 'Sua vaga continua reservada.';
+      return;
+    }
+    try {
+      const r = await fetch(urlCheckout(), { headers: cabecalhoCheckout() });
+      const d = await r.json();
+      if (d.pago) { clearInterval(timerLink); mostrar('pago'); return; }
+      if (d.link) {
+        clearInterval(timerLink);
+        estadoCheckout.link = d.link;
+        mostrar('pagar');
+      }
+    } catch { /* rede instável: a próxima tentativa resolve */ }
+  }, INTERVALO);
+}
+
+function ligarTelaPagamento() {
+  const v = $('ja-paguei');
+  if (!v) return;
+  v.addEventListener('click', async (e) => {
+    e.preventDefault();
+    v.textContent = 'Verificando…';
+    try {
+      const r = await fetch(urlCheckout(), { headers: cabecalhoCheckout() });
+      const d = await r.json();
+      if (d.pago) { mostrar('pago'); return; }
+      v.textContent = d.simulado
+        ? 'Sem pagamento real nesta simulação'
+        : 'Ainda não identificamos o pagamento — tentar de novo';
+    } catch { v.textContent = 'Não foi possível verificar — tentar de novo'; }
+  });
+}
+
+/* ================================================================== *
+ * Navegação
+ * ================================================================== */
+
+function irPara(i) {
+  const lista = etapasAtivas();
+  if (i < 0 || i >= lista.length) return;
+  etapaAtual = i;
+  mostrar(lista[i].id);
+}
+
+function mostrar(nome) {
+  // Sair da espera encerra o acompanhamento: sem isto ele seguiria
+  // perguntando em segundo plano depois de a tela já ter mudado.
+  if (nome !== 'aguardandoLink') clearInterval(timerLink);
+  tela.innerHTML = estados[nome]();
+
+  const idx = etapasAtivas().findIndex((e) => e.id === nome);
+  if (idx >= 0) etapaAtual = idx;
+
+  // Toda etapa com formulário precisa de `ligarComuns`, que é quem intercepta
+  // o submit. Sem isso o navegador envia o formulário de verdade: a página
+  // recarrega, a query string some junto com o token do link, e o aluno cai
+  // no modo preview achando que o cadastro quebrou.
+  if (etapasAtivas().some((e) => e.id === nome)) ligarComuns();
+  if (nome === 'endereco') ligarCep();
+  if (nome === 'parcelamento') ligarParcelamento();
+  if (nome === 'aguardandoLink') acompanharLink();
+  if (nome === 'revisao') ligarRevisao();
+  if (nome === 'preparando') animarPassos();
+  if (nome === 'pagar') ligarTelaPagamento();
+
+  document.querySelectorAll('#preview-bar button').forEach((b) => {
+    b.classList.toggle('on', b.dataset.estado === nome);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ================================================================== *
+ * Entrada
+ * ================================================================== */
+
+const POR_SITUACAO = {
+  valido: 'dados', expirado: 'expirado', revogado: 'invalido',
+  esgotado: 'lotada', invalido: 'invalido',
+};
+
+const ordemPreview = [
+  ['validando', 'Validando'], ['dados', '1 Dados'], ['endereco', '2 Endereço'],
+  ['responsavel', '3 Responsável'], ['pagamento', '4 Pagamento'], ['revisao', '5 Revisão'],
+  ['preparando', 'Preparando'], ['pagar', 'Pagar'],
+  ['aguardandoLink', 'Link a caminho'], ['pago', 'Pago'],
+  ['jaCadastrado', 'Já recebido'], ['lotada', 'Lotada'], ['expirado', 'Expirado'],
+  ['invalido', 'Inválido'], ['erro', 'Erro'],
+];
+
+/**
+ * A barra de estados é ferramenta de desenho, não parte do cadastro.
+ *
+ * Com `?t=` na URL, quem está na tela é um aluno de verdade com um link de
+ * verdade — e um botão que pula para "Pago" sem pagar seria pior que inútil.
+ * Por isso ela só existe na preview aberta sem token.
+ */
+function montarPreview() {
+  $('preview-bar').innerHTML = ordemPreview
+    .map(([k, r]) => `<button data-estado="${k}">${r}</button>`).join('');
+  $('preview-bar').querySelectorAll('button').forEach((b) => {
+  b.addEventListener('click', () => {
+    // A etapa de responsável só existe para menor, e as telas de checkout
+    // precisam de um meio escolhido — na preview, preenchemos para dar o que ver.
+    if (b.dataset.estado === 'responsavel' && !ehMenor()) {
+      form.nascimento = `${new Date().getFullYear() - 14}-05-20`;
+      if (!form.nome) form.nome = 'Ana Beatriz Souza';
+    }
+    if (['pagar', 'preparando'].includes(b.dataset.estado) && !form.meioPagamento) {
+      form.meioPagamento = 'cartao';
+      form.parcelasCartao = 6;
+      estadoCheckout.simulado = true;
+      estadoCheckout.link = '#';
+    }
+    mostrar(b.dataset.estado);
+    });
+  });
+}
+
+/**
+ * Avisa o que acontece ao enviar — e o estado real da gravação no ERP.
+ *
+ * O texto vem do servidor, não de uma constante: afirmar "a gravação está
+ * desligada" numa tela em que ela está ligada seria pior que não avisar nada.
+ */
+async function montarAviso() {
+  const alvo = $('preview-nota');
+  if (!alvo) return;
+  let estado = null;
+  try { estado = await (await fetch('/api/estado')).json(); } catch { /* segue sem */ }
+
+  if (!token) {
+    alvo.innerHTML = 'Preview — alterne os estados acima. ' + (estado?.escritaLiberada
+      ? '<strong>A gravação no sistema da escola está LIGADA</strong> — um cadastro real criaria registros no ERP.'
+      : 'A gravação no sistema da escola está desligada.');
+    return;
+  }
+
+  // Com link real: nada de preview. Só o aviso, se houver o que avisar.
+  alvo.innerHTML = estado?.escritaLiberada && estado?.modoTeste
+    ? 'Ambiente de teste — este cadastro cria um registro marcado no sistema da escola.'
+    : '';
+}
+
+async function iniciar() {
+  montarAviso();
+
+  // Sem token é a preview aberta direto: mostra o formulário para revisão
+  // visual, com a barra de estados. O envio fica barrado.
+  if (!token) { montarPreview(); mostrar('dados'); return; }
+
+  mostrar('validando');
+  try {
+    const r = await fetch(`/api/cadastro/${encodeURIComponent(token)}`);
+    const d = await r.json();
+    if (d.situacao === 'valido') {
+      TURMA.nome = d.turmaNome ?? TURMA.nome;
+      TURMA.curso = d.cursoNome ?? TURMA.curso;
+      TURMA.turno = d.turno ?? TURMA.turno;
+      TURMA.vagasLivres = d.restantes ?? TURMA.vagasLivres;
+      TURMA.valorParcela = d.valorParcela ?? null;
+      TURMA.parcelas = d.parcelas ?? null;
+      TURMA.valorTotal = d.valorTotal ?? null;
+      TURMA.valorParcelaCheia = d.valorParcelaCheia ?? null;
+    }
+    mostrar(POR_SITUACAO[d.situacao] ?? 'invalido');
+  } catch { mostrar('erro'); }
+}
+
+iniciar();
+</script>
+</body>
+</html>

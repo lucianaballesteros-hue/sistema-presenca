@@ -9,3 +9,15 @@
 
 # Arquivos de banco de dados que precisam ser inseridos, mas não são necessários para versionamento
 sql
+# Cache do Python do gerador de relatórios
+__pycache__/
+
+# Documentação de planejamento (specs, design, tasks, integração Sponte).
+# Fica só local, por decisão do projeto — não vai para o GitHub.
+docs/
+
+# Dados da preview local (fila de cadastros) — nunca versionar
+.dev-data/
+
+# Dependências instaladas pelo npm — reconstituídas por package-lock.json
+node_modules/

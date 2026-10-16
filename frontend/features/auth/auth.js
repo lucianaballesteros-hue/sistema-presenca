@@ -24,7 +24,21 @@ export async function doLogin() {
 
   const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
   if (error) {
-    document.getElementById('login-err').style.display = 'block';
+    // Antes era sempre "E-mail ou senha incorretos", para qualquer falha.
+    // Isso manda a pessoa procurar o problema no lugar errado quando ele é
+    // outro — limite de tentativas e internet fora são os dois casos que
+    // mais acontecem, e nenhum se resolve trocando a senha.
+    const m = (error.message || '').toLowerCase();
+    const el = document.getElementById('login-err');
+    el.textContent =
+      m.includes('rate') || m.includes('many')
+        ? 'Muitas tentativas seguidas. Espere um minuto e tente de novo.'
+        : m.includes('not confirmed')
+        ? 'Este e-mail ainda não foi confirmado.'
+        : m.includes('fetch') || m.includes('network')
+        ? 'Sem conexão com o servidor. Verifique sua internet.'
+        : 'E-mail ou senha incorretos.';
+    el.style.display = 'block';
     btn.disabled = false; btn.textContent = 'Entrar';
     return;
   }
@@ -75,6 +89,10 @@ async function executarCargaInicial() {
   // Botão de Configurações (Geral / Professores) só aparece para admins
   if (ehAdmin()) {
     document.getElementById('btn-config').classList.remove('hidden');
+    // O cadastro online fica em páginas à parte e é restrito a admin —
+    // mesma razão de Configurações: professor não precisa de CPF e
+    // telefone de 500 pessoas para dar aula.
+    document.getElementById('nav-cadastro')?.classList.remove('hidden');
   }
 
   try {
