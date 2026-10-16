@@ -21,3 +21,6 @@ docs/
 
 # Dependências instaladas pelo npm — reconstituídas por package-lock.json
 node_modules/
+
+# Saída de build da Vercel, montada por scripts/montar-vercel.mjs
+.vercel
