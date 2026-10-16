@@ -16,6 +16,19 @@ import { iniciarNotificacoesReposicoes } from '../reposicoes/reposicoesView.js';
 
 let autoLoginTimer = null;
 
+// Alguém está digitando à mão neste momento?
+//
+// O auto-login abaixo existe para o gerenciador de senhas, que preenche os
+// dois campos de uma vez. Quem digita manualmente e pausa 400ms no meio da
+// senha caía nele: o login disparava com a senha incompleta, falhava, e
+// "E-mail ou senha incorretos" aparecia — de novo a cada pausa, enquanto a
+// pessoa ainda estava escrevendo. Além do incômodo, eram várias tentativas
+// de autenticação falhas por login, o que convida o Supabase a limitar.
+//
+// `keydown` só acontece com tecla de verdade; autofill não dispara. É o que
+// separa os dois casos.
+let digitandoAMao = false;
+
 // Login automático quando o navegador preenche e-mail/senha sozinho
 // (autofill do gerenciador de senhas). Espera os campos ficarem estáveis por
 // 400ms antes de logar — evita disparar no meio da digitação manual (ex.:
@@ -26,6 +39,9 @@ let autoLoginTimer = null;
 function agendarAutoLogin() {
   clearTimeout(autoLoginTimer);
   if (estaEmRecuperacaoSenha()) return;
+  // Digitação manual: quem entra pelo teclado decide quando enviar, no Enter
+  // ou no botão. Tentar por conta própria só produz erro no meio da frase.
+  if (digitandoAMao) return;
   // Os campos de e-mail/senha continuam no DOM (só escondidos) depois do
   // login, e o gerenciador de senhas do navegador pode re-preenchê-los
   // sozinho a qualquer momento (ex.: ao focar outro campo em algum modal),
@@ -48,8 +64,23 @@ function agendarAutoLogin() {
 }
 
 export function wireAutoLogin() {
-  document.getElementById('inp-email').addEventListener('input', agendarAutoLogin);
-  document.getElementById('inp-senha').addEventListener('input', agendarAutoLogin);
+  for (const id of ['inp-email', 'inp-senha']) {
+    const campo = document.getElementById(id);
+
+    campo.addEventListener('keydown', (e) => {
+      // Tab e Enter navegam, não escrevem: não contam como digitar.
+      if (e.key !== 'Tab' && e.key !== 'Enter') digitandoAMao = true;
+    });
+
+    campo.addEventListener('input', () => {
+      // A mensagem fala da tentativa anterior. Assim que a pessoa mexe em
+      // algo, ela deixa de valer — mantê-la na tela faz parecer que o novo
+      // valor também está errado, antes mesmo de ser enviado.
+      const erro = document.getElementById('login-err');
+      if (erro) erro.style.display = 'none';
+      agendarAutoLogin();
+    });
+  }
 }
 
 export async function doLogin() {
@@ -61,7 +92,21 @@ export async function doLogin() {
 
   const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
   if (error) {
-    document.getElementById('login-err').style.display = 'block';
+    // Antes era sempre "E-mail ou senha incorretos", para qualquer falha.
+    // Isso manda a pessoa procurar o problema no lugar errado quando ele é
+    // outro — limite de tentativas e internet fora são os dois casos que
+    // mais acontecem, e nenhum se resolve trocando a senha.
+    const m = (error.message || '').toLowerCase();
+    const el = document.getElementById('login-err');
+    el.textContent =
+      m.includes('rate') || m.includes('many')
+        ? 'Muitas tentativas seguidas. Espere um minuto e tente de novo.'
+        : m.includes('not confirmed')
+        ? 'Este e-mail ainda não foi confirmado.'
+        : m.includes('fetch') || m.includes('network')
+        ? 'Sem conexão com o servidor. Verifique sua internet.'
+        : 'E-mail ou senha incorretos.';
+    el.style.display = 'block';
     btn.disabled = false; btn.textContent = 'Entrar';
     return;
   }
@@ -114,6 +159,10 @@ async function executarCargaInicial() {
   // Botão de Configurações (Geral / Professores) só aparece para admins
   if (ehAdmin()) {
     document.getElementById('btn-config').classList.remove('hidden');
+    // O cadastro online fica em páginas à parte e é restrito a admin —
+    // mesma razão de Configurações: professor não precisa de CPF e
+    // telefone de 500 pessoas para dar aula.
+    document.getElementById('nav-cadastro')?.classList.remove('hidden');
   }
 
   try {

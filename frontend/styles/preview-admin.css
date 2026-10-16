@@ -1,0 +1,194 @@
+/* ====================================================================
+   PREVIEW — áreas administrativas de cadastro (Turmas e Alunos).
+
+   Carregado DEPOIS da cadeia normal de frontend/styles/, então só define o
+   que ainda não existe no design system. Tudo aqui usa os tokens de
+   base/theme-tokens.css — nenhum valor solto.
+
+   Quando as duas telas virarem abas do index.html, este arquivo se divide em
+   components/links.css e components/validacao.css.
+   ==================================================================== */
+
+/* --- Aviso de preview ------------------------------------------- */
+.preview-aviso{
+  display:flex;align-items:flex-start;gap:var(--space-3);
+  background:var(--warning-box-bg);border:1px solid var(--warning-box-border);
+  color:var(--warning-box-text);border-radius:12px;
+  padding:var(--space-3) var(--space-4);font-size:12.5px;line-height:1.55;
+  margin-bottom:var(--space-5);
+}
+.preview-aviso code{
+  background:var(--warning-code-bg);padding:1px 5px;border-radius:4px;font-size:11.5px;
+}
+
+/* --- Barra de filtros ------------------------------------------- */
+.filtros{
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--space-3);
+  background:var(--glass-tint);
+  -webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));
+  border:1px solid var(--glass-border);border-radius:14px;
+  padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4);
+}
+.filtros label{font-size:11px;color:var(--text-3);font-weight:500;display:block;margin-bottom:var(--space-1);}
+.filtros select,.filtros input{
+  padding:7px 10px;border:1px solid var(--border-input);border-radius:10px;
+  font-size:13px;background:var(--surface);color:var(--text);outline:none;
+  transition:border-color .18s var(--ease-glass),box-shadow .18s var(--ease-glass);
+}
+.filtros select:focus,.filtros input:focus{
+  border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);
+}
+.filtros .campo-busca{flex:1;min-width:200px;}
+.filtros .campo-busca input{width:100%;}
+.filtros .toggle{
+  display:flex;align-items:center;gap:var(--space-2);
+  font-size:12px;color:var(--text-2);cursor:pointer;user-select:none;padding-bottom:7px;
+}
+
+.contador-resultado{font-size:12px;color:var(--text-muted);margin-bottom:var(--space-3);}
+
+/* --- Cards de turma --------------------------------------------- */
+.turma-card{display:flex;flex-direction:column;gap:var(--space-2);}
+.turma-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2);}
+.turma-nome{font-size:13px;font-weight:600;color:var(--text);line-height:1.35;}
+.turma-curso{font-size:11px;color:var(--text-muted);}
+.turma-meta{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);font-size:11px;color:var(--text-3);}
+.turma-meta span{display:inline-flex;align-items:center;gap:4px;}
+.sem-professor{color:var(--text-very-faded);font-style:italic;}
+
+.vagas-linha{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-1);}
+.vagas-num{font-size:11px;color:var(--text-3);white-space:nowrap;}
+.vagas-bar{flex:1;height:5px;border-radius:99px;background:var(--bar-track);overflow:hidden;min-width:40px;}
+.vagas-fill{height:100%;border-radius:99px;transition:width .3s var(--ease-glass);}
+
+/* --- Link gerado ------------------------------------------------- */
+.link-gerado{display:flex;gap:var(--space-2);align-items:stretch;margin-top:var(--space-2);}
+.link-gerado input{
+  flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+  padding:9px 10px;border:1px solid var(--border-input);border-radius:10px;
+  background:var(--surface-3);color:var(--text-2);
+}
+
+.resumo-turma{
+  background:var(--surface-3);border-radius:12px;
+  padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4);
+}
+.resumo-turma .nome{font-size:13px;font-weight:600;color:var(--text);margin-bottom:var(--space-1);}
+.resumo-turma .detalhe{font-size:11.5px;color:var(--text-3);}
+
+/* --- Fila de validação ------------------------------------------- */
+.linha-aluno-nome{font-weight:600;color:var(--text);}
+.linha-aluno-cpf{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11.5px;color:var(--text-3);
+}
+.linha-aluno-contato{font-size:11px;color:var(--text-muted);}
+
+/* Cabeçalho do modal de validação: dados do aluno lado a lado. */
+.dados-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-bottom:var(--space-4);}
+@media(max-width:480px){ .dados-grid{grid-template-columns:1fr;} }
+.dado-item{background:var(--surface-3);border-radius:12px;padding:var(--space-3);}
+.dado-label{font-size:11px;color:var(--text-3);margin-bottom:var(--space-1);}
+.dado-val{font-size:13px;font-weight:600;color:var(--text);word-break:break-word;}
+.dado-val.vazio{font-weight:400;color:var(--text-very-faded);font-style:italic;}
+
+/* Aviso de CPF repetido na fila — o motivo de existir a validação humana. */
+.alerta-duplicado{
+  display:flex;align-items:flex-start;gap:var(--space-3);
+  background:var(--amber-soft);border:1px solid var(--amber-border);
+  color:var(--amber-soft-text);border-radius:12px;
+  padding:var(--space-3) var(--space-4);font-size:12.5px;line-height:1.5;
+  margin-bottom:var(--space-4);
+}
+
+/* --- Navegação entre as duas áreas -------------------------------- */
+.nav-areas{
+  display:flex;gap:var(--space-1);padding:0 var(--space-6);
+  background:color-mix(in srgb, var(--glass-tint) 75%, var(--bg) 25%);
+  -webkit-backdrop-filter:blur(var(--blur-md)) saturate(150%);
+  backdrop-filter:blur(var(--blur-md)) saturate(150%);
+  border-bottom:1px solid var(--glass-border);
+  position:sticky;top:52px;z-index:99;
+}
+.nav-areas a{
+  position:relative;padding:11px 16px;margin:6px 0;font-size:13px;font-weight:500;
+  color:var(--text);text-decoration:none;border-radius:99px;
+  display:inline-flex;align-items:center;gap:var(--space-2);
+}
+.nav-areas a:hover{background:var(--surface-hover);}
+.nav-areas a.ativo{background:var(--primary-soft);color:var(--primary-soft-text);}
+.nav-areas .contador-aba{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;border-radius:99px;
+  font-size:10px;font-weight:700;background:var(--red);color:#fff;
+}
+.nav-areas a.ativo .contador-aba{background:var(--red);}
+
+@media(max-width:768px){
+  .nav-areas{padding:0 var(--space-2);overflow-x:auto;scrollbar-width:none;}
+  .nav-areas::-webkit-scrollbar{display:none;}
+  .nav-areas a{padding:11px 12px;white-space:nowrap;}
+}
+
+/* --- Resumo de valores (modal de gerar link e de validação) -------- */
+.resumo-valor{
+  background:var(--surface-3);border:1px solid var(--border-2);border-radius:12px;
+  padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4);
+}
+.valor-linha{
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);
+  font-size:12.5px;color:var(--text-2);padding:3px 0;
+}
+.valor-linha strong{color:var(--text);font-weight:600;white-space:nowrap;}
+.valor-linha s{color:var(--text-faded);font-weight:400;margin-right:4px;}
+.valor-linha.total{
+  border-top:1px solid var(--border);margin-top:var(--space-2);padding-top:var(--space-2);
+  font-weight:600;color:var(--text);
+}
+.valor-linha.total strong{font-size:14px;color:var(--primary);}
+.valor-obs{
+  font-size:11px;color:var(--text-muted);margin-top:var(--space-2);
+  padding-top:var(--space-2);border-top:1px dashed var(--border-2);line-height:1.45;
+}
+.sem-valor{
+  font-size:11.5px;color:var(--text-faded);font-style:italic;
+}
+
+/* --- Faixa de escrita ligada ------------------------------------- */
+/* Vermelha e fixa no topo de propósito: quando o sistema está gravando no ERP
+   de verdade, isso não pode passar despercebido — não há exclusão na API. */
+.faixa-escrita{
+  position:sticky;top:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;gap:var(--space-3);
+  background:var(--red);color:#fff;
+  padding:7px var(--space-4);font-size:12px;font-weight:600;line-height:1.4;
+  text-align:center;
+}
+.faixa-escrita code{
+  background:rgba(255,255,255,.2);padding:1px 6px;border-radius:4px;font-size:11px;
+}
+.faixa-escrita.teste{background:var(--amber);color:#fff;}
+
+/* --- Painel de pendências do time -------------------------------- */
+/* Só aparece quando há algo. Um painel sempre visível vira paisagem. */
+.painel-alertas{
+  background:var(--amber-soft);border:1px solid var(--amber-border);
+  border-radius:14px;padding:var(--space-4);margin-bottom:var(--space-5);
+}
+.pa-titulo{
+  font-size:13px;font-weight:700;color:var(--amber-soft-text);
+  margin-bottom:var(--space-3);
+}
+.pa-item{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:var(--space-3) var(--space-4);margin-bottom:var(--space-2);
+}
+.pa-item:last-child{margin-bottom:0;}
+.pa-item.urgente{border-left:3px solid var(--red);}
+.pa-item-titulo{font-size:12.5px;font-weight:600;color:var(--text);}
+.pa-item-desc{font-size:11.5px;color:var(--text-2);margin-top:3px;line-height:1.45;}
+.pa-item-acao{font-size:11.5px;color:var(--primary);margin-top:5px;font-weight:500;line-height:1.45;}
+.pa-item-ref{
+  font-size:10.5px;color:var(--text-faded);margin-top:4px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
