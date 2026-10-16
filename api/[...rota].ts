@@ -1,13 +1,7 @@
 /**
  * Todo `/api/*` em produção, numa função só.
  *
- * O `vercel.json` reescreve `/api/(.*)` para cá. Antes isto se chamava
- * `api/[...rota].ts`, usando a convenção de rota curinga da plataforma —
- * mas só caminhos de um segmento chegavam, e metade do sistema vive em
- * caminhos aninhados. Com o nome simples e a regra explícita, não há
- * convenção para interpretar errado.
- *
- * Uma função para todas as rotas, e não uma por endpoint, porque elas
+ * Uma função de rota curinga, e não uma por endpoint, porque as rotas
  * compartilham tudo: os clientes das três plataformas, os caches do
  * catálogo, a sessão da interface web do Sponte e o porteiro de admin.
  * Espalhá-las em vinte arquivos multiplicaria esse custo de partida por

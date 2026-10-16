@@ -1101,40 +1101,12 @@ function ipDoPedido(req: IncomingMessage): string | null {
   return (primeiro || req.socket?.remoteAddress || "").replace(/^::ffff:/, "") || null;
 }
 
-/**
- * O caminho que o cliente pediu, mesmo depois de reescrito.
- *
- * Em produção há um `rewrite` mandando tudo sob `/api` para `api/index.ts`.
- * Reescrita é interna: o caminho que o cliente pediu continua chegando
- * aqui. Mas já houve uma versão com rota curinga (`api/[...rota].ts`), e
- * se alguém voltar a ela o `pathname` pode vir como o destino literal.
- *
- * A rota curinga da Vercel passa os segmentos num parâmetro com o nome do
- * curinga (`?rota=sponte&rota=turmas`), então daria para remontar. A
- * primeira fonte é sempre o `pathname`, que é o caso normal e o único que
- * existe no servidor local.
- *
- * Se mesmo assim o despacho não achar a rota, o 404 devolve o caminho que
- * a função enxergou — é o que torna esse tipo de engano visível na hora,
- * em vez de virar um 404 sem explicação.
- */
-function caminhoReal(url: URL): string {
-  const p = url.pathname;
-  if (!p.includes("[") && !p.includes("...")) return p;
-
-  const partes = url.searchParams.getAll("rota");
-  if (!partes.length) return p;
-
-  // `getAll` devolve um item por segmento, ou um só já com as barras.
-  return "/api/" + partes.join("/").replace(/^\/+/, "");
-}
-
 export async function tratar(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
   const url = new URL(req.url ?? "/", BASE_URL);
-  const rota = caminhoReal(url);
+  const rota = url.pathname;
   const comecou = Date.now();
   const ipCliente = ipDoPedido(req);
 
