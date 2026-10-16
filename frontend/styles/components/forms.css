@@ -1,27 +1,111 @@
 /* CAMPOS DE FORMULÁRIO */
-.field{margin-bottom:var(--space-4);}
-.field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:var(--space-1);font-weight:500;}
-.field input,.field select{width:100%;padding:8px 10px;border:1px solid var(--border-input);border-radius:10px;font-size:13px;background:var(--surface);color:var(--text);outline:none;transition:border-color .18s var(--ease-glass),box-shadow .18s var(--ease-glass);}
-.field input:focus,.field select:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);}
-.modal .field{margin-bottom:var(--space-4);}
-.modal .field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:var(--space-1);font-weight:500;}
-.modal .field input,.modal .field select{width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:10px;font-size:13px;background:var(--surface);color:var(--text);outline:none;transition:border-color .18s var(--ease-glass),box-shadow .18s var(--ease-glass);}
+.field {
+  margin-bottom: var(--space-4);
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: var(--space-1);
+  font-weight: 500;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 10px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color .18s var(--ease-glass), box-shadow .18s var(--ease-glass);
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px var(--primary-focus-ring);
+}
+
+.modal .field {
+  margin-bottom: var(--space-4);
+}
+
+.modal .field label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: var(--space-1);
+  font-weight: 500;
+}
+
+.modal .field input,
+.modal .field select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 10px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color .18s var(--ease-glass), box-shadow .18s var(--ease-glass);
+}
 
 /* MOSTRAR/OCULTAR SENHA (wrapper — botão está em buttons.css) */
-.senha-wrap{position:relative;}
-.senha-wrap input{padding-right:34px;}
+.senha-wrap {
+  position: relative;
+}
+
+.senha-wrap input {
+  padding-right: 34px;
+}
 
 /* CAMPO DE BUSCA AVULSO (fora de .filter-bar) */
-.search-input{font-size:13px;padding:6px 10px;border:1px solid var(--border-input);border-radius:6px;outline:none;background:var(--surface);color:var(--text);}
-#busca-turmas{width:200px;}
-#busca-prof{width:240px;}
+.search-input {
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  outline: none;
+  background: var(--surface);
+  color: var(--text);
+}
+
+#busca-turmas {
+  width: 200px;
+}
+
+#busca-prof {
+  width: 240px;
+}
 
 /* CAMPO DE NOVA OBSERVAÇÃO (modal de aluno) / SELECT DE TRANSFERÊNCIA DE
    TURMA — movidos de estilo inline no HTML pra cá só para poderem ganhar um
    font-size maior no mobile (ver @media no fim do arquivo), já que estilo
    inline não pode ser sobrescrito por uma media query sem !important. */
-#obs-texto{flex:1;padding:6px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);}
-#transf-sel{width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);}
+#obs-texto {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 7px;
+  font-size: 12px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+#transf-sel {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 7px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+}
 
 /* SELETOR DE TURMA COM BUSCA (modal "Adicionar novo aluno") — troca o
    <select> nativo (mantido escondido como fonte da verdade — mesma ideia do
@@ -30,78 +114,319 @@
    fica no fluxo normal (não é um overlay flutuante): ao abrir, ele empurra o
    resto do modal pra baixo e o modal cresce junto, em vez de sobrepor o
    conteúdo abaixo — pedido explícito pra acompanhar o tamanho do filtro. */
-.turma-picker{position:relative;}
-.turma-picker-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);
-  padding:7px 10px;border:1px solid var(--border-input);border-radius:10px;font-size:13px;
-  background:var(--surface);color:var(--text);cursor:pointer;text-align:left;}
-.turma-picker-btn:hover{border-color:var(--primary-light-2);}
-.turma-picker-btn-label{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
-.turma-picker-btn .hint-text{flex-shrink:0;color:var(--text-faded);transition:transform .15s var(--ease-glass);}
-.turma-picker:has(.turma-picker-panel.open) .turma-picker-btn .hint-text{transform:rotate(180deg);}
-.turma-picker-panel{
-  display:none;margin-top:6px;
-  background:var(--glass-tint-strong);-webkit-backdrop-filter:blur(var(--blur-md)) saturate(180%);backdrop-filter:blur(var(--blur-md)) saturate(180%);
-  border:1px solid var(--glass-border);border-radius:12px;box-shadow:var(--glass-shadow);padding:var(--space-3);
+.turma-picker {
+  position: relative;
 }
-.turma-picker-panel.open{display:block;}
-.turma-picker-busca{width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);outline:none;margin-bottom:var(--space-2);}
-.turma-picker-busca:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);}
-.turma-picker-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--space-2);}
-.turma-picker-chips .cpill{padding:4px 10px;font-size:11px;background:var(--surface-3);}
-.turma-picker-chips .cpill.active{background:var(--primary);}
-.turma-picker-lista{max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;display:flex;flex-direction:column;gap:2px;}
-.turma-picker-opt{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:12.5px;}
-.turma-picker-opt:hover{background:var(--surface-hover);}
-.turma-picker-opt.selected{background:var(--primary-soft);}
-.turma-picker-opt-nome{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%;}
-.turma-picker-opt-prof{margin-left:auto;color:var(--text-faded);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38%;}
+
+.turma-picker-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 7px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 10px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.turma-picker-btn:hover {
+  border-color: var(--primary-light-2);
+}
+
+.turma-picker-btn-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.turma-picker-btn .hint-text {
+  flex-shrink: 0;
+  color: var(--text-faded);
+  transition: transform .15s var(--ease-glass);
+}
+
+.turma-picker:has(.turma-picker-panel.open) .turma-picker-btn .hint-text {
+  transform: rotate(180deg);
+}
+
+.turma-picker-panel {
+  display: none;
+  margin-top: 6px;
+  background: var(--glass-tint-strong);
+  -webkit-backdrop-filter: blur(var(--blur-md)) saturate(180%);
+  backdrop-filter: blur(var(--blur-md)) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
+  padding: var(--space-3);
+}
+
+.turma-picker-panel.open {
+  display: block;
+}
+
+.turma-picker-busca {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  margin-bottom: var(--space-2);
+}
+
+.turma-picker-busca:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px var(--primary-focus-ring);
+}
+
+.turma-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-2);
+}
+
+.turma-picker-chips .cpill {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: var(--surface-3);
+}
+
+.turma-picker-chips .cpill.active {
+  background: var(--primary);
+}
+
+.turma-picker-lista {
+  max-height: 280px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.turma-picker-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+
+.turma-picker-opt:hover {
+  background: var(--surface-hover);
+}
+
+.turma-picker-opt.selected {
+  background: var(--primary-soft);
+}
+
+.turma-picker-opt-nome {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40%;
+}
+
+.turma-picker-opt-prof {
+  margin-left: auto;
+  color: var(--text-faded);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 38%;
+}
 
 /* MENSAGEM DE ERRO ABAIXO DE UM CAMPO/FORMULÁRIO */
-.field-error{font-size:12px;color:var(--red);display:none;margin-bottom:var(--space-2);}
+.field-error {
+  font-size: 12px;
+  color: var(--red);
+  display: none;
+  margin-bottom: var(--space-2);
+}
 
 /* HORÁRIO DA TURMA */
-.horario-tag{display:inline-flex;align-items:center;gap:var(--space-1);font-size:11px;color:var(--text-3);background:var(--surface-3);border:1px solid var(--border-2);border-radius:5px;padding:2px 7px;margin-top:var(--space-1);}
-.horario-tag.sem-horario{color:var(--text-very-faded);border-style:dashed;cursor:pointer;}
-.horario-tag.sem-horario:hover{border-color:var(--primary-light);color:var(--primary);}
-.dias-check-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2);margin-top:var(--space-1);}
-.dia-check{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:var(--space-1);padding:8px 4px;border:1px solid var(--border-input);border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text-2);background:var(--surface);user-select:none;}
-.dia-check:hover{border-color:var(--primary-light);color:var(--primary);}
-.dia-check.selecionado{background:var(--primary-soft);color:var(--primary-soft-text);border-color:var(--primary);}
-.dia-check input{display:none;}
+.horario-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 11px;
+  color: var(--text-3);
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  border-radius: 5px;
+  padding: 2px 7px;
+  margin-top: var(--space-1);
+}
+
+.horario-tag.sem-horario {
+  color: var(--text-very-faded);
+  border-style: dashed;
+  cursor: pointer;
+}
+
+.horario-tag.sem-horario:hover {
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.dias-check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.dia-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 8px 4px;
+  border: 1px solid var(--border-input);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface);
+  user-select: none;
+}
+
+.dia-check:hover {
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.dia-check.selecionado {
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+  border-color: var(--primary);
+}
+
+.dia-check input {
+  display: none;
+}
 
 /* SELETOR DE HORÁRIO */
-.horario-selects{display:flex;align-items:center;gap:var(--space-2);}
-.horario-selects select{flex:1;padding:8px 10px;border:1px solid var(--border-input);border-radius:7px;font-size:15px;font-weight:600;background:var(--surface);color:var(--text);outline:none;text-align:center;cursor:pointer;}
-.horario-selects select:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);}
-.horario-selects .sep{font-size:18px;font-weight:700;color:var(--text-3);}
-.horario-presets{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-2);}
+.horario-selects {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.horario-selects select {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 7px;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  text-align: center;
+  cursor: pointer;
+}
+
+.horario-selects select:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px var(--primary-focus-ring);
+}
+
+.horario-selects .sep {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+.horario-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
 
 /* SELETOR DE CURSO (select + botão de criar novo curso) */
-.curso-select-row{display:flex;gap:var(--space-2);}
-.curso-select-row select{flex:1;min-width:0;}
+.curso-select-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.curso-select-row select {
+  flex: 1;
+  min-width: 0;
+}
 
 /* SELETOR DE COR DA TURMA */
-.cor-picker{display:flex;gap:var(--space-2);flex-wrap:wrap;}
-.cor-swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;}
-.cor-swatch.selected{border-color:var(--text);box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--text);}
+.cor-picker {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.cor-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cor-swatch.selected {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--text);
+}
 
 /* Date input no tema escuro - inverte o ícone do calendário */
-[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.8);}
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
 
-@media(max-width:768px){
-  .dias-check-grid{grid-template-columns:repeat(3,1fr);}
+@media(max-width:768px) {
+  .dias-check-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 
   /* 16px é o limiar do Safari no iOS pra NÃO dar zoom automático ao focar um
      campo — abaixo disso a página pula de escala sozinha ao tocar num input
      e o usuário precisa arrastar/beliscar a tela pra voltar ao normal. */
-  .field input,.field select,
-  .modal .field input,.modal .field select,
-  .search-input,.turma-picker-busca,
+  .field input,
+  .field select,
+  .modal .field input,
+  .modal .field select,
+  .search-input,
+  .turma-picker-busca,
   .horario-selects select,
-  #obs-texto,#transf-sel{font-size:16px;}
+  #obs-texto,
+  #transf-sel {
+    font-size: 16px;
+  }
 
-  #busca-turmas,#busca-prof{width:100%;}
+  #busca-turmas,
+  #busca-prof {
+    width: 100%;
+  }
 
   /* Swatches de cor um pouco maiores — alvo de toque mais confortável. */
-  .cor-swatch{width:32px;height:32px;}
+  .cor-swatch {
+    width: 32px;
+    height: 32px;
+  }
 }

@@ -97,29 +97,27 @@ export async function cancelarReposicao(id) {
   return sb.from('reposicoes').update({ status: 'cancelada' }).eq('id', id);
 }
 
-export async function concluirReposicao(id) {
-  return sb.from('reposicoes').update({ status: 'concluida' }).eq('id', id);
+// 'concluida' ao marcar o aluno na chamada da turma escolhida; de volta a
+// 'agendada' se a marcação for desfeita (ver marcarReposicao em chamadaView.js).
+export async function atualizarStatusReposicao(id, status) {
+  return sb.from('reposicoes').update({ status }).eq('id', id);
 }
 
-export async function buscarOpcaoReposicao(id) {
-  const { data } = await sb.from('reposicao_opcoes').select('*').eq('id', id).single();
-  return data;
-}
-
-// Avisa a equipe em tempo real quando um aluno confirma um horário de
-// reposição, sem precisar ficar com a aba "Reposições" aberta/atualizando.
+// Repassa toda mudança na tabela `reposicoes` (aluno confirmou horário pelo
+// link, outra pessoa marcou a reposição na chamada, cancelou...) para o painel
+// se atualizar sem recarregar a página. Quem decide o que mostrar é
+// iniciarNotificacoesReposicoes() (reposicoesView.js) — `payload.old` não serve
+// pra isso, porque sem REPLICA IDENTITY FULL ele só traz a chave primária.
 // Requer que a tabela `reposicoes` esteja na publicação `supabase_realtime`
 // (já incluído em sql/reposicoes.sql).
 let canalReposicoes = null;
 
-export function assinarMudancasReposicoes(onAgendada) {
+export function assinarMudancasReposicoes(onMudanca) {
   if (canalReposicoes) sb.removeChannel(canalReposicoes);
   canalReposicoes = sb
     .channel('reposicoes-mudancas')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'reposicoes' }, (payload) => {
-      if (payload.old.status !== 'agendada' && payload.new.status === 'agendada') {
-        onAgendada(payload.new);
-      }
+      onMudanca(payload.new);
     })
     .subscribe();
   return canalReposicoes;

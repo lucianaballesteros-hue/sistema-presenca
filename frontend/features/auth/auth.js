@@ -9,79 +9,11 @@ import { carregarPresencas } from '../../../backend/api/presencasRepo.js';
 import { carregarHistorico } from '../../../backend/api/historicoRepo.js';
 import { carregarProfessores } from '../../../backend/api/professoresRepo.js';
 import { carregarCursos, sincronizarCursosComTurmas } from '../../../backend/api/cursosRepo.js';
+import { carregarReposicoes } from '../../../backend/api/reposicoesRepo.js';
 import { popularFiltros, renderRel } from '../relatorios/relatoriosView.js';
 import { renderDash } from '../dashboard/dashboardView.js';
 import { renderTabelaAlunos } from '../alunos/alunosTable.js';
 import { iniciarNotificacoesReposicoes } from '../reposicoes/reposicoesView.js';
-
-let autoLoginTimer = null;
-
-// Alguém está digitando à mão neste momento?
-//
-// O auto-login abaixo existe para o gerenciador de senhas, que preenche os
-// dois campos de uma vez. Quem digita manualmente e pausa 400ms no meio da
-// senha caía nele: o login disparava com a senha incompleta, falhava, e
-// "E-mail ou senha incorretos" aparecia — de novo a cada pausa, enquanto a
-// pessoa ainda estava escrevendo. Além do incômodo, eram várias tentativas
-// de autenticação falhas por login, o que convida o Supabase a limitar.
-//
-// `keydown` só acontece com tecla de verdade; autofill não dispara. É o que
-// separa os dois casos.
-let digitandoAMao = false;
-
-// Login automático quando o navegador preenche e-mail/senha sozinho
-// (autofill do gerenciador de senhas). Espera os campos ficarem estáveis por
-// 400ms antes de logar — evita disparar no meio da digitação manual (ex.:
-// com a senha ainda incompleta). Nunca dispara durante a tela de
-// recuperação/troca de senha (estaEmRecuperacaoSenha()), mesmo que os campos
-// escondidos do login ainda tenham valor — é o mesmo tipo de corrida que já
-// causava as duas telas aparecerem juntas.
-function agendarAutoLogin() {
-  clearTimeout(autoLoginTimer);
-  if (estaEmRecuperacaoSenha()) return;
-  // Digitação manual: quem entra pelo teclado decide quando enviar, no Enter
-  // ou no botão. Tentar por conta própria só produz erro no meio da frase.
-  if (digitandoAMao) return;
-  // Os campos de e-mail/senha continuam no DOM (só escondidos) depois do
-  // login, e o gerenciador de senhas do navegador pode re-preenchê-los
-  // sozinho a qualquer momento (ex.: ao focar outro campo em algum modal),
-  // disparando este listener de novo. Sem essa checagem, isso chamava
-  // doLogin() -> inicializarApp() no meio do uso normal do app, recarregando
-  // tudo e reabrindo a tela cheia de "Carregando..." sem o usuário ter feito
-  // login de fato. Só faz sentido auto-logar enquanto a tela de login está
-  // realmente visível.
-  if (document.getElementById('login-page').style.display === 'none') return;
-  const email = document.getElementById('inp-email').value.trim();
-  const senha = document.getElementById('inp-senha').value;
-  if (!email || !senha) return;
-  autoLoginTimer = setTimeout(() => {
-    const aindaEmail = document.getElementById('inp-email').value.trim();
-    const aindaSenha = document.getElementById('inp-senha').value;
-    if (aindaEmail === email && aindaSenha === senha && !estaEmRecuperacaoSenha()) {
-      doLogin();
-    }
-  }, 400);
-}
-
-export function wireAutoLogin() {
-  for (const id of ['inp-email', 'inp-senha']) {
-    const campo = document.getElementById(id);
-
-    campo.addEventListener('keydown', (e) => {
-      // Tab e Enter navegam, não escrevem: não contam como digitar.
-      if (e.key !== 'Tab' && e.key !== 'Enter') digitandoAMao = true;
-    });
-
-    campo.addEventListener('input', () => {
-      // A mensagem fala da tentativa anterior. Assim que a pessoa mexe em
-      // algo, ela deixa de valer — mantê-la na tela faz parecer que o novo
-      // valor também está errado, antes mesmo de ser enviado.
-      const erro = document.getElementById('login-err');
-      if (erro) erro.style.display = 'none';
-      agendarAutoLogin();
-    });
-  }
-}
 
 export async function doLogin() {
   const email = document.getElementById('inp-email').value.trim();
@@ -133,9 +65,7 @@ export async function doLogout() {
 
 // Evita que duas chamadas concorrentes carreguem os dados em paralelo — ex.:
 // restoreSession() ainda está esperando getSession() responder quando o
-// gerenciador de senhas do navegador preenche os campos escondidos do login
-// e agendarAutoLogin() dispara doLogin() sozinho, ou o usuário reabre a aba
-// duas vezes rápido. Cada carregarX() é uma função independente sem noção
+// usuário já clica em "Entrar", ou o usuário reabre a aba duas vezes rápido. Cada carregarX() é uma função independente sem noção
 // da outra chamada em andamento, então duas em paralelo duplicavam alunos
 // (e arriscavam duplicar turmas/cursos) até a página ser recarregada — às
 // vezes de forma permanente, se a corrida também alcançava um INSERT (ver
@@ -168,7 +98,10 @@ async function executarCargaInicial() {
   try {
     await carregarTurmas();
     await carregarAlunos();
-    await Promise.all([carregarPresencas(), carregarHistorico(), carregarProfessores(), carregarCursos()]);
+    await Promise.all([
+      carregarPresencas(), carregarHistorico(), carregarProfessores(), carregarCursos(),
+      carregarReposicoes().then(lista => { state.REPOSICOES = lista; }),
+    ]);
     await sincronizarCursosComTurmas();
 
     popularFiltros();

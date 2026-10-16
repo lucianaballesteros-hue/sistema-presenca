@@ -3,12 +3,12 @@
   "crons": [
     {
       "path": "/api/ciclos",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 6 * * *"
     }
   ],
   "functions": {
-    "api/[...rota].ts": {
-      "maxDuration": 300
+    "api/**": {
+      "maxDuration": 60
     }
   },
   "headers": [

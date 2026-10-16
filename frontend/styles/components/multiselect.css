@@ -1,33 +1,137 @@
 /* BARRA DE FILTROS */
-.filter-bar{background:var(--glass-tint);-webkit-backdrop-filter:blur(var(--blur-sm));backdrop-filter:blur(var(--blur-sm));border:1px solid var(--glass-border);border-radius:12px;padding:var(--space-3) var(--space-5);margin-bottom:var(--space-4);display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;}
-.filter-bar label{font-size:12px;color:var(--text-2);white-space:nowrap;font-weight:500;}
-.filter-bar select,.filter-bar input{font-size:13px;padding:5px 9px;border:1px solid var(--border-input);border-radius:6px;background:var(--surface);color:var(--text);outline:none;}
-.filter-bar input{width:180px;}
+.filter-bar {
+   background: var(--glass-tint);
+   -webkit-backdrop-filter: blur(var(--blur-sm));
+   backdrop-filter: blur(var(--blur-sm));
+   border: 1px solid var(--glass-border);
+   border-radius: 12px;
+   padding: var(--space-3) var(--space-5);
+   margin-bottom: var(--space-4);
+   display: flex;
+   align-items: center;
+   gap: var(--space-3);
+   flex-wrap: wrap;
+}
+
+.filter-bar label {
+   font-size: 12px;
+   color: var(--text-2);
+   white-space: nowrap;
+   font-weight: 500;
+}
+
+.filter-bar select,
+.filter-bar input {
+   font-size: 13px;
+   padding: 5px 9px;
+   border: 1px solid var(--border-input);
+   border-radius: 6px;
+   background: var(--surface);
+   color: var(--text);
+   outline: none;
+}
+
+.filter-bar input {
+   width: 180px;
+}
 
 /* MULTI-SELECT (DROPDOWN COM CHECKBOXES) */
-.multi-select-wrap{position:relative;display:inline-block;}
-.multi-select-btn{font-size:13px;padding:5px 9px;border:1px solid var(--border-input);border-radius:99px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;gap:var(--space-2);white-space:nowrap;min-width:130px;justify-content:space-between;}
-.multi-select-btn:hover{border-color:var(--primary-light-2);}
-.multi-select-btn.active{border-color:var(--primary-light);box-shadow:0 0 0 3px var(--primary-focus-ring);}
-.multi-select-btn .hint-text{display:inline-block;transition:transform .15s var(--ease-glass);}
-.multi-select-wrap:has(.multi-select-panel.open) .multi-select-btn .hint-text{transform:rotate(180deg);}
-.multi-select-panel{
-  position:absolute;top:calc(100% + 6px);left:0;
-  background:var(--surface);
-  border:1px solid var(--glass-border);border-radius:12px;box-shadow:var(--glass-shadow);z-index:200;min-width:150px;max-width:calc(100vw - 2 * var(--space-4));padding:var(--space-2) 0;
-  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  display:none;
+.multi-select-wrap {
+   position: relative;
+   display: inline-block;
 }
-.multi-select-panel.open{display:block;}
-.multi-check{display:flex;align-items:center;gap:var(--space-2);padding:7px 14px;font-size:13px;color:var(--text);cursor:pointer;}
-.multi-check:hover{background:var(--surface-hover);}
-.multi-check input[type=checkbox]{width:14px;height:14px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;}
+
+.multi-select-btn {
+   font-size: 13px;
+   padding: 5px 9px;
+   border: 1px solid var(--border-input);
+   border-radius: 99px;
+   background: var(--surface);
+   color: var(--text);
+   cursor: pointer;
+   display: flex;
+   align-items: center;
+   gap: var(--space-2);
+   white-space: nowrap;
+   min-width: 130px;
+   justify-content: space-between;
+}
+
+.multi-select-btn:hover {
+   border-color: var(--primary-light-2);
+}
+
+.multi-select-btn.active {
+   border-color: var(--primary-light);
+   box-shadow: 0 0 0 3px var(--primary-focus-ring);
+}
+
+.multi-select-btn .hint-text {
+   display: inline-block;
+   transition: transform .15s var(--ease-glass);
+}
+
+.multi-select-wrap:has(.multi-select-panel.open) .multi-select-btn .hint-text {
+   transform: rotate(180deg);
+}
+
+.multi-select-panel {
+   position: absolute;
+   top: calc(100% + 6px);
+   left: 0;
+   background: var(--surface);
+   border: 1px solid var(--glass-border);
+   border-radius: 12px;
+   box-shadow: var(--glass-shadow);
+   z-index: 200;
+   min-width: 150px;
+   max-width: calc(100vw - 2 * var(--space-4));
+   padding: var(--space-2) 0;
+   overflow-y: auto;
+   -webkit-overflow-scrolling: touch;
+   overscroll-behavior: contain;
+   display: none;
+}
+
+.multi-select-panel.open {
+   display: block;
+}
+
+.multi-check {
+   display: flex;
+   align-items: center;
+   gap: var(--space-2);
+   padding: 7px 14px;
+   font-size: 13px;
+   color: var(--text);
+   cursor: pointer;
+}
+
+.multi-check:hover {
+   background: var(--surface-hover);
+}
+
+.multi-check input[type=checkbox] {
+   width: 14px;
+   height: 14px;
+   accent-color: var(--primary);
+   cursor: pointer;
+   flex-shrink: 0;
+}
 
 /* Select de escolha única (ver frontend/shared/customSelect.js): reaproveita
    o botão/painel do multi-select, só troca o checkbox por uma marcação de
    selecionado. */
-.cs-option.cs-selected{color:var(--primary);font-weight:600;}
-.cs-option.cs-selected::after{content:'✓';margin-left:auto;padding-left:var(--space-2);}
+.cs-option.cs-selected {
+   color: var(--primary);
+   font-weight: 600;
+}
+
+.cs-option.cs-selected::after {
+   content: '✓';
+   margin-left: auto;
+   padding-left: var(--space-2);
+}
 
 /* Com o painel aberto, o blur de qualquer superfície de vidro próxima —
    seja um vizinho embaixo (tabela, contadores da chamada, lista de alunos)
@@ -41,33 +145,53 @@ body:has(.multi-select-panel.open) .table-wrap,
 body:has(.multi-select-panel.open) .chamada-counters,
 body:has(.multi-select-panel.open) .alunos-list,
 body:has(.multi-select-panel.open) .filter-bar,
-body:has(.multi-select-panel.open) .chamada-top{
-  -webkit-backdrop-filter:none;backdrop-filter:none;
+body:has(.multi-select-panel.open) .chamada-top {
+   -webkit-backdrop-filter: none;
+   backdrop-filter: none;
 }
 
-@media(max-width:768px){
-  /* Empilha em coluna (rótulo em cima do campo, como .field) em vez do
+@media(max-width:768px) {
+
+   /* Empilha em coluna (rótulo em cima do campo, como .field) em vez do
      flex-row do desktop: lado a lado, rótulo curto ("Buscar:") + campo largo
      não cabem numa tela de celular sem espremer um dos dois. */
-  .filter-bar{flex-direction:column;align-items:stretch;gap:6px;}
+   .filter-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+   }
 
-  /* .filter-bar é uma lista achatada de rótulo,campo,rótulo,campo,... (sem
+   /* .filter-bar é uma lista achatada de rótulo,campo,rótulo,campo,... (sem
      wrapper por par no HTML), então o espaçamento do gap sozinho deixa tudo
      com a mesma distância — não dá pra ver qual rótulo é de qual campo. Aqui
      o campo fica colado no rótulo anterior (gap:6px já cuida disso) e só o
      PRÓXIMO rótulo (ou grupo .flex-row já pronto, como "Status:" nas abas
      Alunos/Configurações) ganha uma margem extra em cima, separando um
      filtro do outro visualmente. */
-  .filter-bar>label:not(:first-child),
-  .filter-bar>.flex-row:not(:first-child){margin-top:14px;}
+   .filter-bar>label:not(:first-child),
+   .filter-bar>.flex-row:not(:first-child) {
+      margin-top: 14px;
+   }
 
-  .filter-bar input,.filter-bar select{width:100%;}
-  .filter-bar select,.filter-bar input{font-size:16px;}
+   .filter-bar input,
+   .filter-bar select {
+      width: 100%;
+   }
 
-  /* Cada filtro de múltipla escolha ocupa a linha toda — evita 5 dropdowns
+   .filter-bar select,
+   .filter-bar input {
+      font-size: 16px;
+   }
+
+   /* Cada filtro de múltipla escolha ocupa a linha toda — evita 5 dropdowns
      (Curso/Professor/Turma/Mostrar/Status, na aba Relatórios) espremidos e
      também garante que o painel, alinhado à esquerda do botão, nunca nasça
      perto da borda direita da tela. */
-  .multi-select-wrap{width:100%;}
-  .multi-select-btn{width:100%;}
+   .multi-select-wrap {
+      width: 100%;
+   }
+
+   .multi-select-btn {
+      width: 100%;
+   }
 }

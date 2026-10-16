@@ -1,108 +1,287 @@
 /* MODAL — vidro translúcido, sem animação de entrada (só o material). */
-.modal-bg{
-  display:none;position:fixed;inset:0;z-index:500;background:var(--overlay);
-  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-  align-items:flex-start;justify-content:center;padding:60px var(--space-4) var(--space-4);
+.modal-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--overlay);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px var(--space-4) var(--space-4);
 }
-.modal-bg.open{display:flex;}
-.modal{
-  background:var(--glass-tint-strong);
-  -webkit-backdrop-filter:blur(var(--blur-lg)) saturate(180%);
-  backdrop-filter:blur(var(--blur-lg)) saturate(180%);
-  border:1px solid var(--glass-border);border-radius:18px;padding:var(--space-6);width:100%;max-width:500px;max-height:85vh;overflow-y:auto;
-  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  box-shadow:var(--glass-shadow);
+
+.modal-bg.open {
+  display: flex;
 }
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);}
-.modal-title{font-size:15px;font-weight:600;color:var(--text);}
-.modal-footer{display:flex;flex-wrap:wrap;gap:var(--space-2);justify-content:flex-end;margin-top:var(--space-5);padding-top:var(--space-4);border-top:1px solid var(--border);}
+
+.modal {
+  background: var(--glass-tint-strong);
+  -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: var(--space-6);
+  width: 100%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  box-shadow: var(--glass-shadow);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
 
 /* CONTEÚDO DO MODAL DE ALUNO */
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-bottom:var(--space-4);}
-.info-item{background:var(--surface-3);border-radius:12px;padding:var(--space-3);}
-.info-label{font-size:11px;color:var(--text-3);margin-bottom:var(--space-1);}
-.info-val{font-size:13px;font-weight:600;color:var(--text);}
-.aulas-grid{display:flex;flex-wrap:wrap;gap:var(--space-2);position:relative;}
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.info-item {
+  background: var(--surface-3);
+  border-radius: 12px;
+  padding: var(--space-3);
+}
+
+.info-label {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-bottom: var(--space-1);
+}
+
+.info-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.aulas-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  position: relative;
+}
+
 /* Anel de seleção da grade de aulas (só na tela de chamada — #ch-aulas-grid é
    a que tem quadradinhos clicáveis; a mesma .aula-chip no histórico do aluno
    também é clicável — leva até a aula na chamada da turma — mas não tem esse
    indicador de seleção, já que não representa um estado persistente). Fica
    num elemento fixo, fora do HTML que é reconstruído a cada render, pra
    poder deslizar de verdade em vez de só "aparecer" no lugar novo. */
-.aula-chip-indicator{position:absolute;left:0;top:0;width:var(--cw,0px);height:var(--ch,24px);transform:translate(var(--cx,0px),var(--cy,0px));border:2px solid var(--primary);border-radius:8px;background:transparent;transition:transform .28s var(--spring),width .22s var(--ease-glass),height .22s var(--ease-glass),opacity .15s;pointer-events:none;z-index:1;}
-.aula-chip{min-width:26px;height:24px;padding:0 5px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;line-height:1;}
-.hist-item{display:flex;align-items:flex-start;gap:var(--space-2);padding:var(--space-2) 0;border-bottom:1px solid var(--border-2);font-size:12px;}
-.hist-item:last-child{border-bottom:none;}
+.aula-chip-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cw, 0px);
+  height: var(--ch, 24px);
+  transform: translate(var(--cx, 0px), var(--cy, 0px));
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  background: transparent;
+  transition: transform .28s var(--spring), width .22s var(--ease-glass), height .22s var(--ease-glass), opacity .15s;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.aula-chip {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-2);
+  font-size: 12px;
+}
+
+.hist-item:last-child {
+  border-bottom: none;
+}
 
 /* CAIXAS DE INFORMAÇÃO/AVISO — mesmo layout (ícone + texto) pras 4
    variantes, só muda a cor semântica de cada uma. O ícone é uma máscara SVG
    embutida (mesma técnica do icon-mask), então não depende de nenhum
    arquivo externo nem muda o HTML de quem já usa essas classes. */
-.info-box, .hint-box, .danger-box, .horario-modal-info{
-  display:flex;align-items:flex-start;gap:var(--space-3);
-  border-radius:12px;padding:var(--space-3) var(--space-4);
-  font-size:12.5px;line-height:1.55;margin-bottom:var(--space-4);
-  box-shadow:var(--shadow-sm);
-}
-.info-box::before, .hint-box::before, .danger-box::before, .horario-modal-info::before{
-  content:'';flex-shrink:0;width:17px;height:17px;margin-top:1px;
-  background-color:currentColor;
-  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
-  -webkit-mask-position:center;mask-position:center;
-  -webkit-mask-size:contain;mask-size:contain;
-}
-
-.info-box, .horario-modal-info{
-  background:var(--surface-soft);color:var(--primary-soft-text);
-  border-left:3px solid var(--primary-light);
-}
-.info-box::before, .horario-modal-info::before{
-  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='16' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'/%3E%3C/svg%3E");
-  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='16' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'/%3E%3C/svg%3E");
+.info-box,
+.hint-box,
+.danger-box,
+.horario-modal-info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  border-radius: 12px;
+  padding: var(--space-3) var(--space-4);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-sm);
 }
 
-.hint-box{
-  background:var(--warning-box-bg);color:var(--warning-box-text);
-  border-left:3px solid var(--amber-border);
+.info-box::before,
+.hint-box::before,
+.danger-box::before,
+.horario-modal-info::before {
+  content: '';
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
-.hint-box::before{
-  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E");
-  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E");
-}
-.hint-box code{background:var(--warning-code-bg);padding:1px 5px;border-radius:4px;font-family:monospace;}
 
-.danger-box{
-  background:var(--danger-btn-bg);color:var(--danger-btn-text);
-  border-left:3px solid var(--red-border);
+.info-box,
+.horario-modal-info {
+  background: var(--surface-soft);
+  color: var(--primary-soft-text);
+  border-left: 3px solid var(--primary-light);
 }
-.danger-box::before{
-  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
-  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
+
+.info-box::before,
+.horario-modal-info::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='16' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='16' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'/%3E%3C/svg%3E");
+}
+
+.hint-box {
+  background: var(--warning-box-bg);
+  color: var(--warning-box-text);
+  border-left: 3px solid var(--amber-border);
+}
+
+.hint-box::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E");
+}
+
+.hint-box code {
+  background: var(--warning-code-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.danger-box {
+  background: var(--danger-btn-bg);
+  color: var(--danger-btn-text);
+  border-left: 3px solid var(--red-border);
+}
+
+.danger-box::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
 }
 
 /* MODAL DE CONFIRMAÇÃO */
-.confirm-bg{align-items:center;}
-.confirm-modal{max-width:400px;padding:var(--space-6);}
-.confirm-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:var(--space-2);}
-.confirm-msg{font-size:13px;color:var(--text-2);line-height:1.5;}
-.confirm-modal .modal-footer{border-top:none;padding-top:0;margin-top:var(--space-5);}
+.confirm-bg {
+  align-items: center;
+}
 
-@media(max-width:768px){
-  .modal-bg{padding:20px var(--space-3) var(--space-3);}
-  .modal{padding:var(--space-5);}
-  .info-grid{grid-template-columns:1fr;}
-  .confirm-bg{padding:var(--space-4);}
+.confirm-modal {
+  max-width: 400px;
+  padding: var(--space-6);
+}
+
+.confirm-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.confirm-msg {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.confirm-modal .modal-footer {
+  border-top: none;
+  padding-top: 0;
+  margin-top: var(--space-5);
+}
+
+@media(max-width:768px) {
+  .modal-bg {
+    padding: 20px var(--space-3) var(--space-3);
+  }
+
+  .modal {
+    padding: var(--space-5);
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirm-bg {
+    padding: var(--space-4);
+  }
 
   /* Quadradinhos de aula maiores — na chamada, eles são o alvo de toque
      mais repetido da tela inteira (um por aula, até 32). */
-  .aula-chip{min-width:32px;height:32px;font-size:12px;}
+  .aula-chip {
+    min-width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
 }
 
-@media(max-width:480px){
+@media(max-width:480px) {
+
   /* Rodapé do modal em coluna, botões ocupando a largura toda — mais fácil
      de acertar com o dedo do que dois/três botões espremidos lado a lado, e
      a ação principal (sempre a última do grupo no HTML) fica embaixo, mais
      perto do polegar. */
-  .modal-footer{flex-direction:column;align-items:stretch;}
-  .modal-footer button{width:100%;margin:0!important;}
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-footer button {
+    width: 100%;
+    margin: 0 !important;
+  }
 }
