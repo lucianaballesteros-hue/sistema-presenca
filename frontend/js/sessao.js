@@ -138,7 +138,9 @@
   async function configuracao() {
     if (cfg) return cfg;
     const r = await fetch('/api/config-auth');
-    if (!r.ok) throw new Error('não consegui falar com o servidor');
+    if (!r.ok) {
+      throw new Error(`/api/config-auth respondeu ${r.status}`);
+    }
     cfg = await r.json();
     return cfg;
   }
@@ -216,9 +218,53 @@
     return new Promise(() => {});
   }
 
+  /**
+   * O servidor não respondeu: diz isso, em vez de deixar a página muda.
+   *
+   * Sem esta tela, uma falha em `/api/config-auth` virava uma página
+   * carregada e vazia — os números em "—", nenhum login, nenhum aviso. Quem
+   * olhava não tinha como saber se era permissão, dado faltando ou defeito.
+   * Foi o que aconteceu no primeiro deploy, com as variáveis de ambiente
+   * ainda não configuradas.
+   */
+  function servidorIndisponivel(detalhe) {
+    const d = document.createElement('div');
+    d.id = 'sessao-bg';
+    d.innerHTML = `
+      <style>
+        #sessao-bg{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;
+          justify-content:center;padding:20px;background:var(--bg,#0e1525);}
+        #sessao-cartao{width:100%;max-width:440px;border:1px solid var(--borda,#2a3654);
+          border-radius:16px;padding:26px;background:var(--surface,#161f33);text-align:center;}
+        #sessao-cartao h1{font-size:18px;margin:0 0 8px;}
+        #sessao-cartao p{font-size:13.5px;line-height:1.6;color:var(--text-muted,#8b96ad);margin:0 0 14px;}
+        #sessao-cartao code{font-size:12px;word-break:break-all;}
+        #sessao-cartao a,#sessao-cartao button{display:inline-block;padding:10px 18px;
+          border-radius:10px;background:var(--primary,#3b82f6);color:#fff;text-decoration:none;
+          font-size:14px;font-weight:600;border:none;cursor:pointer;margin:0 4px;}
+      </style>
+      <div id="sessao-cartao">
+        <h1>O servidor não respondeu</h1>
+        <p>Esta tela depende da API do cadastro online, e ela não está no ar.
+        Normalmente é configuração do ambiente — não é problema do seu acesso.</p>
+        <p><code>${String(detalhe || '').slice(0, 200)}</code></p>
+        <button onclick="location.reload()">Tentar de novo</button>
+        <a href="index.html">Voltar ao sistema</a>
+      </div>`;
+    document.body.appendChild(d);
+    // Nunca resolve: a página não deve montar atrás desta tela.
+    return new Promise(() => {});
+  }
+
   /** Mostra o login e só devolve quando houver um admin autenticado. */
   async function exigirAdmin() {
-    await configuracao();          // precisa da URL para achar a chave do SDK
+    // A configuração é o primeiro passo e o que mais falha em ambiente novo.
+    // Falhar aqui sem avisar deixava a página carregada e vazia.
+    try {
+      await configuracao();        // precisa da URL para achar a chave do SDK
+    } catch (e) {
+      return servidorIndisponivel(e && e.message);
+    }
     sessao = carregar();
 
     if (sessao) {

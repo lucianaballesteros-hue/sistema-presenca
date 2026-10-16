@@ -15,7 +15,7 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize, resolve, sep } from "node:path";
 
 import {
-  ciclos, credenciaisUsadas, escritaLiberada, modoTeste, tratar,
+  ciclos, codigoClienteSponte, escritaLiberada, modoTeste, tratar,
 } from "./app.ts";
 
 const PORTA = Number(process.env.PORTA ?? 5173);
@@ -79,7 +79,7 @@ servidor.listen(PORTA, () => {
   console.log(`    Turmas   http://localhost:${PORTA}/admin-turmas.html`);
   console.log(`    Alunos   http://localhost:${PORTA}/admin-alunos.html`);
   console.log(`\n  Dados:   Supabase (${process.env.SUPABASE_URL})`);
-  console.log(`  Sponte:  cliente ${credenciaisUsadas.codigoCliente}`);
+  console.log(`  Sponte:  cliente ${codigoClienteSponte() ?? '(sem chave configurada)'}`);
 
   if (!escritaLiberada) {
     console.log(`\n  Escrita no Sponte DESLIGADA — o checkout roda em simulação.\n`);
@@ -87,7 +87,7 @@ servidor.listen(PORTA, () => {
   }
   const barra = "!".repeat(68);
   console.log(`\n  ${barra}`);
-  console.log(`  ESCRITA NO SPONTE LIGADA — cliente ${credenciaisUsadas.codigoCliente} (PRODUÇÃO)`);
+  console.log(`  ESCRITA NO SPONTE LIGADA — cliente ${codigoClienteSponte()} (PRODUÇÃO)`);
   console.log(modoTeste
     ? `  Registros nascem com o prefixo "TESTE-SISTEMA".`
     : `  *** SEM MARCAÇÃO *** os registros se misturam aos reais.`);
