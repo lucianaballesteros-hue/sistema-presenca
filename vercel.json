@@ -11,6 +11,21 @@
       "maxDuration": 60
     }
   },
+  "//rewrites": [
+    "O arquivo api/[...rota].ts é a convenção de rota curinga da Vercel, e",
+    "mesmo assim só caminhos de UM segmento chegavam nele: /api/cadastros",
+    "invocava a função, /api/sponte/turmas devolvia 404 sem invocar. Isso",
+    "derrubaria o formulário público, o checkout e metade do painel, que",
+    "vivem em caminhos aninhados.",
+    "",
+    "Esta regra torna o roteamento explícito em vez de depender da",
+    "convenção de nome: tudo sob /api vai para a mesma função, que já sabe",
+    "despachar pelo caminho."
+  ],
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/[...rota]" }
+  ],
+
   "headers": [
     {
       "source": "/api/(.*)",
