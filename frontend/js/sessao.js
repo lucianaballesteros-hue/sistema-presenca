@@ -139,6 +139,14 @@
     if (cfg) return cfg;
     const r = await fetch('/api/config-auth');
     if (!r.ok) {
+      // 503 com `faltando` é o servidor dizendo exatamente o que configurar.
+      // Repassar isso evita a caça ao tesouro que um "500" genérico provoca.
+      const d = await r.json().catch(() => null);
+      if (d && Array.isArray(d.faltando) && d.faltando.length) {
+        const e = new Error(`Faltam no ambiente: ${d.faltando.join(', ')}`);
+        e.comoResolver = d.comoResolver;
+        throw e;
+      }
       throw new Error(`/api/config-auth respondeu ${r.status}`);
     }
     cfg = await r.json();
@@ -227,7 +235,7 @@
    * Foi o que aconteceu no primeiro deploy, com as variáveis de ambiente
    * ainda não configuradas.
    */
-  function servidorIndisponivel(detalhe) {
+  function servidorIndisponivel(detalhe, comoResolver) {
     const d = document.createElement('div');
     d.id = 'sessao-bg';
     d.innerHTML = `
@@ -248,6 +256,7 @@
         <p>Esta tela depende da API do cadastro online, e ela não está no ar.
         Normalmente é configuração do ambiente — não é problema do seu acesso.</p>
         <p><code>${String(detalhe || '').slice(0, 200)}</code></p>
+        ${comoResolver ? `<p>${String(comoResolver).slice(0, 300)}</p>` : ''}
         <button onclick="location.reload()">Tentar de novo</button>
         <a href="index.html">Voltar ao sistema</a>
       </div>`;
@@ -263,7 +272,7 @@
     try {
       await configuracao();        // precisa da URL para achar a chave do SDK
     } catch (e) {
-      return servidorIndisponivel(e && e.message);
+      return servidorIndisponivel(e && e.message, e && e.comoResolver);
     }
     sessao = carregar();
 

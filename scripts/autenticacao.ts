@@ -43,7 +43,11 @@ export class Autenticacao {
   #cfg: ConfigAuth;
 
   constructor(cfg: ConfigAuth) {
-    this.#cfg = { ...cfg, url: cfg.url.replace(/\/$/, "") };
+    // `?? ""` e não `cfg.url.replace(...)`: isto é construído no topo do
+    // módulo, e uma variável de ambiente ausente lançaria ali — derrubando
+    // a função inteira, inclusive as rotas que não dependem de nada disso.
+    // Sem configuração, quem falha é a chamada, com mensagem própria.
+    this.#cfg = { ...cfg, url: (cfg.url ?? "").replace(/\/$/, "") };
   }
 
   /** Lê o token do cabeçalho `Authorization: Bearer …`. */
