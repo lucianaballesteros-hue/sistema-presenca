@@ -126,7 +126,9 @@ export class RepoSupabase {
   #key: string;
 
   constructor(cfg: ConfigSupabase) {
-    this.#url = cfg.url.replace(/\/$/, "");
+    // `?? ""`: construído no topo do módulo. Lançar aqui por variável
+    // ausente derruba todas as rotas, não só as que usam o banco.
+    this.#url = (cfg.url ?? "").replace(/\/$/, "");
     this.#key = cfg.serviceKey;
   }
 

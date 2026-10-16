@@ -64,7 +64,9 @@ export class ClientePresenca {
   #aoRegistrar: ((r: RegistroPresenca) => void) | undefined;
 
   constructor(cfg: ConfigPostgrest) {
-    this.#url = cfg.url.replace(/\/$/, "");
+    // `?? ""`: ver a nota em `repo-supabase.ts`. Construtor no topo do
+    // módulo não pode lançar por configuração faltando.
+    this.#url = (cfg.url ?? "").replace(/\/$/, "");
     this.#key = cfg.serviceKey;
     this.#aoRegistrar = cfg.aoRegistrar;
   }

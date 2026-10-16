@@ -102,6 +102,24 @@ function credSponte(): CredenciaisSponte {
 /** Há chave do Sponte configurada? Para a tela avisar em vez de quebrar. */
 const SPONTE_CONFIGURADO = !!process.env.SPONTE_KEY && !!process.env.SPONTE_CODIGO_CLIENTE;
 
+/**
+ * O que falta no ambiente para o sistema sequer começar.
+ *
+ * Sem o Supabase não há login, não há banco, não há nada — e uma lista
+ * vazia devolvida pelo `/api/config-auth` faria o navegador falhar depois,
+ * em outro lugar, com outra mensagem. Melhor dizer aqui, com nome e
+ * sobrenome, o que precisa ser configurado.
+ *
+ * Calculado uma vez, sem lançar: este módulo não pode morrer na importação
+ * por causa de configuração — foi assim que a tela de login caiu junto.
+ */
+const ESSENCIAIS = [
+  "SUPABASE_URL",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
+] as const;
+const FALTANDO = ESSENCIAIS.filter((v) => !process.env[v]);
+
 const auth = new Autenticacao({
   url: process.env.SUPABASE_URL!,
   publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY!,
@@ -1150,6 +1168,16 @@ export async function tratar(
     // qualquer app Supabase, e sem elas o login não teria como acontecer
     // no cliente. A service role nunca sai daqui.
     if (rota === "/api/config-auth" && req.method === "GET") {
+      // Faltando o essencial, o honesto é dizer o quê. Devolver `undefined`
+      // deixaria o navegador quebrar adiante, longe da causa.
+      if (FALTANDO.length) {
+        return json({
+          erro: "O ambiente não está configurado.",
+          faltando: FALTANDO,
+          comoResolver: "Na Vercel: Settings → Environment Variables, "
+            + "ambiente Production. A lista completa está em docs/DEPLOY.md.",
+        }, 503);
+      }
       return json({
         url: process.env.SUPABASE_URL,
         publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
