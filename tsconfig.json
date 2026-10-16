@@ -1,0 +1,58 @@
+{
+  "//": [
+    "Existe por causa do build da Vercel, que roda `tsc` nas funções antes de",
+    "empacotar. Sem este arquivo o build morre em dois pontos:",
+    "",
+    "  1. 'Cannot find module node:http' — faltavam os tipos do Node;",
+    "  2. 'An import path can only end with .ts' — o projeto importa com a",
+    "     extensão explícita, que é o que o Node 22+ exige para rodar",
+    "     TypeScript direto, sem build. É proposital, e `allowImportingTsExtensions`",
+    "     é o que faz o compilador aceitar.",
+    "",
+    "`noEmit` porque ninguém compila por aqui: o Node executa o .ts direto e a",
+    "Vercel empacota com esbuild. Este arquivo serve só para a checagem de tipos."
+  ],
+
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+
+    "types": ["node"],
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowJs": false,
+
+    "strict": false,
+    "noImplicitAny": false
+  },
+
+  "//strict": [
+    "`strict` desligado de propósito. O código foi escrito para o",
+    "type-stripping do Node, que não checa tipos — ligá-lo agora acusaria",
+    "centenas de pontos de uma vez, e um build vermelho que ninguém consegue",
+    "tratar não protege nada. O que esta configuração garante é o mínimo que",
+    "importa: que os módulos resolvem e as assinaturas batem."
+  ],
+
+  "//include": [
+    "Só o que a Vercel compila. Os pontos de entrada das Edge Functions",
+    "(supabase/functions/*/index.ts) ficam de fora: eles rodam em Deno, usam",
+    "`Deno.serve` e `Deno.env`, e checá-los com os tipos do Node acusaria",
+    "globais que não existem aqui. O código compartilhado entre os dois",
+    "(_shared) não usa global nenhum dos dois ambientes — é `fetch` e string."
+  ],
+  "include": [
+    "api/**/*.ts",
+    "scripts/**/*.ts",
+    "supabase/functions/_shared/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "supabase/functions/*/index.ts"
+  ]
+}
