@@ -16,7 +16,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import {
-  chamarSoap, credenciais, credenciaisDoAmbiente, SponteError,
+  chamarSoap, credenciais, credenciaisDoAmbiente, type CredenciaisSponte,
+  SponteError,
 } from "../supabase/functions/_shared/soap.ts";
 import {
   dataBrParaIso, filtrarMatriculaveis, getTurmas, turmaEncerrada,
@@ -80,7 +81,26 @@ const URL_CHECKOUT = process.env.SUPABASE_URL
   ? `${process.env.SUPABASE_URL}/functions/v1/sponte-checkout`
   : null;
 
-const cred = credenciaisDoAmbiente({ get: (c: string) => process.env[c] });
+/**
+ * As credenciais do Sponte, resolvidas só quando alguém precisa delas.
+ *
+ * Antes isto era uma `const` no topo do módulo, e `credenciaisDoAmbiente`
+ * **lança** quando falta a chave. O efeito em produção era total: a função
+ * inteira morria na importação, e `/api/config-auth` — que nem toca no
+ * Sponte — respondia `FUNCTION_INVOCATION_FAILED`. Ou seja, uma variável
+ * de ambiente esquecida tirava a tela de login do ar junto.
+ *
+ * Adiando para o uso, quem não depende do Sponte funciona; quem depende
+ * falha sozinho, com a mensagem certa, e só naquela rota.
+ */
+let credCache: CredenciaisSponte | null = null;
+function credSponte(): CredenciaisSponte {
+  credCache ??= credenciaisDoAmbiente({ get: (c: string) => process.env[c] });
+  return credCache;
+}
+
+/** Há chave do Sponte configurada? Para a tela avisar em vez de quebrar. */
+const SPONTE_CONFIGURADO = !!process.env.SPONTE_KEY && !!process.env.SPONTE_CODIGO_CLIENTE;
 
 const auth = new Autenticacao({
   url: process.env.SUPABASE_URL!,
@@ -163,7 +183,7 @@ let cacheFormas: { quando: number; dados: FormaCobranca[] } | null = null;
 
 async function turmasComCache() {
   if (cacheTurmas && Date.now() - cacheTurmas.quando < CACHE_MS) return cacheTurmas.dados;
-  const dados = await getTurmas(cred, {}, { timeoutMs: 90_000 });
+  const dados = await getTurmas(credSponte(), {}, { timeoutMs: 90_000 });
   cacheTurmas = { quando: Date.now(), dados };
   return dados;
 }
@@ -171,21 +191,21 @@ async function turmasComCache() {
 async function planosComCache(cursoId: number): Promise<PlanoCurso[]> {
   const hit = cachePlanos.get(cursoId);
   if (hit && Date.now() - hit.quando < CACHE_COMERCIAL_MS) return hit.dados;
-  const dados = await getPlanosCurso(cred, cursoId, { timeoutMs: 60_000 });
+  const dados = await getPlanosCurso(credSponte(), cursoId, { timeoutMs: 60_000 });
   cachePlanos.set(cursoId, { quando: Date.now(), dados });
   return dados;
 }
 
 async function bolsasComCache(): Promise<Bolsa[]> {
   if (cacheBolsas && Date.now() - cacheBolsas.quando < CACHE_COMERCIAL_MS) return cacheBolsas.dados;
-  const dados = await getBolsas(cred, { timeoutMs: 60_000 });
+  const dados = await getBolsas(credSponte(), { timeoutMs: 60_000 });
   cacheBolsas = { quando: Date.now(), dados };
   return dados;
 }
 
 async function formasComCache(): Promise<FormaCobranca[]> {
   if (cacheFormas && Date.now() - cacheFormas.quando < CACHE_COMERCIAL_MS) return cacheFormas.dados;
-  const dados = formasOferecidas(await getFormasCobranca(cred, { timeoutMs: 60_000 }));
+  const dados = formasOferecidas(await getFormasCobranca(credSponte(), { timeoutMs: 60_000 }));
   cacheFormas = { quando: Date.now(), dados };
   return dados;
 }
@@ -387,7 +407,7 @@ async function conferirPagamento(
   }
 
   const r = await pagamentoConfirmado(
-    cred, p.contaReceberId, p.numeroParcela ?? "1", p.sponteAlunoId ?? 0,
+    credSponte(), p.contaReceberId, p.numeroParcela ?? "1", p.sponteAlunoId ?? 0,
     { timeoutMs: 90_000 },
   );
   if (!r.pago) return { ok: true, pago: false, link: c.pagamentoLink ?? null };
@@ -444,7 +464,7 @@ export async function verificarCobrancas() {
     try {
       if (ESCRITA_LIBERADA) {
         estado = await verificarCobranca(
-          cred, p.sponteAlunoId!, p.contaReceberId, p.numeroParcela ?? "1",
+          credSponte(), p.sponteAlunoId!, p.contaReceberId, p.numeroParcela ?? "1",
           { timeoutMs: 90_000 },
         );
         campos.cobranca_verificada_em = estado.verificadoEm;
@@ -742,7 +762,7 @@ async function procurar(plataforma: Plataforma, termo: string): Promise<Achado[]
     const digitos = q.replace(/\D/g, "");
     const filtro = digitos.length === 11 ? `CPF=${digitos}` : `Nome=${q}`;
     const xml = await chamarSoap("GetAlunos4",
-      [...credenciais(cred), ["sParametrosBusca", filtro]],
+      [...credenciais(credSponte()), ["sParametrosBusca", filtro]],
       { timeoutMs: 90_000, ignorarRetornoOperacao: true });
 
     return xml.split("<wsAluno>").slice(1).slice(0, 20).map((b) => {
@@ -1198,7 +1218,8 @@ export async function tratar(
       }
       return json({
         escritaLiberada: ESCRITA_LIBERADA, modoTeste: MODO_TESTE,
-        codigoCliente: cred.codigoCliente, persistencia: "supabase",
+        codigoCliente: codigoClienteSponte(), persistencia: "supabase",
+        sponteConfigurado: SPONTE_CONFIGURADO,
         // O painel precisa saber: sem credenciais, o botão de ativar faz
         // metade do trabalho, e isso tem que aparecer antes do clique.
         leagueConfigurado: !!league,
@@ -1642,7 +1663,14 @@ export const ciclos: Ciclo[] = [
   },
 ];
 
-/** Credenciais em uso, para o servidor local mostrar no banner. */
-export const credenciaisUsadas = { codigoCliente: cred.codigoCliente };
+/**
+ * O código de cliente em uso, para o banner do servidor local.
+ *
+ * Função, e não `const`: avaliada na importação, ela lançaria quando a
+ * chave do Sponte faltasse — exatamente o que derrubava a função inteira.
+ */
+export function codigoClienteSponte(): string | null {
+  try { return String(credSponte().codigoCliente); } catch { return null; }
+}
 export const escritaLiberada = ESCRITA_LIBERADA;
 export const modoTeste = MODO_TESTE;
