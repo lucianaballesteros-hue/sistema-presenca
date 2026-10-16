@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  definirSituacaoTurma, propagarTurma, totalDeAulas,
+  cascataDeAlunos, definirSituacaoTurma, propagarTurma, totalDeAulas,
 } from "./turma-plataformas.ts";
 
 /* ------------------------------------------------------------------ *
@@ -48,6 +48,11 @@ function fingirPresenca(respostas: {
         feito.push(`buscarTurma(${id})`);
         return { id, turma: "x", curso: "y", ativa: true };
       },
+      // Usados pela cascata, que desativa aluno por aluno.
+      async desativarAluno(id: number) {
+        feito.push(`desativarAluno(${id})`);
+      },
+      async registrarHistorico() {},
     } as any,
   };
 }
@@ -326,4 +331,62 @@ test("programa desconhecido cai no padrão", async () => {
 test("nome fora do padrão ainda tenta pela primeira palavra", async () => {
   // "Evol Santa Doroteia - Único - 2026" existe no Sponte de verdade.
   assert.equal(totalDeAulas("Evol Santa Doroteia  - Único - 2026"), 32);
+});
+
+/* ------------------------------------------------------------------ *
+ * Teto da cascata automática
+ *
+ * O teto não é sobre desempenho: é o raio de estrago de um vínculo errado.
+ * Turma do Sponte ligada à turma errada do Presença faria a cascata
+ * desativar alunos que ninguém mandou desativar.
+ * ------------------------------------------------------------------ */
+
+function alunosFalsos(n: number) {
+  return Array.from({ length: n }, (_, i) => ({
+    id: i + 1, nome: `Aluno ${i + 1}`, email: null,
+    turmaNome: TURMA.nome, sponteTurmaId: 1,
+    presencaAlunoId: 100 + i, leagueUserId: null,
+  }));
+}
+
+test("acima do teto, a cascata não encosta em ninguém", async () => {
+  const p = fingirPresenca({});
+  const r = await cascataDeAlunos(
+    alunosFalsos(40), { presencaTurmaId: 42, leagueClassId: null }, false,
+    { presenca: p.cliente, league: null }, "turma encerrada", { teto: 15 });
+
+  assert.equal(r.barrada, true);
+  assert.equal(r.ok, 0);
+  assert.equal(r.total, 40, "relata quantos seriam");
+  assert.deepEqual(p.feito, [], "nenhuma chamada: parou ANTES de agir");
+  assert.match(r.motivo ?? "", /vínculo/, "a mensagem aponta a causa provável");
+});
+
+test("dentro do teto, a cascata age", async () => {
+  const p = fingirPresenca({});
+  const r = await cascataDeAlunos(
+    alunosFalsos(3), { presencaTurmaId: 42, leagueClassId: null }, false,
+    { presenca: p.cliente, league: null }, "turma encerrada", { teto: 15 });
+
+  assert.ok(!r.barrada);
+  assert.equal(r.total, 3);
+  assert.equal(r.ok, 3);
+});
+
+test("exatamente no teto ainda passa", async () => {
+  const r = await cascataDeAlunos(
+    alunosFalsos(15), { presencaTurmaId: 42, leagueClassId: null }, false,
+    { presenca: fingirPresenca({}).cliente, league: null }, "x", { teto: 15 });
+  assert.ok(!r.barrada);
+});
+
+test("sem teto informado, não há limite", async () => {
+  // É o caminho do painel: alguém viu a turma e confirmou quantos seriam
+  // afetados. Impor teto ali impediria a operação legítima de uma turma
+  // grande de verdade.
+  const r = await cascataDeAlunos(
+    alunosFalsos(40), { presencaTurmaId: 42, leagueClassId: null }, false,
+    { presenca: fingirPresenca({}).cliente, league: null }, "x");
+  assert.ok(!r.barrada);
+  assert.equal(r.ok, 40);
 });

@@ -143,7 +143,41 @@ const PUBLICAS: Array<{ metodo: string; padrao: RegExp }> = [
   // A tela de login precisa desta antes de existir login. Devolve só a URL
   // e a chave pública — as duas já viajariam ao navegador de qualquer forma.
   { metodo: "GET", padrao: /^\/api\/config-auth$/ },
+  // Os ciclos periódicos, chamados pelo cron da plataforma. Não têm sessão
+  // de admin para apresentar — e por isso têm porteiro próprio, mais
+  // rígido: `cronAutorizado`, logo abaixo. Ficam fora do porteiro de admin,
+  // nunca sem porteiro nenhum.
+  //
+  // GET porque é assim que o cron da Vercel chama; POST para disparar à mão.
+  { metodo: "GET", padrao: /^\/api\/ciclos$/ },
+  { metodo: "POST", padrao: /^\/api\/ciclos$/ },
 ];
+
+/**
+ * O pedido veio mesmo do agendador?
+ *
+ * A Vercel chama o cron com `Authorization: Bearer $CRON_SECRET`. Sem o
+ * segredo configurado, isto responde **não** — a alternativa seria um
+ * endereço aberto que desativa turmas e alunos, e é melhor o cron não
+ * rodar do que rodar para qualquer um.
+ *
+ * Comparação de tamanho constante: comparar com `===` vaza, pelo tempo de
+ * resposta, quantos caracteres do segredo o atacante já acertou.
+ */
+export function cronAutorizado(
+  cabecalho: string | undefined,
+  segredo: string | undefined,
+): boolean {
+  if (!segredo) return false;
+  const enviado = Autenticacao.tokenDe(cabecalho);
+  if (!enviado || enviado.length !== segredo.length) return false;
+
+  let diferenca = 0;
+  for (let i = 0; i < segredo.length; i++) {
+    diferenca |= enviado.charCodeAt(i) ^ segredo.charCodeAt(i);
+  }
+  return diferenca === 0;
+}
 
 export function rotaPublica(metodo: string, rota: string): boolean {
   return PUBLICAS.some((p) => p.metodo === metodo && p.padrao.test(rota));

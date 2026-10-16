@@ -6,9 +6,13 @@
   "scripts": {
     "test": "node --test supabase/functions/_shared/*.test.ts",
     "dev": "node --env-file=.env scripts/servidor-local.ts",
-    "db": "node --env-file=.env scripts/db.ts"
+    "db": "node --env-file=.env scripts/db.ts",
+    "build": "echo \"sem build: HTML/CSS/JS puro; as funções a Vercel compila\""
   },
   "devDependencies": {
     "pg": "^8.13.1"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

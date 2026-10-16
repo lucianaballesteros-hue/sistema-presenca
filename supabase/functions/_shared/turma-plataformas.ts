@@ -577,10 +577,31 @@ export async function vincularTurmaAMao(
  * Cascata sobre os alunos
  * ------------------------------------------------------------------ */
 
+/**
+ * Até quantos alunos uma cascata automática pode mexer sozinha.
+ *
+ * O número não é sobre desempenho: é o raio de estrago de um vínculo
+ * errado. Se o casamento por nome ligar a turma do Sponte à turma errada
+ * do Presença, a cascata desativa alunos que ninguém mandou desativar —
+ * e descobrir isso depois custa reativar um por um.
+ *
+ * Turma da escola tem algumas dezenas de alunos; passar disso é sinal de
+ * que o vínculo pegou a turma errada, não de que a turma é grande. Acima
+ * do teto a cascata **para e relata**, para uma pessoa olhar e decidir.
+ *
+ * Vale só para o que roda sozinho. Quem clica no painel já viu de qual
+ * turma se trata e a confirmação diz quantos serão afetados.
+ */
+export const TETO_CASCATA_AUTOMATICA = 15;
+
 export interface ResultadoCascata {
   total: number;
   ok: number;
   falhas: number;
+  /** A cascata parou sem agir por passar do teto. */
+  barrada?: boolean;
+  /** Por que parou, pronto para a tela e para a auditoria. */
+  motivo?: string;
   /** Uma linha por aluno, para gravar o id aprendido e mostrar na tela. */
   alunos: Array<{
     id: number;
@@ -618,6 +639,7 @@ export async function cascataDeAlunos(
   ativar: boolean,
   clientes: ClientesTurma,
   motivo?: string,
+  opcoes: { teto?: number } = {},
 ): Promise<ResultadoCascata> {
   const saida: ResultadoCascata = {
     total: alunos.length,
@@ -625,6 +647,19 @@ export async function cascataDeAlunos(
     falhas: 0,
     alunos: [],
   };
+
+  // Teto só no caminho automático: quem passa `teto` é o ciclo que roda
+  // sozinho. Pelo painel não há teto — ali uma pessoa viu a turma e
+  // confirmou quantos seriam afetados.
+  if (opcoes.teto !== undefined && alunos.length > opcoes.teto) {
+    saida.barrada = true;
+    saida.motivo =
+      `A cascata automática pararia em ${alunos.length} alunos, acima do ` +
+      `limite de ${opcoes.teto}. Turma desse tamanho costuma indicar vínculo ` +
+      `apontando para a turma errada, não turma grande. Nada foi alterado — ` +
+      `confira o vínculo e, se estiver certo, aplique pelo painel.`;
+    return saida;
+  }
 
   for (const a of alunos) {
     const alvo: AlunoParaAtivar = {
