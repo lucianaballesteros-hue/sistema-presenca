@@ -12,18 +12,21 @@
     }
   },
   "//rewrites": [
-    "O arquivo api/[...rota].ts é a convenção de rota curinga da Vercel, e",
-    "mesmo assim só caminhos de UM segmento chegavam nele: /api/cadastros",
-    "invocava a função, /api/sponte/turmas devolvia 404 sem invocar. Isso",
-    "derrubaria o formulário público, o checkout e metade do painel, que",
-    "vivem em caminhos aninhados.",
+    "Uma função só atende tudo sob /api, e é ela que despacha pelo caminho.",
     "",
-    "Esta regra torna o roteamento explícito em vez de depender da",
-    "convenção de nome: tudo sob /api vai para a mesma função, que já sabe",
-    "despachar pelo caminho."
+    "Antes o arquivo se chamava api/[...rota].ts, a convenção de rota",
+    "curinga da Vercel. Não funcionou: só caminhos de UM segmento chegavam",
+    "na função — /api/cadastros invocava, /api/sponte/turmas devolvia 404",
+    "sem invocar. Isso derruba o formulário público, o checkout e metade do",
+    "painel, que vivem em caminhos aninhados.",
+    "",
+    "Tentar corrigir com um rewrite para /api/[...rota] foi pior: colchete",
+    "não é destino válido e o build passou a falhar. Então o arquivo virou",
+    "api/index.ts e o destino é /api — sem colchete nenhum, nem no nome nem",
+    "na regra."
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/[...rota]" }
+    { "source": "/api/(.*)", "destination": "/api" }
   ],
 
   "headers": [

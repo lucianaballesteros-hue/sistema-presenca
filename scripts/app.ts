@@ -1104,15 +1104,19 @@ function ipDoPedido(req: IncomingMessage): string | null {
 /**
  * O caminho que o cliente pediu, mesmo depois de reescrito.
  *
- * Em produção há um `rewrite` mandando tudo sob `/api` para a função
- * curinga. Se a plataforma entregar o caminho de destino em vez do
- * original, `url.pathname` viria literalmente como `/api/[...rota]` e o
- * despacho não acharia rota nenhuma.
+ * Em produção há um `rewrite` mandando tudo sob `/api` para `api/index.ts`.
+ * Reescrita é interna: o caminho que o cliente pediu continua chegando
+ * aqui. Mas já houve uma versão com rota curinga (`api/[...rota].ts`), e
+ * se alguém voltar a ela o `pathname` pode vir como o destino literal.
  *
  * A rota curinga da Vercel passa os segmentos num parâmetro com o nome do
- * curinga (`?rota=sponte&rota=turmas`), então dá para remontar. A primeira
- * fonte continua sendo o `pathname`, que é o caso normal e o único que
+ * curinga (`?rota=sponte&rota=turmas`), então daria para remontar. A
+ * primeira fonte é sempre o `pathname`, que é o caso normal e o único que
  * existe no servidor local.
+ *
+ * Se mesmo assim o despacho não achar a rota, o 404 devolve o caminho que
+ * a função enxergou — é o que torna esse tipo de engano visível na hora,
+ * em vez de virar um 404 sem explicação.
  */
 function caminhoReal(url: URL): string {
   const p = url.pathname;
