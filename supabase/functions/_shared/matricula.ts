@@ -189,6 +189,16 @@ export interface ProgressoMatricula {
    * próprio aluno; para menor, o responsável informado no cadastro.
    */
   responsavelId: number | null;
+  /**
+   * O responsável já existia no ERP e foi reusado pelo CPF.
+   *
+   * Importa porque a API **não liga** responsável existente a aluno novo
+   * (conferido: `UpdateCompartilhaResponsavel` não adiciona,
+   * `UpdateResponsaveis2` estoura, `InsertResponsaveis2` recusa CPF
+   * repetido). Esse vínculo se faz na tela do Sponte, e esta marca é como
+   * a escola descobre quais matrículas precisam disso.
+   */
+  responsavelReusado: boolean;
   contratoId: number | null;
   /**
    * O plano financeiro já foi gravado.
@@ -219,6 +229,7 @@ export interface ProgressoMatricula {
 export function progressoVazio(): ProgressoMatricula {
   return {
     sponteAlunoId: null, alunoJaExistia: false, dadosAtualizados: false,
+    responsavelReusado: false,
     responsavelId: null, contratoId: null,
     planoCriado: false, contaReceberId: null, numeroParcela: null,
     linkPagamento: null, aguardandoFatura: false,
@@ -935,10 +946,23 @@ export async function executarMatricula(
         // `UpdateResponsaveis2`, que também move o `nAlunoID` e poderia
         // desfazer o vínculo do irmão. Isso fica para quem conhecer a
         // regra da escola decidir, na tela do Sponte.
-        : await buscarResponsavelFinanceiro(cred, p.sponteAlunoId!, opc)
-          ?? await buscarResponsavelPorCpf(
-            cred, dados.responsavelCpf?.trim() || dados.cpf || "", opc)
-          ?? await criarResponsavel(cred, dados, p.sponteAlunoId!, opc, marcarComoTeste);
+        : await (async () => {
+          const doAluno = await buscarResponsavelFinanceiro(cred, p.sponteAlunoId!, opc);
+          if (doAluno) return doAluno;
+
+          const porCpf = await buscarResponsavelPorCpf(
+            cred, dados.responsavelCpf?.trim() || dados.cpf || "", opc);
+          if (porCpf) {
+            // Reusado: a matrícula segue, mas o vínculo com este aluno não
+            // existe no ERP e não dá para criá-lo por API. Marcado para a
+            // escola poder fechar isso na tela do Sponte.
+            p.responsavelReusado = true;
+            return porCpf;
+          }
+
+          return await criarResponsavel(
+            cred, dados, p.sponteAlunoId!, opc, marcarComoTeste);
+        })();
       p.ultimoPasso = "criar_responsavel";
     }
 

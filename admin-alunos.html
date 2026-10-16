@@ -776,6 +776,18 @@ function pintarPlataformas(c) {
   av.style.display = 'none';
   av.textContent = '';
 
+  // O responsável já existia no Sponte e foi reusado pelo CPF. A matrícula
+  // está completa, mas o ERP não liga responsável existente a aluno novo
+  // por API — esse vínculo se faz na tela deles. Sem este aviso, a lacuna
+  // seria silenciosa: ninguém descobriria que falta.
+  if (c.responsavelReusado) {
+    av.style.display = 'block';
+    av.textContent = 'O responsável financeiro já existia no Sponte e foi reaproveitado '
+      + '(CPF já cadastrado). A matrícula e a cobrança estão completas, mas o vínculo '
+      + 'entre este aluno e o responsável precisa ser feito na tela do Sponte — '
+      + 'a API deles não permite criá-lo.';
+  }
+
   // Sem credenciais o botão ainda vale a pena: ativa no Presença. Mas quem
   // clica precisa saber de antemão que metade vai ficar pendente.
   if (!estado.leagueConfigurado) {
