@@ -7,10 +7,11 @@
     "test": "node --test supabase/functions/_shared/*.test.ts",
     "dev": "node --env-file=.env scripts/servidor-local.ts",
     "db": "node --env-file=.env scripts/db.ts",
-    "build": "echo \"sem build: HTML/CSS/JS puro; as funções a Vercel compila\""
+    "build": "node scripts/montar-vercel.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
+    "esbuild": "^0.24.0",
     "pg": "^8.13.1",
     "typescript": "^5.9.3"
   },
