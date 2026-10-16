@@ -209,6 +209,22 @@ export async function getTurmas(
  * para que uma situação nova na origem não faça turmas sumirem da tela sem
  * ninguém entender por quê.
  */
+/**
+ * A turma está encerrada no Sponte?
+ *
+ * O Sponte usa exatamente dois valores — `Aberta` e `Encerrada` — e esta é
+ * a pergunta que decide **acesso**: turma encerrada não deve dar login no
+ * LeagueInvest nem presença ativa, mesmo que o aluno tenha pago.
+ *
+ * Valor desconhecido conta como **não encerrada**. Se o Sponte um dia
+ * passar a devolver "Suspensa", tirar o acesso de todo mundo por causa de
+ * uma palavra nova seria pior que não agir: o erro silencioso aqui tranca
+ * aluno pagante para fora.
+ */
+export function turmaEncerrada(t: { situacao?: string | null }): boolean {
+  return (t.situacao ?? "").trim().toLowerCase() === "encerrada";
+}
+
 export function filtrarMatriculaveis(
   turmas: TurmaSponte[],
   opcoes: { anoLetivo?: number; exigirVaga?: boolean } = {},
@@ -216,7 +232,7 @@ export function filtrarMatriculaveis(
   const { anoLetivo, exigirVaga = true } = opcoes;
 
   return turmas.filter((t) => {
-    if (t.situacao.trim().toLowerCase() === "encerrada") return false;
+    if (turmaEncerrada(t)) return false;
     if (anoLetivo !== undefined && t.anoLetivo !== anoLetivo) return false;
     if (exigirVaga && t.maxAlunos > 0 && t.vagasLivres <= 0) return false;
     return true;

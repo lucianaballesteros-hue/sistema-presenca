@@ -16,6 +16,7 @@ import {
   filtrarMatriculaveis,
   montarFiltroTurmas,
   parsearTurmas,
+  turmaEncerrada,
   type TurmaSponte,
 } from "./turmas.ts";
 
@@ -231,4 +232,47 @@ test("filtrarMatriculaveis respeita o ano letivo", () => {
   );
   assert.equal(r.length, 1);
   assert.equal(r[0].anoLetivo, 2026);
+});
+
+/* ------------------------------------------------------------------ *
+ * Turma encerrada e acesso
+ *
+ * Regra da escola: turma encerrada no Sponte não dá login no LeagueInvest
+ * nem presença ativa, **mesmo que o aluno tenha pago**. `turmaEncerrada` é
+ * quem responde essa pergunta, então o que ela erra vira acesso indevido
+ * ou aluno pagante trancado para fora.
+ * ------------------------------------------------------------------ */
+
+test("turmaEncerrada reconhece os dois valores que o Sponte usa", () => {
+  // Conferido na base: o Sponte devolve só "Aberta" (51) e "Encerrada" (123).
+  assert.equal(turmaEncerrada({ situacao: "Encerrada" }), true);
+  assert.equal(turmaEncerrada({ situacao: "Aberta" }), false);
+});
+
+test("turmaEncerrada ignora caixa e espaço", () => {
+  for (const s of ["ENCERRADA", "encerrada", "  Encerrada  "]) {
+    assert.equal(turmaEncerrada({ situacao: s }), true, s);
+  }
+});
+
+test("situação desconhecida NÃO tranca o aluno para fora", () => {
+  // Se o Sponte passar a devolver "Suspensa", tirar o acesso de todo mundo
+  // por uma palavra nova é pior que não agir: trancaria aluno pagante.
+  for (const s of ["Suspensa", "Em formação", "", null, undefined]) {
+    assert.equal(turmaEncerrada({ situacao: s as never }), false, String(s));
+  }
+});
+
+test("turma encerrada sai dos matriculáveis", () => {
+  const base = {
+    turmaId: 1, nome: "x", turno: "", moduloAtual: 1, cursoId: 1, curso: "",
+    anoLetivo: 2026, dataInicio: null, dataTermino: null, maxAlunos: 0,
+    vagasOcupadas: 0, vagasLivres: 0, matrizCurricular: "", observacao: "",
+    horario: "", professorRegente: null, professorRegenteId: null,
+  };
+  const r = filtrarMatriculaveis([
+    { ...base, turmaId: 1, situacao: "Aberta" },
+    { ...base, turmaId: 2, situacao: "Encerrada" },
+  ] as never);
+  assert.deepEqual(r.map((t) => t.turmaId), [1]);
 });

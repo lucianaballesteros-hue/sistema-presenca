@@ -21,7 +21,7 @@ import {
   chamarSoap, credenciais, credenciaisDoAmbiente, SponteError,
 } from "../supabase/functions/_shared/soap.ts";
 import {
-  dataBrParaIso, filtrarMatriculaveis, getTurmas,
+  dataBrParaIso, filtrarMatriculaveis, getTurmas, turmaEncerrada,
 } from "../supabase/functions/_shared/turmas.ts";
 import {
   aplicarBolsa, type Bolsa, getBolsas, getPlanosCurso,
@@ -576,6 +576,36 @@ async function ativacao(id: number, acao: "ativar" | "desativar", motivo?: strin
     return { ...r, avisos: [] };
   }
 
+  /* --- Turma encerrada no Sponte não dá acesso, nem a quem pagou --- *
+   *
+   * O Sponte é a fonte: se a turma está encerrada lá, o aluno não pode
+   * aparecer como ativo na chamada nem conseguir entrar no LeagueInvest.
+   * Pagamento não muda isso — pagou por uma turma que a escola fechou, e o
+   * que resolve é devolver ou remanejar, não liberar o acesso.
+   *
+   * Recusar aqui, e não só esconder a turma no formulário, porque a
+   * ativação também é disparada à mão pelo painel e em lote.
+   *
+   * Quem veio da planilha não tem turma do Sponte (`turmaId` nulo) e passa
+   * direto: não há situação para consultar.
+   */
+  if (c.turmaId) {
+    const daTurma = (await turmasComCache()).find((t) => t.turmaId === c.turmaId);
+    if (daTurma && turmaEncerrada(daTurma)) {
+      const motivo =
+        `A turma "${daTurma.nome}" está encerrada no Sponte. Enquanto estiver ` +
+        `assim, o aluno não é ativado no Presença nem no LeagueInvest — ` +
+        `mesmo tendo pago. Reabra a turma no Sponte ou mude o aluno de turma.`;
+
+      repo.registrar({
+        tipo: "sponte", operacao: "ativar recusado (turma encerrada)",
+        cadastroId: id, ok: false, erro: motivo,
+        detalhe: { turmaId: c.turmaId, turma: daTurma.nome, situacao: daTurma.situacao },
+      });
+      return { ok: false, motivo: "turma_encerrada", mensagem: motivo, resultados: [], avisos: [motivo] };
+    }
+  }
+
   // Três fontes para os ids da turma, da mais confiável para a menos:
   // o que a própria ficha traz (veio da planilha, conferido por gente), o
   // mapa já aprendido, e por último o casamento de nome.
@@ -852,6 +882,76 @@ function lerCorpo(req: IncomingMessage): Promise<Record<string, any>> {
  * plano e matrícula. Daqui ela é **espelhada** no Presença e no
  * LeagueInvest; nenhuma destas funções escreve no Sponte.
  * ------------------------------------------------------------------ */
+
+/**
+ * Leva ao Presença e ao LeagueInvest as turmas que o Sponte encerrou.
+ *
+ * O Sponte é a fonte da situação, mas não avisa ninguém quando ela muda —
+ * não há webhook. Sem esta varredura, encerrar a turma lá não produzia
+ * efeito nenhum até alguém lembrar de clicar no painel, e nesse meio-tempo
+ * o aluno continuava na chamada e com o conteúdo liberado.
+ *
+ * **Só desliga, nunca religa.** Reabrir a turma no Sponte não reativa
+ * sozinho: a turma pode ter sido desativada no Presença por outro motivo
+ * — professor trocado, sala indefinida — e devolver o acesso por conta
+ * própria desfaria uma decisão que alguém tomou de propósito. Religar é um
+ * clique no painel, que já existe.
+ *
+ * A cascata sobre os alunos vem junto: desligar a turma e deixá-los ativos
+ * dá o pior dos dois mundos — fora da chamada, mas ainda com o conteúdo.
+ */
+async function refletirTurmasEncerradas() {
+  const encerradas = (await turmasComCache()).filter(turmaEncerrada);
+  const mapa = await repo.mapaTurmas();
+
+  let vistas = 0, desligadas = 0, alunos = 0;
+
+  for (const t of encerradas) {
+    const m = mapa[t.turmaId];
+    // Turma encerrada que nunca foi espelhada não tem o que desligar.
+    if (!m || (!m.presencaTurmaId && !m.leagueClassId)) continue;
+    vistas++;
+
+    // Ler antes de escrever: a esmagadora maioria já está desligada lá, e
+    // reenviar a desativação a cada ciclo seria gastar duas chamadas por
+    // turma para não mudar nada.
+    const estado = await situacaoNasPlataformas(m);
+    const precisa = estado.presenca.ativa === true || estado.league.ativa === true;
+    if (!precisa) continue;
+
+    const origem: TurmaOrigem = {
+      turmaId: t.turmaId, nome: t.nome, curso: t.curso, cursoId: t.cursoId,
+      dataInicio: t.dataInicio, dataTermino: t.dataTermino,
+      professorRegente: t.professorRegente, situacao: t.situacao,
+    };
+
+    const r = await definirSituacaoTurma(origem, {
+      presencaTurmaId: m.presencaTurmaId, leagueClassId: m.leagueClassId,
+    }, false, { presenca, league });
+    await gravarResultadoTurma(origem, r);
+    desligadas++;
+
+    const daTurma = await repo.alunosDaTurma(t.turmaId, "desativar");
+    if (daTurma.length) {
+      const c = await repo.registrarCascata(await cascataDeAlunos(
+        daTurma, r.mapa, false, { presenca, league },
+        `turma encerrada no Sponte`));
+      alunos += c.ok;
+    }
+
+    repo.registrar({
+      tipo: "sponte", operacao: "turma encerrada refletida", ok: r.ok,
+      detalhe: {
+        turmaId: t.turmaId, turma: t.nome,
+        alunos: daTurma.length,
+        resultados: r.resultados.map((x) => `${x.plataforma}: ${x.mensagem}`),
+      },
+      erro: r.ok ? null : r.resultados.filter((x) => !x.ok).map((x) => x.mensagem).join(" · "),
+    });
+  }
+
+  return { encerradas: encerradas.length, vistas, desligadas, alunos };
+}
 
 /** Erro de pedido, para o 400/404 sair com a mensagem certa. */
 class ErroDePedido extends Error {
@@ -1185,6 +1285,17 @@ const servidor = createServer(async (req, res) => {
       return json({ presenca: doPresenca, league: doLeague, leagueConfigurado: !!league });
     }
 
+    /**
+     * Força agora o reflexo das turmas encerradas no Sponte.
+     *
+     * O mesmo que o ciclo automático faz de 15 em 15 minutos. Existe para
+     * quem acabou de encerrar a turma no Sponte e quer ver o efeito sem
+     * esperar — e para conferir, depois, que o efeito aconteceu.
+     */
+    if (rota === "/api/turmas/refletir-encerradas" && req.method === "POST") {
+      return json(await refletirTurmasEncerradas());
+    }
+
     /** As ligas do LeagueInvest, para escolher onde a turma vai nascer. */
     if (rota === "/api/league/ligas" && req.method === "GET") {
       if (!league) return json({ ligas: [], leagueConfigurado: false });
@@ -1428,6 +1539,23 @@ if (ESCRITA_LIBERADA) {
       .catch((e) => console.error(`  [vigia] falhou: ${e.message}`));
   }, INTERVALO_VIGIA_MS).unref();
 }
+
+/**
+ * Reflexo da situação da turma, no mesmo ritmo do vigia.
+ *
+ * Roda mesmo com a escrita no Sponte desligada: isto **não escreve no
+ * Sponte**, só lê de lá e desliga nas outras duas. E é justamente o caso em
+ * que não agir deixa aluno com acesso que a escola já tirou.
+ */
+setInterval(() => {
+  refletirTurmasEncerradas()
+    .then((r) => {
+      if (!r.desligadas) return;
+      console.log(`  [turmas] ${r.desligadas} turma(s) encerrada(s) no Sponte ` +
+                  `desligada(s) nas plataformas · ${r.alunos} aluno(s) afetado(s)`);
+    })
+    .catch((e) => console.error(`  [turmas] falhou: ${e.message}`));
+}, INTERVALO_VIGIA_MS).unref();
 
 servidor.listen(PORTA, () => {
   console.log(`\n  Servidor de desenvolvimento no ar.\n`);
