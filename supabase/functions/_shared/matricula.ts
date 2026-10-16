@@ -579,6 +579,48 @@ async function buscarResponsavelFinanceiro(
   return id && Number(id) > 0 ? Number(id) : null;
 }
 
+/**
+ * O responsável que já existe no Sponte com este CPF, ou `null`.
+ *
+ * `buscarResponsavelFinanceiro` responde "este **aluno** já tem
+ * responsável?". Esta responde "esta **pessoa** já está cadastrada?" — que
+ * é outro caso e o que derrubou a primeira matrícula de menor em produção:
+ *
+ *     29 - O CPF informado já está associado a outro cadastro.
+ *
+ * Acontece sempre que o responsável já aparece no ERP por outro motivo:
+ * foi aluno, é responsável de um irmão, ou entrou num cadastro anterior.
+ * Numa escola, é o caso comum, não a exceção.
+ *
+ * Conferido contra produção em 16/10/2026: `GetResponsaveis2` com
+ * `sParametrosBusca = "CPF=04084316016"` devolve `ResponsavelID=540`.
+ * A chave é `CPF`; `CPFResponsavel` não é reconhecida e cai em
+ * "21 - Informe pelo menos um parâmetro de busca".
+ */
+async function buscarResponsavelPorCpf(
+  cred: CredenciaisSponte, cpf: string, opc: OpcoesChamada,
+): Promise<number | null> {
+  const digitos = soDigitos(cpf);
+  if (digitos.length !== 11) return null;
+
+  let xml: string;
+  try {
+    xml = await chamarSoap(
+      "GetResponsaveis2",
+      [...credenciais(cred), ["sParametrosBusca", `CPF=${digitos}`]],
+      { ...opc, ignorarRetornoOperacao: true },
+    );
+  } catch (erro) {
+    // Busca que falha não pode derrubar a matrícula: sem resposta, segue
+    // para a criação, que é o caminho que existia antes.
+    if (erro instanceof SponteError) return null;
+    throw erro;
+  }
+
+  const id = xml.match(/<ResponsavelID>(\d+)<\/ResponsavelID>/)?.[1];
+  return id && Number(id) > 0 ? Number(id) : null;
+}
+
 async function criarResponsavel(
   cred: CredenciaisSponte, d: DadosMatricula, alunoId: number, opc: OpcoesChamada, teste = false,
 ): Promise<number | null> {
@@ -875,7 +917,27 @@ export async function executarMatricula(
         // já existe ele costuma já ter responsável, e um segundo cadastro com
         // o mesmo CPF é recusado com "29 - O CPF informado já está associado a
         // outro cadastro". Sem operação de exclusão, o engano não se desfaz.
+        // Três degraus, do mais específico ao mais caro:
+        //
+        //   1. este aluno já tem responsável?       (retomada)
+        //   2. esta pessoa já existe no ERP?        (irmão, ex-aluno…)
+        //   3. criar.
+        //
+        // O segundo degrau faltava, e é o caso comum numa escola: o pai
+        // que já é responsável de outro filho tem CPF cadastrado, e o
+        // Sponte recusa com "29 - O CPF informado já está associado a
+        // outro cadastro". A primeira matrícula de menor em produção
+        // parou exatamente aí.
+        //
+        // Reusar o id é seguro: o `responsavelId` não é repassado ao
+        // contrato nem ao plano — ele existe para o menor ter responsável
+        // financeiro no ERP. Associar a pessoa ao novo aluno exigiria
+        // `UpdateResponsaveis2`, que também move o `nAlunoID` e poderia
+        // desfazer o vínculo do irmão. Isso fica para quem conhecer a
+        // regra da escola decidir, na tela do Sponte.
         : await buscarResponsavelFinanceiro(cred, p.sponteAlunoId!, opc)
+          ?? await buscarResponsavelPorCpf(
+            cred, dados.responsavelCpf?.trim() || dados.cpf || "", opc)
           ?? await criarResponsavel(cred, dados, p.sponteAlunoId!, opc, marcarComoTeste);
       p.ultimoPasso = "criar_responsavel";
     }
