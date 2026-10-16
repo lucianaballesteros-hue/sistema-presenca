@@ -30,6 +30,27 @@
  * foi o que fez os caminhos aninhados darem 404.
  *
  * Documentação: https://vercel.com/docs/build-output-api/v3
+ *
+ * ## O `vercel.json` tem uma chave só, e isso é de propósito
+ *
+ * Lá fica apenas `buildCommand`, apontando para este arquivo. Duas razões:
+ *
+ * 1. **Ele é obrigatório.** O log do deploy mostrava `no build` logo após
+ *    o install: sem a chave declarada, a plataforma não roda etapa de
+ *    build nenhuma — nem com o script `build` no `package.json`. Aí este
+ *    arquivo nunca executa, `.vercel/output` nunca existe, e a Vercel
+ *    volta ao modo automático, que é o que quebra os imports.
+ *
+ * 2. **Nada mais cabe lá.** Com a Build Output API, as chaves `routes`,
+ *    `headers`, `rewrites` e `functions` do `vercel.json` são ignoradas —
+ *    quem manda é o `config.json` escrito aqui embaixo.
+ *
+ * ⚠️ E **não escreva comentários no `vercel.json`**. A Vercel valida o
+ * arquivo contra um schema estrito e recusa propriedade desconhecida:
+ * chaves como `"//"` ou `"//rewrites"`, que em outros projetos servem de
+ * comentário, fazem o **build inteiro falhar**. Três deploys desta série
+ * morreram por isso, e o erro não diz qual chave é. A explicação mora
+ * aqui, num arquivo que aceita comentário de verdade.
  */
 
 import { build } from "esbuild";
