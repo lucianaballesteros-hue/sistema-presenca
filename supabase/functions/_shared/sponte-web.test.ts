@@ -1,7 +1,7 @@
 /**
  * Testes da fila da automação.
  *
- *     node --test scripts/sponte-web.test.ts
+ *     node --test supabase/functions/_shared/sponte-web.test.ts
  *
  * O que está em jogo: a sessão do Sponte é uma só, e gerar um link são dois
  * postbacks encadeados. Se duas gerações se intercalarem, o filtro de uma

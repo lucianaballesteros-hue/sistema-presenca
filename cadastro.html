@@ -341,7 +341,17 @@ const form = {
 };
 
 const pagamento = { meios: [] };
-const estadoCheckout = { id: null, link: null, simulado: false };
+const estadoCheckout = {
+  id: null, link: null, simulado: false,
+  /**
+   * O segredo desta ficha, devolvido uma vez pelo envio.
+   *
+   * É o que autoriza o checkout: o id é sequencial e não prova nada. Vive
+   * só nesta aba — não vai para o localStorage, porque não deve sobreviver
+   * a ela nem ser lido por outra página do mesmo domínio.
+   */
+  token: null,
+};
 
 /** Id do rascunho no servidor. Null até a primeira etapa ser salva. */
 let rascunhoId = null;
@@ -1135,6 +1145,7 @@ async function enviar() {
 
     if (d.precisaPagar && d.id) {
       estadoCheckout.id = d.id;
+      estadoCheckout.token = d.tokenAcesso ?? null;
       await iniciarCheckout();
       return;
     }
@@ -1166,11 +1177,22 @@ function animarPassos() {
   return setInterval(() => { if (i < PASSOS_CK.length - 1) { i++; pinta(); } }, 850);
 }
 
+const urlCheckout = () => `/api/checkout/${estadoCheckout.id}`;
+
+/**
+ * O segredo vai no cabeçalho, não na URL.
+ *
+ * URL entra no histórico, no Referer e em todo log de proxy pelo caminho.
+ * Um cabeçalho fica na requisição.
+ */
+const cabecalhoCheckout = () =>
+  estadoCheckout.token ? { 'X-Cadastro-Token': estadoCheckout.token } : {};
+
 async function iniciarCheckout() {
   mostrar('preparando');
   const anim = animarPassos();
   try {
-    const r = await fetch(`/api/checkout/${estadoCheckout.id}`, { method: 'POST' });
+    const r = await fetch(urlCheckout(), { method: 'POST', headers: cabecalhoCheckout() });
     const d = await r.json();
     clearInterval(anim);
     if (!d.ok) { mostrar('erro'); return; }
@@ -1209,7 +1231,7 @@ function acompanharLink() {
       return;
     }
     try {
-      const r = await fetch(`/api/checkout/${estadoCheckout.id}`);
+      const r = await fetch(urlCheckout(), { headers: cabecalhoCheckout() });
       const d = await r.json();
       if (d.pago) { clearInterval(timerLink); mostrar('pago'); return; }
       if (d.link) {
@@ -1228,7 +1250,7 @@ function ligarTelaPagamento() {
     e.preventDefault();
     v.textContent = 'Verificando…';
     try {
-      const r = await fetch(`/api/checkout/${estadoCheckout.id}`);
+      const r = await fetch(urlCheckout(), { headers: cabecalhoCheckout() });
       const d = await r.json();
       if (d.pago) { mostrar('pago'); return; }
       v.textContent = d.simulado

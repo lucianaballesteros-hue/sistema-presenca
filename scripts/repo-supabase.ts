@@ -61,6 +61,17 @@ const ORDENS: Record<OrdemCadastros, string> = {
  */
 const DEPENDEM_DA_DATA = new Set(["vencido", "a_vencer", "sem_link", "pendentes"]);
 
+/**
+ * As situações que a tela pode filtrar — as mesmas do `check` da tabela.
+ *
+ * Fechado de propósito: o valor vem da query string e é concatenado na
+ * consulta. Fora desta lista, o filtro é ignorado em vez de ir para a URL.
+ */
+const STATUS_VALIDOS = new Set([
+  "rascunho", "pendente", "aprovado", "rejeitado", "enviando", "enviado",
+  "erro", "importado",
+]);
+
 function precisaRefinar(financeiro?: string | null): boolean {
   return !!financeiro && DEPENDEM_DA_DATA.has(financeiro);
 }
@@ -286,6 +297,13 @@ export class RepoSupabase {
     return this.#rpc<{
       ok: boolean; duplicado?: boolean; id?: number;
       turmaNome?: string; precisaPagar?: boolean; motivo?: string;
+      /**
+       * O segredo desta ficha, entregue **uma vez** a este navegador.
+       *
+       * É o que autoriza o checkout em seguida: o id é sequencial e não
+       * prova nada. Só sai daqui — nenhuma outra rota o devolve.
+       */
+      tokenAcesso?: string;
     }>("cadastro_publico_enviar",
       { p_token: token, p_rascunho_id: rascunhoId, p_dados: dados, p_ip: ip });
   }
@@ -328,7 +346,13 @@ export class RepoSupabase {
     const { status, turmaId, financeiro, busca } = opcoes;
     const limite = opcoes.limite ?? 200;
 
-    const filtro = (status && status !== "todos" ? `&status=eq.${status}` : "")
+    // Conjunto fechado, e não o texto da tela direto na URL: `status` é
+    // interpolado na consulta, e um `&` cru remontaria os parâmetros que
+    // o PostgREST recebe — com a chave de serviço, que ignora RLS.
+    const situacao = status && status !== "todos" && STATUS_VALIDOS.has(status)
+      ? status : null;
+
+    const filtro = (situacao ? `&status=eq.${situacao}` : "")
       + (turmaId ? `&sponte_turma_id=eq.${turmaId}` : "")
       + filtroFinanceiroSql(financeiro);
 
@@ -339,7 +363,11 @@ export class RepoSupabase {
     const termo = (busca ?? "").trim();
     let procura = "";
     if (termo) {
-      const escapado = termo.replace(/[,()*]/g, " ").trim();
+      // Os separadores do PostgREST saem; o resto é codificado. Os dois
+      // passos são necessários: `,()*` têm significado na sintaxe do filtro
+      // e sobreviveriam à codificação, e `&=` quebrariam a query string.
+      // É o que `presenca.ts` e `league.ts` já faziam.
+      const escapado = encodeURIComponent(termo.replace(/[,()*]/g, " ").trim());
       const digitos = termo.replace(/\D/g, "");
       const alvos = [
         `nome.ilike.*${escapado}*`,
@@ -692,6 +720,23 @@ export class RepoSupabase {
         .map((a) => this.atualizarCadastro(a.id, a.campos)),
     );
     return resultado;
+  }
+
+  /**
+   * De qual ficha é este segredo? `null` se não for de nenhuma.
+   *
+   * Consulta pelo token, nunca pelo id: é o token que prova a posse. O
+   * valor é interpolado depois de passar por `encodeURIComponent`, porque
+   * ele vem do navegador — e um `&` cru aqui remontaria a consulta.
+   */
+  async cadastroDoToken(token: string): Promise<number | null> {
+    // Os tokens têm 32 caracteres hexadecimais. Recusar o resto antes de
+    // ir ao banco evita uma ida por tentativa de palpite malformado.
+    if (!/^[0-9a-f]{32}$/.test(token)) return null;
+
+    const [c] = await this.#rest<Array<{ id: number }>>(
+      `alunos_staging?select=id&token_acesso=eq.${encodeURIComponent(token)}&limit=1`);
+    return c?.id ?? null;
   }
 
   /* ---------------------------------------------------------------- *

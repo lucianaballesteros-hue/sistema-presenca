@@ -30,8 +30,7 @@ import {
   parcelasPermitidas,
 } from "../supabase/functions/_shared/pagamento.ts";
 import {
-  executarMatricula, pagamentoConfirmado, progressoVazio,
-  promoverMatricula, type ProgressoMatricula, ROTULO_PASSO,
+  pagamentoConfirmado, type ProgressoMatricula,
 } from "../supabase/functions/_shared/matricula.ts";
 import {
   avaliarAlerta, type EstadoCobranca, resumirCriterios, verificarCobranca,
@@ -41,9 +40,6 @@ import {
 } from "../supabase/functions/_shared/ativacao.ts";
 import { ClienteLeague, configDoAmbiente } from "../supabase/functions/_shared/league.ts";
 import { ClientePresenca } from "../supabase/functions/_shared/presenca.ts";
-import {
-  credenciaisWebDoAmbiente, gerarLinkPagamento, SponteWeb,
-} from "./sponte-web.ts";
 import {
   cascataDeAlunos, definirSituacaoTurma, propagarTurma, sincronizarTurma,
   TETO_CASCATA_AUTOMATICA, vincularTurmaAMao,
@@ -72,6 +68,17 @@ const MODO_TESTE = ESCRITA_LIBERADA && process.env.SPONTE_MODO_TESTE !== "0";
  * a query são lidos. Um valor fixo evita depender de cabeçalho de proxy.
  */
 const BASE_URL = "http://interno";
+
+/**
+ * A Edge Function que fala com o Sponte.
+ *
+ * Montada a partir da URL do projeto, não configurada à parte: são o
+ * mesmo projeto, e duas variáveis que precisam concordar acabam
+ * discordando.
+ */
+const URL_CHECKOUT = process.env.SUPABASE_URL
+  ? `${process.env.SUPABASE_URL}/functions/v1/sponte-checkout`
+  : null;
 
 const cred = credenciaisDoAmbiente({ get: (c: string) => process.env[c] });
 
@@ -130,15 +137,14 @@ const league = cfgLeague
  */
 let cadastroAtual: number | null = null;
 
-/**
- * Sessão na interface web do Sponte, para gerar o link de pagamento.
+/*
+ * A sessão da interface web do Sponte **não** mora mais aqui.
  *
- * É a única etapa do fluxo sem API (ver `docs/API-SPONTE.md` §9.9). A sessão
- * é reaproveitada entre os cadastros: cada login custa dois carregamentos de
- * página, e refazer isso a cada aluno seria desperdício.
+ * Ela vive na Edge Function `sponte-checkout`, junto com a chave do ERP:
+ * esta aplicação não escreve no Sponte, e por isso não precisa — nem deve
+ * — ter credencial para isso. Ver `docs/API-SPONTE.md` §9.9 sobre por que
+ * a geração do link depende da tela.
  */
-const cfgWeb = credenciaisWebDoAmbiente({ get: (c: string) => process.env[c] });
-const sponteWeb = cfgWeb ? new SponteWeb(cfgWeb) : null;
 
 /* ------------------------------------------------------------------ *
  * Cache do catálogo do Sponte
@@ -216,165 +222,128 @@ function montarCondicao(plano: PlanoCurso | null, bolsa: Bolsa | null) {
  * segunda chamada retoma de onde parou, em vez de recriar no ERP — onde nada
  * pode ser apagado.
  */
-async function iniciarCheckout(id: number) {
-  const c = await repo.buscarCadastro(id);
-  if (!c) return { ok: false, motivo: "nao_encontrado" };
-  // Sem guarda de meio de pagamento: o aluno não escolhe mais. Toda
-  // cobrança sai em "Link de Pagamento Sponte Pay", e Pix/boleto/cartão ele
-  // decide na página do Sponte Pay.
+/**
+ * A recusa do checkout: a mesma, sempre.
+ *
+ * Idêntica exista a ficha ou não, seja o segredo inválido ou de outra
+ * ficha. Distinguir os casos entregaria um oráculo para descobrir quais
+ * ids existem — e eles são sequenciais.
+ */
+const RECUSA_CHECKOUT = { ok: false, motivo: "nao_encontrado" } as const;
 
-  // Já tem link: devolve o mesmo. Gerar outro criaria uma segunda cobrança.
-  if (c.pagamentoLink) {
-    return { ok: true, link: c.pagamentoLink, simulado: !ESCRITA_LIBERADA, jaExistia: true };
+/**
+ * Esta requisição deve ser barrada? `true` recusa.
+ *
+ * Devolve só a decisão, não a resposta: `json` é uma closure de `tratar`
+ * e não existe aqui fora.
+ *
+ * O id sozinho nunca basta. `alunos_staging.id` é sequencial: com ele
+ * valendo como credencial, um laço de `curl` sobre 1..2000 disparava a
+ * matrícula de fichas alheias no Sponte — inclusive das **rejeitadas** —,
+ * e o Sponte não tem exclusão por API. Duas chaves são aceitas:
+ *
+ *   - `token_acesso`, o segredo que o envio do formulário devolveu uma vez
+ *     àquele navegador (cabeçalho `X-Cadastro-Token` ou `?t=`);
+ *   - uma sessão de administrador, para o painel disparar à mão.
+ *
+ * A recusa é sempre a mesma, com o mesmo texto, exista a ficha ou não:
+ * distinguir "não existe" de "não é seu" entregaria um oráculo para
+ * enumerar quais ids existem.
+ */
+async function barrarCheckout(
+  req: IncomingMessage,
+  id: number,
+): Promise<boolean> {
+  if (!Number.isInteger(id) || id <= 0) return true;
+
+  const url = new URL(req.url ?? "/", BASE_URL);
+  const apresentado = (
+    (req.headers["x-cadastro-token"] as string | undefined)
+    ?? url.searchParams.get("t")
+    ?? ""
+  ).trim();
+
+  if (apresentado) {
+    const dono = await repo.cadastroDoToken(apresentado);
+    // Token válido de OUTRA ficha não vale aqui — e não ganha resposta
+    // diferente de token inválido.
+    return dono !== id;
   }
 
-  // A forma de cobrança é resolvida no catálogo real a partir do meio que o
-  // aluno escolheu; o navegador manda o rótulo, nunca um id de cobrança.
-  // A cobrança no Sponte vai SEMPRE em "Link de Pagamento Sponte Pay": é a
-  // única forma que a tela de geração enxerga. O meio que o aluno escolheu
-  // (Pix, cartão, boleto) ele confirma na página do Sponte Pay — guardamos
-  // só para a escola saber a intenção.
-  const todas = await getFormasCobranca(cred, { timeoutMs: 60_000 });
-  const forma = formaParaLink(todas);
-  if (!forma) {
+  // Sem segredo, só com sessão de admin.
+  const quem = await auth.identificar(Autenticacao.tokenDe(req.headers.authorization));
+  return !quem?.admin;
+}
+
+/**
+ * Encaminha o checkout à Edge Function, que é quem fala com o ERP.
+ *
+ * Esta aplicação **não** escreve no Sponte. Ela confere quem está pedindo
+ * (`barrarCheckout`) e repassa; a Edge Function confere de novo, com o
+ * banco à mão, e só então escreve. A dupla conferência é de propósito:
+ * se esta camada fosse comprometida, ainda assim não conseguiria
+ * matricular uma ficha que não pode ser matriculada.
+ *
+ * O segredo da ficha viaja no corpo porque é o que a função espera; a
+ * sessão de admin viaja no cabeçalho, como em qualquer outra chamada.
+ */
+async function chamarCheckout(
+  id: number,
+  quem: { autorizacao?: string; tokenFicha?: string; acao?: "promover" },
+): Promise<{ status: number; corpo: any }> {
+  if (!URL_CHECKOUT) {
     return {
-      ok: false, motivo: "sem_forma_de_link",
-      erro: "o Sponte não tem a forma \"Link de Pagamento Sponte Pay\" cadastrada",
+      status: 503,
+      corpo: {
+        ok: false, motivo: "checkout_indisponivel",
+        erro: "SUPABASE_URL não está configurado: sem ele não há como "
+          + "alcançar a função que fala com o Sponte.",
+      },
     };
   }
-  const formaCobrancaId = forma.formaCobrancaId;
 
-  const iniciouEm = Date.now();
-  const turma = (await turmasComCache()).find((t) => t.turmaId === c.turmaId);
-
-  const p = await executarMatricula(
-    cred,
-    {
-      nome: c.nome, cpf: c.cpf, dataNascimento: c.dataNascimento,
-      email: c.email, celular: c.celular, sexo: c.sexo,
-      rg: c.rg, estadoCivil: c.estadoCivil, nacionalidade: c.nacionalidade,
-      cidadeNatal: c.cidadeNatal, profissao: c.profissao, telefone: c.telefone,
-      cep: c.cep, endereco: c.endereco, numeroEndereco: c.numeroEndereco,
-      complemento: c.complemento, bairro: c.bairro, cidade: c.cidade, uf: c.uf,
-      origemVenda: c.origemVenda,
-      responsavelNome: c.responsavelNome, responsavelCpf: c.responsavelCpf,
-      responsavelEmail: c.responsavelEmail, responsavelCelular: c.responsavelCelular,
-      sponteTurmaId: c.turmaId, sponteCursoId: c.cursoId,
-      turmaDataTermino: turma?.dataTermino ?? null,
-      planoCursoId: c.planoCursoId, bolsaId: c.bolsaId,
-      valorParcela: c.valorParcela ?? 0, parcelas: c.parcelas ?? 1,
-      // O que será cobrado de fato: o total do contrato, numa cobrança só.
-      valorTotal: c.valorTotal,
-      formaCobrancaId,
-      parcelasCartao: c.parcelasCartao ?? 1,
-      observacao: `Cadastro online · link ${c.linkId}`,
+  const r = await fetch(URL_CHECKOUT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      // A chave pública identifica o projeto; quem autoriza é o que vai
+      // abaixo. Sem ela o gateway do Supabase recusa antes da função.
+      apikey: process.env.SUPABASE_PUBLISHABLE_KEY ?? "",
+      ...(quem.autorizacao ? { Authorization: quem.autorizacao } : {}),
     },
-    (c.progresso as ProgressoMatricula | null) ?? progressoVazio(),
-    { simular: !ESCRITA_LIBERADA, marcarComoTeste: MODO_TESTE, timeoutMs: 120_000 },
-  );
-
-  // Os ids do ERP são gravados mesmo em caso de erro: sem eles a retentativa
-  // recriaria aluno e contrato que já existem.
-  const campos: Record<string, unknown> = {
-    sponte_aluno_id: p.sponteAlunoId,
-    sponte_responsavel_id: p.responsavelId,
-    sponte_contrato_id: p.contratoId,
-    sponte_conta_receber_id: p.contaReceberId,
-    sponte_numero_parcela: p.numeroParcela,
-    forma_cobranca_id: formaCobrancaId || null,
-    forma_cobranca_nome: forma?.descricao ?? c.formaCobrancaNome ?? null,
-  };
-
-  // Os ids ficam registrados mesmo no erro: são eles que dizem até onde a
-  // sequência chegou no ERP, e é a única forma de saber o que já existe lá
-  // antes de tentar de novo.
-  repo.registrar({
-    tipo: "sponte",
-    operacao: "matricula",
-    cadastroId: id,
-    ok: !p.erro,
-    duracaoMs: Date.now() - iniciouEm,
-    erro: p.erro ? `${p.erroPasso ?? ""}: ${p.erro}` : null,
-    detalhe: {
-      alunoId: p.sponteAlunoId, alunoJaExistia: p.alunoJaExistia,
-      responsavelId: p.responsavelId, contratoId: p.contratoId,
-      contaReceberId: p.contaReceberId, numeroParcela: p.numeroParcela,
-      parcelas: c.parcelas, valorParcela: c.valorParcela, valorTotal: c.valorTotal,
-      formaCobrancaId, ultimoPasso: p.ultimoPasso,
-    },
+    body: JSON.stringify({
+      cadastroId: id,
+      tokenAcesso: quem.tokenFicha || undefined,
+      ...(quem.acao ? { acao: quem.acao } : {}),
+    }),
+    // A sequência no Sponte é longa e ainda abre a tela de geração de link.
+    signal: AbortSignal.timeout(280_000),
   });
 
-  if (p.erro) {
-    campos.status = "erro";
-    campos.sponte_erro = `${p.erroPasso ? ROTULO_PASSO[p.erroPasso] + ": " : ""}${p.erro}`;
-    await repo.atualizarCadastro(id, campos);
-    return { ok: false, motivo: "falha_sponte", passo: p.erroPasso, erro: campos.sponte_erro };
+  const texto = await r.text();
+  try {
+    return { status: r.status, corpo: JSON.parse(texto) };
+  } catch {
+    return {
+      status: 502,
+      corpo: { ok: false, motivo: "resposta_invalida", erro: texto.slice(0, 300) },
+    };
   }
-
-  // 8º passo, fora da API: gerar o link na tela do Sponte.
-  //
-  // Vem depois de tudo porque depende da parcela existir, e é a única etapa
-  // que pode falhar sem invalidar o resto — o aluno já está matriculado e a
-  // cobrança já existe. Falhando aqui, o cadastro segue para o alerta, que é
-  // o caminho que havia antes de existir automação.
-  let linkPagamento = p.linkPagamento;
-  if (!linkPagamento && p.contaReceberId && sponteWeb) {
-    try {
-      const estado = await verificarCobranca(
-        cred, p.sponteAlunoId!, p.contaReceberId, p.numeroParcela ?? "1",
-        { timeoutMs: 90_000 },
-      );
-      linkPagamento = estado.linkPagamento;
-
-      if (!linkPagamento && estado.vencimento) {
-        const t0 = Date.now();
-        const g = await gerarLinkPagamento(sponteWeb, {
-          contaReceberId: p.contaReceberId,
-          numeroParcela: p.numeroParcela ?? "1",
-          vencimento: estado.vencimento,
-        });
-
-        // Um link é uma cobrança: fica registrado quem nasceu, quando e com
-        // que número, mesmo quando o Sponte recusa.
-        repo.registrar({
-          tipo: "link", operacao: "gerarLinkPagamento", cadastroId: id,
-          ok: g.ok, duracaoMs: Date.now() - t0, erro: g.ok ? null : g.motivo,
-          detalhe: {
-            contaReceberId: p.contaReceberId, parcela: p.numeroParcela ?? "1",
-            vencimento: estado.vencimento,
-            numeroLink: g.numeroLink, jaExistia: g.jaExistia,
-          },
-        });
-
-        if (g.ok) linkPagamento = g.url;
-        else console.error(`  ✖ geração do link (cadastro ${id}): ${g.motivo}`);
-      }
-    } catch (e) {
-      // Registra e segue: o alerta avisa o time, e a matrícula não se perde
-      // por causa de uma tela que mudou de lugar.
-      console.error(`  ✖ geração do link (cadastro ${id}): ${(e as Error).message}`);
-    }
-  }
-
-  campos.sponte_erro = null;
-  campos.status = "enviado";
-  campos.sponte_enviado_em = new Date().toISOString();
-  campos.pagamento_link = linkPagamento;
-  // Sem link ainda é sucesso: o aluno está matriculado e a cobrança existe.
-  // O que falta é a fatura, que só a régua do Sponte (ou alguém na tela) gera.
-  campos.pagamento_status = linkPagamento ? "link_gerado" : "aguardando";
-  if (linkPagamento) campos.pagamento_link_gerado_em = new Date().toISOString();
-
-  await repo.atualizarCadastro(id, campos);
-
-  return {
-    ok: true,
-    link: linkPagamento,
-    aguardandoFatura: !linkPagamento,
-    simulado: !ESCRITA_LIBERADA,
-    jaExistia: false,
-  };
 }
+
+/**
+ * Situações em que a ficha pode virar matrícula no Sponte.
+ *
+ * `pendente` é o estado logo após o envio do formulário — é o caso normal.
+ * `aprovado` é a conferência manual. Fora disso não se grava no ERP:
+ * `rejeitado` foi recusado por alguém, `rascunho` nem foi enviado, e
+ * `enviado`/`erro` já passaram por aqui.
+ *
+ * A guarda é no servidor, e não só na tela, porque o checkout é a única
+ * escrita irreversível do sistema: o Sponte não apaga por API.
+ */
+const STATUS_PODE_MATRICULAR = new Set(["pendente", "aprovado"]);
+
 
 /**
  * Verifica se a parcela foi paga e promove a matrícula.
@@ -382,7 +351,9 @@ async function iniciarCheckout(id: number) {
  * Polling porque o WSDL não expõe webhook — está na lista de perguntas para a
  * Sponte. É o que faz o aluno esperar entre pagar e entrar na turma.
  */
-async function conferirPagamento(id: number) {
+async function conferirPagamento(
+  id: number, quem: { autorizacao?: string; tokenFicha?: string } = {},
+) {
   const c = await repo.buscarCadastro(id);
   if (!c) return { ok: false, motivo: "nao_encontrado" };
   if (c.pagamentoStatus === "pago") {
@@ -426,11 +397,18 @@ async function conferirPagamento(id: number) {
     pagamento_confirmado_em: new Date().toISOString(),
   };
 
-  // Pago: promove a pré-matrícula para Cursando. Se a promoção falhar, o
-  // pagamento continua registrado — perder isso seria pior que o erro.
+  // Pago: promove a pré-matrícula para Cursando. É escrita no ERP, então
+  // vai pela mesma porta — esta aplicação não tem a chave do Sponte.
+  //
+  // Se a promoção falhar, o pagamento continua registrado: perder a
+  // confirmação por causa disso seria pior que o erro.
   if (p.contratoId) {
     try {
-      await promoverMatricula(cred, p.contratoId, { simular: !ESCRITA_LIBERADA });
+      const r = await chamarCheckout(id, { ...quem, acao: "promover" });
+      if (r.corpo?.ok === false && r.corpo?.erro) {
+        campos.sponte_erro =
+          `Pagamento confirmado, mas a matrícula não foi ativada: ${r.corpo.erro}`;
+      }
     } catch (e) {
       campos.sponte_erro =
         `Pagamento confirmado, mas a matrícula não foi ativada: ${(e as Error).message}`;
@@ -668,7 +646,9 @@ async function ativacao(id: number, acao: "ativar" | "desativar", motivo?: strin
  * na ficha — desfazer no Sponte não é possível por API, e fingir que o
  * cadastro não aconteceu seria pior que mostrar o que falta.
  */
-async function cadastrarManual(c: Record<string, any>, ip: string | null) {
+async function cadastrarManual(
+  c: Record<string, any>, ip: string | null, autorizacao?: string,
+) {
   const nome = String(c.nome ?? "").trim();
   const cpf = String(c.cpf ?? "").replace(/\D/g, "");
   const turmaId = Number(c.turmaId);
@@ -720,7 +700,8 @@ async function cadastrarManual(c: Record<string, any>, ip: string | null) {
   });
 
   // Daqui em diante é o mesmo caminho do cadastro público.
-  const checkout = await iniciarCheckout(ficha.id);
+  // Mesma porta do formulário: a escrita no ERP tem um caminho só.
+  const checkout = (await chamarCheckout(ficha.id, { autorizacao })).corpo;
   const ativacao_ = checkout.ok ? await ativacao(ficha.id, "ativar") : null;
 
   return {
@@ -1436,14 +1417,37 @@ export async function tratar(
         token, rascunhoId ? Number(rascunhoId) : null, dados, ip));
     }
 
-    /* --- Checkout: executa a sequência no Sponte e devolve o link --- */
+    /* --- Checkout: executa a sequência no Sponte e devolve o link --- *
+     *
+     * Público por necessidade: o aluno chama esta rota logo depois de
+     * enviar o formulário, e ele não tem sessão. Mas o id **não autoriza**
+     * — é sequencial, e o vizinho está a um número de distância. Quem
+     * autoriza é o segredo que o envio devolveu, ou uma sessão de admin.
+     */
     if (rota.startsWith("/api/checkout/") && req.method === "POST") {
-      return json(await iniciarCheckout(Number(rota.split("/")[3])));
+      const id = Number(rota.split("/")[3]);
+      if (await barrarCheckout(req, id)) return json(RECUSA_CHECKOUT, 404);
+
+      // A escrita no ERP não acontece aqui. Esta aplicação encaminha para
+      // a Edge Function `sponte-checkout`, que é a única que tem a chave
+      // do Sponte — e que refaz a autorização por conta própria.
+      const r = await chamarCheckout(id, {
+        autorizacao: req.headers.authorization as string | undefined,
+        tokenFicha: ((req.headers["x-cadastro-token"] as string | undefined)
+          ?? url.searchParams.get("t") ?? "").trim(),
+      });
+      return json(r.corpo, r.status);
     }
 
     /* --- Checkout: o aluno já pagou? --- */
     if (rota.startsWith("/api/checkout/") && req.method === "GET") {
-      return json(await conferirPagamento(Number(rota.split("/")[3])));
+      const id = Number(rota.split("/")[3]);
+      if (await barrarCheckout(req, id)) return json(RECUSA_CHECKOUT, 404);
+      return json(await conferirPagamento(id, {
+        autorizacao: req.headers.authorization as string | undefined,
+        tokenFicha: ((req.headers["x-cadastro-token"] as string | undefined)
+          ?? url.searchParams.get("t") ?? "").trim(),
+      }));
     }
 
     /* --- Vigia da cobrança: a régua gerou a fatura? --- */
@@ -1464,7 +1468,8 @@ export async function tratar(
     if (rota === "/api/cadastros/manual" && req.method === "POST") {
       const c = await lerCorpo(req);
       const ip = ipDoPedido(req);
-      return json(await cadastrarManual(c, ip));
+      return json(await cadastrarManual(
+        c, ip, req.headers.authorization as string | undefined));
     }
 
     /* --- Busca para vincular à mão --- */
@@ -1507,7 +1512,13 @@ export async function tratar(
       if (acao === "aprovar")  return json(await repo.mudarStatus(id, "aprovado", corpo.observacao));
       if (acao === "rejeitar") return json(await repo.mudarStatus(id, "rejeitado", corpo.observacao));
       if (acao === "reabrir")  return json(await repo.mudarStatus(id, "pendente", corpo.observacao));
-      if (acao === "enviar")   return json(await iniciarCheckout(id));
+      if (acao === "enviar") {
+        // Pela mesma porta do formulário: a escrita no ERP tem um caminho só.
+        const r = await chamarCheckout(id, {
+          autorizacao: req.headers.authorization as string | undefined,
+        });
+        return json(r.corpo, r.status);
+      }
 
       if (acao === "vincular" || acao === "desvincular") {
         const plataforma = corpo.plataforma as Plataforma;

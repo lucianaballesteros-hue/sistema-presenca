@@ -521,7 +521,7 @@ export function cancelarLinkPagamento(
  * o que encontrou, para o próximo passo ser escrito em cima do que existe e
  * não de suposição.
  *
- *     node --env-file=.env scripts/sponte-web.ts
+ *     node --env-file=.env supabase/functions/_shared/sponte-web.ts
  * ------------------------------------------------------------------ */
 
 if (import.meta.filename === process.argv[1]) {
