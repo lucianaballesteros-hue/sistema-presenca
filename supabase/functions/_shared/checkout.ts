@@ -195,6 +195,7 @@ export async function executarCheckout(
     sponte_contrato_id: p.contratoId,
     sponte_conta_receber_id: p.contaReceberId,
     sponte_numero_parcela: p.numeroParcela,
+    sponte_responsavel_reusado: !!p.responsavelReusado,
     forma_cobranca_id: formaCobrancaId || null,
     forma_cobranca_nome: forma?.descricao ?? c.formaCobrancaNome ?? null,
   };

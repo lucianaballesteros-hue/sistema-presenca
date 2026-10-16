@@ -884,6 +884,10 @@ function paraCadastro(c: any) {
     } : null,
 
     sponteAlunoId: c.sponte_aluno_id,
+    // O responsável já existia no ERP e foi reusado. A API não liga
+    // responsável existente a aluno novo — o vínculo é feito na tela do
+    // Sponte, e a ficha precisa dizer isso a quem confere.
+    responsavelReusado: !!c.sponte_responsavel_reusado,
     presencaAlunoId: c.presenca_aluno_id,
     leagueUserId: c.league_user_id,
 
