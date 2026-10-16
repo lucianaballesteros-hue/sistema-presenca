@@ -1,0 +1,30 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+
+  "//": [
+    "Só o comando de build mora aqui. Rotas, cabeçalhos, cron e o contrato",
+    "da função são escritos por `scripts/montar-vercel.mjs` em",
+    "`.vercel/output/config.json` (Build Output API) — com ela, as chaves",
+    "`routes`, `headers`, `rewrites` e `functions` deste arquivo seriam",
+    "ignoradas, e configuração que ninguém aplica é pior que nenhuma.",
+    "",
+    "⚠️ `buildCommand` é obrigatório aqui, não opcional. O log do deploy",
+    "mostrava `no build` logo depois do install: a plataforma não estava",
+    "rodando etapa de build nenhuma, mesmo com o script `build` no",
+    "package.json. Sem ele, `.vercel/output` nunca é gerado, a Vercel volta",
+    "ao modo automático e a função publicada tenta importar os `.ts` que",
+    "ela mesma compilou para `.js` — que foi a causa dos 500 em toda rota.",
+    "",
+    "Declarado aqui, e não só no painel, para o repositório ser a fonte: a",
+    "configuração do painel não aparece em revisão de código."
+  ],
+
+  "//outputDirectory": [
+    "Ausente de propósito. Com a Build Output API a detecção é automática:",
+    "existindo `.vercel/output` depois do build, é ele que vai ao ar.",
+    "Declarar `outputDirectory` faria a Vercel tratar essa pasta como",
+    "diretório de arquivos estáticos — e aí a função não subiria."
+  ],
+
+  "buildCommand": "node scripts/montar-vercel.mjs"
+}
