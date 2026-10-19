@@ -1,0 +1,119 @@
+/* ============================================================
+   TELA DE ACESSO — entrar, pedir o link de senha e definir a
+   senha nova. Cartão branco sobre o cinza-claro da janela, como
+   nas telas de conta da Apple; formulário em coluna única.
+   (O JS alterna estas três telas por style.display.)
+   ============================================================ */
+
+#login-page,
+#recover-request-page,
+#recovery-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--e-8) var(--e-4);
+  background: var(--janela);
+}
+
+.login-card {
+  position: relative;
+  display: grid;
+  gap: var(--e-4);
+  width: min(100%, 24.5rem);
+  padding: 36px 32px 28px;
+  border: 1px solid var(--contorno);
+  border-radius: 28px;
+  background: var(--superficie);
+  box-shadow: var(--sombra-painel);
+}
+
+@media (max-width: 479px) {
+  .login-card {
+    padding: 28px 20px 20px;
+    border-radius: 24px;
+  }
+}
+
+/* Botão de tema no canto do cartão */
+.login-card__tema {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.logo-box {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin-bottom: var(--e-1);
+  text-align: center;
+}
+
+/* Logo da Financial (troca claro/escuro) */
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--e-4);
+}
+
+.login-logo img {
+  width: 120px;
+  height: auto;
+  max-width: 100%;
+}
+
+.login-logo .logo-dark,
+[data-theme="dark"] .login-logo .logo-light {
+  display: none;
+}
+
+[data-theme="dark"] .login-logo .logo-dark {
+  display: block;
+}
+
+.logo-box h1 {
+  font: var(--t-titulo-2);
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+
+.logo-box p {
+  color: var(--rotulo-2);
+  text-wrap: balance;
+}
+
+/* Os campos ficam um pouco mais altos aqui, como na Gestão de Reuniões */
+.login-card .field {
+  margin-bottom: 0;
+}
+
+.login-card .field input {
+  height: 44px;
+}
+
+.login-card .btn-primary {
+  margin-top: var(--e-1);
+}
+
+/* Mensagem de erro do login: escondida até o JS mostrar */
+.err {
+  display: none;
+  margin-top: var(--e-2);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--perigo-suave);
+  color: var(--perigo);
+  font: var(--t-chamada);
+}
+
+.login-card .field-error {
+  margin: 0;
+}
+
+/* Ação secundária só de texto, centralizada ("Esqueci minha senha") */
+.login-card__links {
+  display: flex;
+  justify-content: center;
+  margin-top: calc(-1 * var(--e-1));
+}

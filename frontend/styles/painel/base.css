@@ -1,0 +1,272 @@
+/* ============================================================
+   BASE — reset, texto, ícones, foco e utilitários usados em
+   todas as telas.
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* "clip" (e não "hidden") barra a rolagem horizontal sem virar um
+   contêiner de rolagem — o cabeçalho e a barra lateral fixos (sticky)
+   continuam funcionando. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+body {
+  min-height: 100dvh;
+  font: var(--t-corpo);
+  color: var(--rotulo);
+  background: var(--janela);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--medio) ease, color var(--medio) ease;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg {
+  display: block;
+}
+
+ul {
+  list-style: none;
+}
+
+::selection {
+  background: var(--anel-foco-suave);
+}
+
+/* Barra de rolagem fina e discreta */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--preenchimento-2) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--preenchimento-2);
+  border: 2px solid transparent;
+  border-radius: 99px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--rotulo-3);
+}
+
+/* ---------- Utilitários ---------- */
+
+/* !important: o JS esconde e mostra coisas por esta classe (o #app, o
+   botão de Configurações, o link do Cadastro online) e ela precisa
+   vencer qualquer display de componente. */
+.hidden,
+[hidden] {
+  display: none !important;
+}
+
+.vh {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.flex-row {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+}
+
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+  margin-bottom: var(--e-4);
+}
+
+.text-caption {
+  font: var(--t-chamada);
+  color: var(--rotulo-2);
+}
+
+.hint-text {
+  font: var(--t-nota);
+  font-weight: 400;
+  color: var(--rotulo-3);
+}
+
+.muted {
+  color: var(--rotulo-3);
+}
+
+/* Contagem embaixo das tabelas ("26 alunos · Clique para ver detalhes") */
+.contagem {
+  margin-top: var(--e-2);
+  font: var(--t-nota);
+  font-weight: 400;
+  color: var(--rotulo-2);
+}
+
+/* Sprite de ícones: os símbolos existem, o SVG em si não ocupa espaço */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Ícones no estilo SF Symbols, traço único de 1,7 px */
+.icone {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Ícones gerados pelo JS (máscara) ----------
+   O JS escreve <span class="icon-mask icon-editar"> nos cartões e
+   tabelas. A máscara usa SVGs no mesmo traço dos ícones da barra, e
+   pinta com a cor do texto (currentColor) — acompanha o tema. */
+.icon-mask {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  vertical-align: middle;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.icon-editar {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12.6 3.6 3.8 3.8-8.7 8.7H3.9v-3.8z'/%3E%3Cpath d='m10.4 5.8 3.8 3.8'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12.6 3.6 3.8 3.8-8.7 8.7H3.9v-3.8z'/%3E%3Cpath d='m10.4 5.8 3.8 3.8'/%3E%3C/svg%3E");
+}
+
+.icon-relogio {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10' cy='10' r='7.25'/%3E%3Cpath d='M10 5.75V10l2.75 1.75'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10' cy='10' r='7.25'/%3E%3Cpath d='M10 5.75V10l2.75 1.75'/%3E%3C/svg%3E");
+}
+
+.icon-seta-direita {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7.75 4.25 5.75 5.75-5.75 5.75'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7.75 4.25 5.75 5.75-5.75 5.75'/%3E%3C/svg%3E");
+}
+
+/* Engrenagem: os dentes são o traçado tracejado de um círculo */
+.icon-config {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000'%3E%3Ccircle cx='10' cy='10' r='7.1' stroke-width='2.6' stroke-dasharray='2.79 2.79'/%3E%3Ccircle cx='10' cy='10' r='5.6' stroke-width='1.7'/%3E%3Ccircle cx='10' cy='10' r='2.2' stroke-width='1.7'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000'%3E%3Ccircle cx='10' cy='10' r='7.1' stroke-width='2.6' stroke-dasharray='2.79 2.79'/%3E%3Ccircle cx='10' cy='10' r='5.6' stroke-width='1.7'/%3E%3Ccircle cx='10' cy='10' r='2.2' stroke-width='1.7'/%3E%3C/svg%3E");
+}
+
+.icon-pausa {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M7.25 5v10M12.75 5v10'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M7.25 5v10M12.75 5v10'/%3E%3C/svg%3E");
+}
+
+.icon-ativar {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M6.75 4.9v10.2L15.25 10z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M6.75 4.9v10.2L15.25 10z'/%3E%3C/svg%3E");
+}
+
+/* Foco por teclado sempre visível, no acento */
+:focus-visible {
+  outline: 2px solid var(--anel-foco);
+  outline-offset: 2px;
+}
+
+/* ---------- Resposta ao toque ----------
+   Transição suave e uma leve escala ao pressionar, em qualquer
+   botão do sistema (aplicado uma vez, não por componente). */
+button:not(:disabled),
+.multi-check,
+.dot-menu-item,
+.cor-swatch,
+.dia-check,
+.obs-cat-btn,
+tr.clickable td,
+.aula-chip,
+.horario-tag,
+.turma-picker-opt {
+  transition: transform var(--rapido) ease, background-color var(--rapido) ease,
+    color var(--rapido) ease, border-color var(--rapido) ease,
+    box-shadow var(--rapido) ease, opacity var(--rapido) ease, filter var(--rapido) ease;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* ---------- Movimento reduzido ---------- */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
