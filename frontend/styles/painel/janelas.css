@@ -1,0 +1,531 @@
+/* ============================================================
+   JANELAS — modais (o JS abre e fecha com a classe .open), o
+   modal de confirmação, os menus flutuantes (.dot-menu: ações do
+   aluno, engrenagem de Configurações, edição rápida do Relatório)
+   e as caixas de informação, aviso e perigo.
+
+   Uma tarefa por vez, com saída óbvia (HIG › Modality): o fundo
+   escurece de leve e a janela surge no centro. No celular ela
+   vira uma folha que sobe do pé da tela, com os botões presos no
+   rodapé, sempre à vista.
+   ============================================================ */
+
+.modal-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: var(--e-4);
+  background: var(--fundo-janela-modal);
+}
+
+.modal-bg.open {
+  display: flex;
+  animation: escurecer 200ms ease;
+}
+
+@keyframes escurecer {
+  from {
+    background: transparent;
+  }
+}
+
+.modal {
+  width: min(30rem, 100%);
+  max-height: calc(100dvh - 32px);
+  padding: 26px 28px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--contorno);
+  border-radius: 22px;
+  background: var(--superficie);
+  box-shadow: var(--sombra-menu);
+  color: var(--rotulo);
+}
+
+.modal-bg.open .modal {
+  animation: surgir-janela 240ms var(--mola);
+}
+
+@keyframes surgir-janela {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+.modal--estreito {
+  width: min(26rem, 100%);
+}
+
+.modal--largo {
+  width: min(40rem, 100%);
+}
+
+.modal--extra-largo {
+  width: min(48rem, 100%);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-3);
+  margin-bottom: var(--e-5);
+}
+
+.modal-title {
+  min-width: 0;
+  font: var(--t-titulo-2);
+  letter-spacing: -0.012em;
+  overflow-wrap: anywhere;
+}
+
+.modal-header__acoes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--e-3);
+  margin-top: var(--e-6);
+}
+
+.modal-footer .btn-save,
+.modal-footer .btn-sec,
+.modal-footer .btn-danger-solid,
+.modal-footer .btn-warning {
+  min-height: 40px;
+  padding: 0 var(--e-5);
+}
+
+/* Ação à parte, no canto esquerdo do rodapé ("Enviar reset de senha",
+   "Limpar horário") */
+.modal-footer__inicio {
+  margin-right: auto;
+}
+
+/* Bloco de contexto no topo do modal (aluno da reposição, transferência) */
+.caixa-destaque {
+  display: grid;
+  gap: 2px;
+  margin-bottom: var(--e-5);
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--janela);
+}
+
+.caixa-destaque__titulo {
+  font-weight: 600;
+}
+
+/* ---------- Ficha do aluno ---------- */
+.modal-aluno__status {
+  margin: calc(-1 * var(--e-3)) 0 var(--e-4);
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-2);
+  margin-bottom: var(--e-5);
+}
+
+.info-item {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--janela);
+}
+
+.info-label {
+  font: var(--t-nota);
+  color: var(--rotulo-2);
+}
+
+.info-val {
+  margin-top: 2px;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.secao-modal__titulo {
+  margin-bottom: var(--e-2);
+  font: var(--t-titulo-secao);
+}
+
+.modal-aluno__hist {
+  margin-top: var(--e-5);
+}
+
+.modal-aluno__hist:empty {
+  display: none;
+}
+
+/* "Histórico de movimentações" vem pronto do JS, com estilo inline */
+.modal-aluno__hist > div:first-child {
+  font: var(--t-titulo-secao) !important;
+  color: var(--rotulo) !important;
+}
+
+.hist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-3);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--separador-leve);
+  font: var(--t-chamada);
+}
+
+.hist-item:last-child {
+  border-bottom: none;
+}
+
+/* Quadradinhos de aula (histórico do aluno e chamada) */
+.aulas-grid {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.aula-chip {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.aula-chip:hover {
+  filter: brightness(0.96);
+}
+
+/* Observações */
+.obs {
+  margin-top: var(--e-5);
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--separador);
+}
+
+.obs__lista {
+  max-height: 160px;
+  margin-bottom: var(--e-3);
+  overflow-y: auto;
+}
+
+.obs__nova {
+  display: flex;
+  gap: var(--e-2);
+}
+
+.obs__nova #obs-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.obs__nova .btn-save {
+  min-height: var(--altura-campo);
+}
+
+.obs__categorias {
+  margin-top: var(--e-3);
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--janela);
+}
+
+.obs__categorias-titulo {
+  margin-bottom: var(--e-2);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.obs__previa {
+  margin-bottom: var(--e-3);
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--superficie);
+  color: var(--rotulo-2);
+  font: var(--t-chamada);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.obs__grade {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: var(--e-3);
+}
+
+.obs__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--e-2);
+}
+
+/* ---------- Caixas de informação / aviso / perigo ----------
+   Mesmo desenho para as quatro: ícone + texto sobre um tom suave. */
+.info-box,
+.hint-box,
+.danger-box,
+.horario-modal-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: var(--e-5);
+  padding: 12px 14px;
+  border-radius: 14px;
+  font: var(--t-chamada);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.info-box::before,
+.hint-box::before,
+.danger-box::before,
+.horario-modal-info::before {
+  content: "";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.info-box,
+.horario-modal-info {
+  background: var(--acento-suave);
+  color: var(--rotulo);
+}
+
+.info-box::before,
+.horario-modal-info::before {
+  background-color: var(--acento);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='7.75'/%3E%3Cpath d='M10 9v4.6'/%3E%3Ccircle cx='10' cy='6.4' r='.45' fill='%23000'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='7.75'/%3E%3Cpath d='M10 9v4.6'/%3E%3Ccircle cx='10' cy='6.4' r='.45' fill='%23000'/%3E%3C/svg%3E");
+}
+
+.hint-box {
+  background: var(--aviso-suave);
+  color: var(--rotulo);
+}
+
+.hint-box::before {
+  background-color: var(--aviso);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8.6 3.6 2.4 14.3a1.6 1.6 0 0 0 1.4 2.4h12.4a1.6 1.6 0 0 0 1.4-2.4L11.4 3.6a1.6 1.6 0 0 0-2.8 0Z'/%3E%3Cpath d='M10 8v3.6'/%3E%3Ccircle cx='10' cy='14' r='.45' fill='%23000'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8.6 3.6 2.4 14.3a1.6 1.6 0 0 0 1.4 2.4h12.4a1.6 1.6 0 0 0 1.4-2.4L11.4 3.6a1.6 1.6 0 0 0-2.8 0Z'/%3E%3Cpath d='M10 8v3.6'/%3E%3Ccircle cx='10' cy='14' r='.45' fill='%23000'/%3E%3C/svg%3E");
+}
+
+.info-box code,
+.hint-box code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--superficie);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.danger-box {
+  background: var(--perigo-suave);
+  color: var(--perigo-texto);
+}
+
+.danger-box::before {
+  background-color: var(--perigo);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 2.75h6L17.25 7v6L13 17.25H7L2.75 13V7Z'/%3E%3Cpath d='M10 6.5v4'/%3E%3Ccircle cx='10' cy='13.4' r='.45' fill='%23000'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 2.75h6L17.25 7v6L13 17.25H7L2.75 13V7Z'/%3E%3Cpath d='M10 6.5v4'/%3E%3Ccircle cx='10' cy='13.4' r='.45' fill='%23000'/%3E%3C/svg%3E");
+}
+
+/* ---------- Modal de confirmação (substitui o confirm() nativo) ---------- */
+.confirm-modal {
+  width: min(25rem, 100%);
+  padding: 26px 26px 22px;
+}
+
+.confirm-title {
+  margin-bottom: var(--e-2);
+  font: 700 1.0625rem/1.375rem var(--fonte-titulo);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.confirm-msg {
+  color: var(--rotulo-2);
+  text-wrap: pretty;
+}
+
+.confirm-modal .modal-footer {
+  margin-top: var(--e-5);
+}
+
+/* ---------- Menus flutuantes ---------- */
+.dot-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 140px;
+  padding: 6px;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 14px;
+  background: var(--vidro-menu);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--vidro-brilho), var(--sombra-menu);
+  color: var(--rotulo);
+  animation: abrir-menu 140ms ease-out;
+}
+
+.dot-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.dot-menu-item:hover,
+.dot-menu-item.dot-menu-active {
+  background: var(--preenchimento-2);
+}
+
+.dot-menu-p {
+  color: var(--sucesso-texto);
+}
+
+.dot-menu-r {
+  color: var(--aviso-texto);
+}
+
+.dot-menu-f {
+  color: var(--perigo-texto);
+}
+
+.dot-menu-n {
+  color: var(--rotulo-2);
+}
+
+/* ---------- Celular: a janela vira folha ---------- */
+@media (max-width: 599px) {
+  .modal-bg {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal,
+  .modal--estreito,
+  .modal--largo,
+  .modal--extra-largo {
+    width: 100%;
+    max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
+    padding: 22px var(--margem) 0;
+    border-width: 1px 0 0;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .modal-bg.open .modal {
+    animation: subir-folha 420ms var(--mola);
+  }
+
+  .modal-title {
+    font-size: 1.1875rem;
+    line-height: 1.5rem;
+  }
+
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin: var(--e-5) calc(-1 * var(--margem)) 0;
+    padding: 12px var(--margem) calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--separador);
+    background: var(--superficie);
+  }
+
+  .modal-footer > button {
+    flex: 1 1 0;
+    min-height: 46px !important;
+  }
+
+  .modal-footer__inicio {
+    flex-basis: 100% !important;
+    margin-right: 0;
+  }
+
+  /* Confirmação continua centralizada, como um alerta do iOS */
+  .confirm-bg {
+    align-items: center;
+    padding: var(--e-4);
+  }
+
+  .confirm-modal {
+    padding: 22px 20px 0;
+    border-width: 1px;
+    border-radius: 20px;
+  }
+
+  .confirm-bg.open .modal {
+    animation: surgir-janela 240ms var(--mola);
+  }
+
+  .confirm-modal .modal-footer {
+    margin-inline: -20px;
+    padding-inline: 20px;
+    border-radius: 0 0 20px 20px;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .obs__grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .aula-chip {
+    min-width: 36px;
+    height: 36px;
+    font-size: 0.8125rem;
+  }
+
+  .dot-menu-item {
+    min-height: 42px;
+  }
+}
+
+@keyframes subir-folha {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (forced-colors: active) {
+
+  .modal,
+  .dot-menu {
+    border: 1px solid CanvasText;
+  }
+}

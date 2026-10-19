@@ -1,0 +1,133 @@
+/* ============================================================
+   TABELAS — lista em cartão branco, cabeçalho discreto e linhas
+   separadas por uma linha fina (como as listas do macOS). No
+   celular a tabela rola de lado dentro do cartão.
+   ============================================================ */
+
+.table-wrap,
+.metr-table-wrap {
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--contorno);
+  border-radius: var(--raio-painel);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.table-wrap {
+  margin-bottom: var(--e-2);
+}
+
+table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  font: var(--t-chamada);
+}
+
+.metr-table {
+  min-width: 0;
+}
+
+th {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--separador);
+  background: var(--superficie);
+  color: var(--rotulo-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--separador-leve);
+  color: var(--rotulo);
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* Linhas em destaque (aluno em alerta / experimental) */
+tr.row-alerta td {
+  background: color-mix(in srgb, var(--perigo) 6%, var(--superficie));
+}
+
+tr.row-experimental td {
+  background: color-mix(in srgb, var(--amarelo) 12%, var(--superficie));
+}
+
+tr.row-inativo {
+  opacity: 0.5;
+}
+
+tr.clickable {
+  cursor: pointer;
+}
+
+tr.clickable:hover td {
+  background: color-mix(in srgb, var(--rotulo) 4%, var(--superficie));
+}
+
+tr.row-alerta.clickable:hover td {
+  background: color-mix(in srgb, var(--perigo) 10%, var(--superficie));
+}
+
+tr.row-experimental.clickable:hover td {
+  background: color-mix(in srgb, var(--amarelo) 18%, var(--superficie));
+}
+
+/* Estado vazio dentro de uma tabela */
+td.empty {
+  padding: var(--e-8) var(--e-4);
+}
+
+/* ---------- Barra de frequência ---------- */
+.freq-wrap,
+.metr-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+.fbar,
+.metr-bar {
+  flex: none;
+  width: 56px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--preenchimento-2);
+}
+
+.metr-bar {
+  width: 60px;
+}
+
+.fbar-fill,
+.metr-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+}
+
+.metr-bar-wrap {
+  justify-content: center;
+}
+
+/* Planilha importada: os campos do JS ficam do tamanho da linha */
+#imp-tbody input,
+#imp-tbody select {
+  min-height: 34px;
+  border-radius: 9px !important;
+}
+
+@media (max-width: 599px) {
+  th,
+  td {
+    padding-inline: 12px;
+  }
+}
