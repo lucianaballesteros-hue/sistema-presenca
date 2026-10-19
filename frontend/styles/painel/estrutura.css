@@ -1,0 +1,546 @@
+/* ============================================================
+   ESTRUTURA DO APLICATIVO — barra lateral + área principal,
+   como na Gestão de Reuniões. A barra lateral flutua em vidro
+   sobre a janela; o cabeçalho fica preso no topo e ganha o
+   "efeito de borda de rolagem" quando o conteúdo passa por baixo.
+
+   Quem mostra/oculta a barra e liga o efeito de rolagem é
+   frontend/shared/shell.js (só apresentação).
+   ============================================================ */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--largura-barra) minmax(0, 1fr);
+  align-items: start;
+  min-height: 100dvh;
+  transition: grid-template-columns var(--medio) var(--mola);
+}
+
+/* ---------- Barra lateral ---------- */
+
+.barra-lateral {
+  position: sticky;
+  top: 10px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--largura-barra) - 10px);
+  height: calc(100dvh - 20px);
+  min-width: 0;
+  margin: 10px 0 10px 10px;
+  padding: var(--e-4) var(--e-3);
+  overflow: hidden auto;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: var(--raio-painel);
+  background: var(--vidro-forte);
+  box-shadow: var(--vidro-brilho), var(--sombra-painel);
+  transition: transform var(--medio) var(--mola), visibility 0s;
+}
+
+/* Logo (clicar recarrega o sistema, como antes) */
+.barra-lateral__marca {
+  display: flex;
+  align-items: center;
+  flex: none;
+  height: var(--altura-controle);
+  margin-bottom: var(--e-5);
+  padding: 0 var(--e-2);
+  cursor: pointer;
+}
+
+.barra-lateral__marca img {
+  width: auto;
+  height: 26px;
+}
+
+.barra-lateral__marca .logo-dark,
+[data-theme="dark"] .barra-lateral__marca .logo-light {
+  display: none;
+}
+
+[data-theme="dark"] .barra-lateral__marca .logo-dark {
+  display: block;
+}
+
+/* Menu de seções. A ordem dos .nav-btn importa para o JS (goTab marca
+   o ativo pela posição), por isso eles ficam todos em sequência aqui. */
+.nav {
+  display: grid;
+  gap: 2px;
+}
+
+/* A pílula deslizante da barra antiga não existe no menu vertical:
+   o item atual ganha o realce próprio, como no Finder. */
+.nav-indicator {
+  display: none;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: var(--rotulo);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.nav-btn .icone {
+  color: var(--rotulo-2);
+}
+
+.nav-btn:hover {
+  background: var(--preenchimento);
+}
+
+/* Item atual: realce cinza com ícone no azul */
+.nav-btn.active {
+  background: var(--preenchimento-2);
+  font-weight: 600;
+}
+
+.nav-btn.active .icone {
+  color: var(--acento);
+}
+
+.nav-btn:active {
+  transform: none;
+}
+
+/* Cadastro online: páginas à parte (link de verdade, não aba). Fica
+   separado do resto por uma linha fina e leva o indicador ↗. */
+a.nav-btn {
+  position: relative;
+  margin-top: 13px;
+}
+
+a.nav-btn::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 10px;
+  left: 10px;
+  height: 1px;
+  background: var(--separador);
+}
+
+.nav-btn__externo {
+  width: 15px;
+  height: 15px;
+  margin-left: auto;
+  color: var(--rotulo-3) !important;
+}
+
+/* Barra oculta pelo botão (janela larga): a coluna encolhe e a barra
+   sai pela esquerda; some de vez (visibility) só no fim do deslize. */
+.app[data-barra-oculta] {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
+.app[data-barra-oculta] .barra-lateral {
+  visibility: hidden;
+  transform: translateX(calc(-100% - 10px));
+  transition: transform var(--medio) var(--mola), visibility 0s var(--medio);
+}
+
+/* Véu atrás da barra em janelas estreitas */
+.veu {
+  display: none;
+}
+
+/* Janela estreita: a barra vira um painel sobreposto que desliza da
+   esquerda (HIG › Sidebars). */
+@media (max-width: 899px) {
+
+  .app,
+  .app[data-barra-oculta] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .barra-lateral,
+  .app[data-barra-oculta] .barra-lateral {
+    position: fixed;
+    top: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: min(18rem, calc(100vw - 56px));
+    height: auto;
+    margin: 0;
+    -webkit-backdrop-filter: var(--vidro-desfoque);
+    backdrop-filter: var(--vidro-desfoque);
+    visibility: hidden;
+    transform: translateX(calc(-100% - 20px));
+    transition: transform var(--medio) var(--mola), visibility 0s var(--medio);
+  }
+
+  .app[data-barra-aberta] .barra-lateral {
+    visibility: visible;
+    transform: none;
+    transition: transform var(--medio) var(--mola), visibility 0s;
+  }
+
+  .veu {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: rgb(0 0 0 / 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--medio) ease;
+  }
+
+  .app[data-barra-aberta] .veu {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .nav-btn {
+    min-height: 44px;
+  }
+}
+
+/* ---------- Área principal ---------- */
+
+.principal {
+  min-width: 0;
+}
+
+.cabecalho {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  isolation: isolate;
+  padding: var(--e-4) var(--margem) var(--e-5);
+}
+
+/* Efeito de borda de rolagem: só aparece quando há conteúdo passando
+   por baixo; desfoca e esmaece em vez de pintar uma faixa sólida. */
+.cabecalho::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -28px;
+  z-index: -1;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--janela) 90%, transparent) 70%, transparent);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--rapido) ease;
+}
+
+.cabecalho.rolado::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .cabecalho::before {
+    inset: 0;
+    border-bottom: 1px solid var(--separador);
+    background: var(--janela);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+.cabecalho__barra {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  max-width: var(--largura-max);
+  min-height: 44px;
+  margin-inline: auto;
+}
+
+/* O pedaço do cabeçalho que muda com a tela: título, subtítulo e a ação
+   principal. Cada aba tem o seu; aparece o da aba ativa (pela classe
+   .active que o goTab() já põe na aba). */
+.cabecalho__tela {
+  display: none;
+  flex: 1;
+  align-items: center;
+  gap: var(--e-3);
+  min-width: 0;
+}
+
+.app:has(#tab-turmas.active) .cabecalho__tela[data-tela="turmas"],
+.app:has(#tab-alunos.active) .cabecalho__tela[data-tela="alunos"],
+.app:has(#tab-relatorio.active) .cabecalho__tela[data-tela="relatorio"],
+.app:has(#tab-metricas.active) .cabecalho__tela[data-tela="metricas"],
+.app:has(#tab-reposicoes.active) .cabecalho__tela[data-tela="reposicoes"],
+.app:has(#tab-professores.active) .cabecalho__tela[data-tela="professores"],
+.app:has(#tab-configuracoes.active) .cabecalho__tela[data-tela="configuracoes"] {
+  display: flex;
+}
+
+/* Chamada aberta (dentro da aba Turmas): o cabeçalho vira o da turma,
+   com o voltar — como a página de um professor nas Reuniões. O JS abre
+   e fecha a chamada por style.display. */
+.app:has(#tab-turmas.active #chamada-view[style*="block"]) .cabecalho__tela[data-tela="turmas"] {
+  display: none;
+}
+
+.app:has(#tab-turmas.active #chamada-view[style*="block"]) .cabecalho__tela[data-tela="chamada"] {
+  display: flex;
+}
+
+.cabecalho__titulos {
+  flex: 1;
+  min-width: 0;
+}
+
+.titulo-grande {
+  font: var(--t-titulo-grande);
+  letter-spacing: 0.006em;
+}
+
+.titulo-grande--uma-linha {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitulo {
+  font: var(--t-chamada);
+  color: var(--rotulo-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.cabecalho__tela-acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex: none;
+}
+
+.cabecalho__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex: none;
+  margin-left: auto;
+}
+
+@media (max-width: 599px) {
+  .cabecalho {
+    padding-top: var(--e-3);
+    padding-bottom: var(--e-4);
+  }
+
+  .cabecalho__barra {
+    gap: var(--e-2);
+  }
+
+  .titulo-grande {
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+  }
+
+  .titulo-grande:not(.titulo-grande--uma-linha) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* No celular o subtítulo longo corta em vez de empurrar os botões */
+  .subtitulo {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ---------- Conta (canto superior direito) ---------- */
+
+.botao-conta {
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 50%;
+  background: var(--vidro);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--vidro-brilho), var(--sombra-controle);
+}
+
+.botao-conta .avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 0.8125rem;
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--avatar-topo), var(--avatar-base));
+  color: #FFFFFF;
+  font: 600 0.9375rem/1 var(--fonte);
+  letter-spacing: 0.01em;
+  user-select: none;
+}
+
+/* Menu da conta (popover nativo, posicionado pelo shell.js) */
+.menu-conta {
+  position: fixed;
+  inset: auto;
+  top: 64px;
+  right: 16px;
+  margin: 0;
+  width: min(18rem, calc(100vw - 16px));
+  padding: 6px;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 16px;
+  background: var(--vidro-menu);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--vidro-brilho), var(--sombra-menu);
+  color: var(--rotulo);
+}
+
+/* Navegador sem popover: o shell.js abre/fecha por esta classe */
+@supports not selector(:popover-open) {
+  .menu-conta {
+    display: none;
+    z-index: 600;
+  }
+
+  .menu-conta.aberto {
+    display: block;
+  }
+}
+
+.menu-conta__perfil {
+  padding: 10px 10px 12px;
+}
+
+.menu-conta__rotulo {
+  font: var(--t-nota);
+  color: var(--rotulo-2);
+}
+
+.menu-conta__nome {
+  display: block;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.separador {
+  height: 1px;
+  margin: 0 6px 6px;
+  border: 0;
+  background: var(--separador);
+}
+
+.menu-conta__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  margin-bottom: 0;
+  padding: 0 10px;
+  border-radius: 10px;
+  text-align: left;
+  font-weight: 500;
+}
+
+.menu-conta__item + .separador {
+  margin-top: 6px;
+}
+
+.menu-conta__item .icone {
+  width: 18px;
+  height: 18px;
+  color: var(--rotulo-2);
+}
+
+.menu-conta__item:hover,
+.menu-conta__item:focus-visible {
+  background: var(--preenchimento-2);
+  outline: none;
+}
+
+.menu-conta__item:active {
+  transform: none;
+}
+
+/* Item de tema: mostra a opção para a qual vai trocar */
+.menu-conta .sun-icon,
+.menu-conta .tema-claro,
+[data-theme="dark"] .menu-conta .moon-icon,
+[data-theme="dark"] .menu-conta .tema-escuro {
+  display: none;
+}
+
+[data-theme="dark"] .menu-conta .sun-icon {
+  display: block;
+}
+
+[data-theme="dark"] .menu-conta .tema-claro {
+  display: inline;
+}
+
+/* ---------- Conteúdo ---------- */
+
+.content {
+  max-width: var(--largura-max);
+  margin-inline: auto;
+  padding: 0 var(--margem) var(--e-8);
+}
+
+.screen {
+  display: none;
+}
+
+.screen.active {
+  display: block;
+  animation: surgir-tela 220ms ease both;
+}
+
+@keyframes surgir-tela {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Linha de busca e filtros no topo de uma tela */
+.controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-3);
+  margin-bottom: var(--e-5);
+}
+
+/* Título de seção dentro de uma tela */
+.secao__titulo {
+  font: var(--t-titulo-secao);
+  margin-bottom: var(--e-3);
+}
+
+@media (forced-colors: active) {
+
+  .barra-lateral,
+  .menu-conta {
+    border: 1px solid CanvasText;
+  }
+
+  .nav-btn.active {
+    outline: 2px solid Highlight;
+  }
+}
