@@ -1,0 +1,224 @@
+/* ============================================================
+   AVISOS — toast (empilhável), tela de carregamento, banner de
+   nova versão e os estados vazios.
+   ============================================================ */
+
+/* ---------- Toast: cápsula escura no estilo HUD da Apple, com o
+   pontinho na cor do tipo (verde, azul ou vermelho) ---------- */
+.toast-container {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: var(--e-2);
+  pointer-events: none;
+}
+
+.toast-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(26rem, calc(100vw - 32px));
+  padding: 11px 18px 11px 14px;
+  border: 1px solid rgb(255 255 255 / 0.10);
+  border-radius: 999px;
+  background: rgb(29 29 31 / 0.88);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--sombra-menu);
+  color: #FFFFFF;
+  font-weight: 500;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: toast-entrar 0.32s var(--mola);
+}
+
+.toast-item::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34C759;
+  box-shadow: 0 0 0 3px rgb(52 199 89 / 0.25);
+}
+
+.toast-item.blue::before {
+  background: #0A84FF;
+  box-shadow: 0 0 0 3px rgb(10 132 255 / 0.28);
+}
+
+.toast-item.red::before {
+  background: #FF453A;
+  box-shadow: 0 0 0 3px rgb(255 69 58 / 0.28);
+}
+
+[data-theme="dark"] .toast-item {
+  background: rgb(58 58 60 / 0.92);
+}
+
+@keyframes toast-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+}
+
+@media (max-width: 599px) {
+  .toast-container {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 16px;
+    align-items: center;
+  }
+}
+
+/* ---------- Carregando ---------- */
+#app-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-3);
+  background: var(--janela);
+  color: var(--rotulo-2);
+  font: var(--t-chamada);
+}
+
+#app-loading.visible {
+  display: flex;
+}
+
+/* Indicador de atividade: anel fino no azul do sistema */
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--preenchimento-2);
+  border-top-color: var(--acento);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: middle;
+  border: 2px solid var(--preenchimento-2);
+  border-top-color: var(--acento);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* ---------- Estados vazios ---------- */
+.loading,
+.empty {
+  padding: var(--e-8) var(--e-4);
+  color: var(--rotulo-2);
+  font: var(--t-chamada);
+  text-align: center;
+}
+
+.turmas-grid > .empty,
+.prof-grid > .empty {
+  grid-column: 1 / -1;
+  padding: 12vh var(--e-4);
+}
+
+#rel-area > .empty {
+  padding: 12vh var(--e-4);
+}
+
+/* ---------- Banner de nova versão publicada ---------- */
+#update-banner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: 8px 8px 8px 18px;
+  border: 1px solid rgb(255 255 255 / 0.10);
+  border-radius: 999px;
+  background: rgb(29 29 31 / 0.9);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--sombra-menu);
+  color: #FFFFFF;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 90px);
+  transition: transform 0.45s var(--mola), opacity 0.3s ease;
+  pointer-events: none;
+}
+
+#update-banner.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: all;
+}
+
+#update-banner .spin {
+  display: inline-block;
+  animation: girar 1.5s linear infinite;
+}
+
+#upd-btn {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: #1D1D1F;
+  font-weight: 600;
+}
+
+#upd-btn:hover {
+  background: #E8E8ED;
+}
+
+#upd-x {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: rgb(255 255 255 / 0.6);
+  font-size: 20px;
+  line-height: 1;
+}
+
+#upd-x:hover {
+  background: rgb(255 255 255 / 0.12);
+  color: #FFFFFF;
+}
+
+@media (max-width: 479px) {
+  #update-banner {
+    right: 16px;
+    left: 16px;
+    transform: translateY(90px);
+  }
+
+  #update-banner.visible {
+    transform: none;
+  }
+
+  #update-banner > span:nth-child(2) {
+    flex: 1;
+  }
+}

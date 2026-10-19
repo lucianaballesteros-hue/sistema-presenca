@@ -1,0 +1,260 @@
+/* ============================================================
+   REPOSIÇÕES — o modal de criar reposição (sugestões automáticas,
+   opções de turma/data), o link gerado e as pílulas de status da
+   aba Reposições.
+   ============================================================ */
+
+/* ---------- Sugestões automáticas ---------- */
+.rep-sugestoes {
+  margin-bottom: var(--e-4);
+}
+
+.rep-sugestoes:empty {
+  display: none;
+  margin: 0;
+}
+
+.rep-sugestoes-label {
+  margin-bottom: var(--e-2);
+  color: var(--rotulo-2);
+  font: var(--t-nota);
+}
+
+.rep-sugestao-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  margin: 0 6px 6px 0;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--acento-borda);
+  border-radius: 999px;
+  background: var(--acento-suave);
+  color: var(--link);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.rep-sugestao-chip .icon-mask {
+  width: 14px;
+  height: 14px;
+}
+
+.rep-sugestao-chip:hover {
+  border-color: var(--acento);
+  background: var(--acento);
+  color: var(--sobre-acento);
+}
+
+/* ---------- Opções de horário (turma + data + observação) ---------- */
+.rep-opcao-row {
+  margin-bottom: var(--e-2);
+  padding: var(--e-3);
+  border: 1px solid var(--contorno);
+  border-radius: 16px;
+  background: var(--janela);
+  transition: border-color var(--rapido) ease;
+}
+
+.rep-opcao-row:focus-within {
+  border-color: var(--acento-borda);
+}
+
+.rep-opcao-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--e-2);
+}
+
+.rep-opcao-badge {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--acento);
+  color: var(--sobre-acento);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.rep-opcao-header select,
+.rep-opcao-body input[type="date"],
+.rep-opcao-obs {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: 10px;
+  background-color: var(--superficie);
+  color: var(--rotulo);
+  font-size: 0.8125rem;
+  outline: none;
+}
+
+.rep-opcao-header select {
+  flex: 1;
+  min-width: 0;
+  padding-right: 32px;
+  background-position: right 12px center;
+}
+
+.rep-opcao-remove {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--rotulo-2);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.rep-opcao-remove:hover {
+  background: var(--perigo-suave);
+  color: var(--perigo);
+}
+
+.rep-opcao-body {
+  display: flex;
+  gap: var(--e-2);
+  margin-left: 34px;
+}
+
+.rep-opcao-body input[type="date"] {
+  flex: 0 0 160px;
+}
+
+.rep-opcao-obs {
+  flex: 1;
+  min-width: 0;
+}
+
+.rep-opcao-dica {
+  margin: var(--e-2) 0 0 34px;
+  color: var(--link);
+  font: var(--t-nota);
+  font-weight: 400;
+}
+
+.btn-adicionar {
+  justify-self: start;
+}
+
+/* ---------- Link gerado (modal de sucesso) ---------- */
+.rep-link-sucesso {
+  display: grid;
+  justify-items: center;
+  gap: var(--e-2);
+  margin-bottom: var(--e-5);
+  color: var(--rotulo-2);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+.rep-link-icone {
+  color: var(--sucesso);
+}
+
+.rep-link-icone .icone {
+  width: 48px;
+  height: 48px;
+  stroke-width: 1.5;
+}
+
+.rep-link-box {
+  display: flex;
+  gap: var(--e-2);
+}
+
+.rep-link-box input {
+  flex: 1;
+  min-width: 0;
+  height: var(--altura-campo);
+  padding: 0 14px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: var(--raio-campo);
+  background: var(--janela);
+  color: var(--rotulo);
+  font-size: 0.8125rem;
+}
+
+.rep-link-box .btn-sec {
+  min-height: var(--altura-campo);
+}
+
+/* ---------- Aba Reposições ---------- */
+.rep-aluno-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+.rep-aluno-nome {
+  font-weight: 600;
+}
+
+.rep-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font: var(--t-nota);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rep-pill-aguardando {
+  background: var(--aviso-suave);
+  color: var(--aviso-texto);
+}
+
+.rep-pill-agendada {
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+}
+
+.rep-pill-concluida {
+  background: var(--sucesso-suave);
+  color: var(--sucesso-texto);
+}
+
+.rep-pill-cancelada {
+  background: var(--perigo-suave);
+  color: var(--perigo-texto);
+}
+
+.rep-opcao-item {
+  color: var(--rotulo-2);
+  line-height: 1.6;
+}
+
+.rep-opcao-item.escolhida {
+  color: var(--sucesso);
+  font-weight: 600;
+}
+
+@media (max-width: 479px) {
+  .rep-opcao-body {
+    flex-direction: column;
+    margin-left: 0;
+  }
+
+  .rep-opcao-body input[type="date"] {
+    flex: 1 1 auto;
+  }
+
+  .rep-opcao-dica {
+    margin-left: 0;
+  }
+
+  .rep-aluno-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--e-1);
+  }
+}

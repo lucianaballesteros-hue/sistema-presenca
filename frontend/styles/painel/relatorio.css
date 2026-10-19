@@ -1,0 +1,51 @@
+/* ============================================================
+   RELATÓRIO — os "pontinhos" das últimas aulas de cada aluno
+   (clicar abre o menu de edição rápida, em janelas.css) e o
+   espaço entre as tabelas de cada turma.
+   ============================================================ */
+
+/* Cabeçalho de cada turma (montado pelo JS): alinhado ao cartão */
+#rel-area > div > div:first-child {
+  padding: 0 4px;
+}
+
+.dots {
+  display: flex;
+  gap: 4px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.dot-p {
+  background: var(--verde-cheio);
+}
+
+.dot-f {
+  background: var(--vermelho-cheio);
+}
+
+.dot-r {
+  background: var(--laranja-cheio);
+}
+
+.dot-n {
+  background: var(--preenchimento-2);
+}
+
+/* Celular: pontinhos maiores, são o alvo de toque para corrigir uma
+   presença direto no relatório */
+@media (max-width: 899px), (pointer: coarse) {
+  .dots {
+    gap: 6px;
+  }
+
+  .dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+  }
+}

@@ -65,22 +65,21 @@ export function renderDash() {
       ? `<span class="horario-tag" onclick="event.stopPropagation();abrirModalEditarTurma(${t.id})" title="Clique para editar a turma"><span class="icon-mask icon-relogio"></span>${t.horario_inicio.slice(0, 5)}${t.dias_semana?.length ? ' · ' + t.dias_semana.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ') : ''}</span>`
       : `<span class="horario-tag sem-horario" onclick="event.stopPropagation();abrirModalEditarTurma(${t.id})" title="Configurar horário para notificação automática">+ Configurar horário</span>`;
     return `<div class="turma-card ${inativa ? 'turma-card-inativa' : ''}" onclick="abrirChamada(${t.id})">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-        <div style="width:9px;height:9px;border-radius:50%;background:${t.cor || '#3b82f6'};flex-shrink:0;"></div>
-        <div style="font-size:13px;font-weight:600;flex:1;color:var(--text);">${escapeHtml(t.turma)}</div>
+      <div class="turma-card__topo">
+        <span class="turma-card__cor" style="background:${t.cor || '#3b82f6'};"></span>
+        <div class="turma-card__nome" title="${escapeHtml(t.turma)}">${escapeHtml(t.turma)}</div>
         <div class="turma-card-actions">
           <button class="inline-edit-btn" title="Editar turma" aria-label="Editar turma" onclick="event.stopPropagation();abrirModalEditarTurma(${t.id})"><span class="icon-mask icon-editar"></span></button>
           ${podeGerenciarTurmasInativas() ? `<button class="inline-edit-btn" title="${inativa ? 'Reativar turma' : 'Inativar turma'}" aria-label="${inativa ? 'Reativar turma' : 'Inativar turma'}" onclick="event.stopPropagation();toggleTurmaAtiva(event, ${t.id})">${inativa ? '<span class="icon-mask icon-ativar"></span>' : '<span class="icon-mask icon-pausa"></span>'}</button>` : ''}
         </div>
       </div>
-      <div style="font-size:12px;color:var(--text-3);display:flex;flex-direction:column;gap:6px;">
-        <span>${t.curso ? `<span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso)}</span>` : '<span class="badge badge-gray">Sem curso</span>'}${inativa ? ' <span class="badge badge-gray">Inativa</span>' : ''}</span>
-        <span>Prof. ${escapeHtml(professorNome(t))}</span>
-        <span>${al.length} alunos${at > 0 ? ` · <span style="color:var(--red);font-weight:600;cursor:pointer;border-bottom:1.5px dashed var(--red);padding-bottom:1px;" onclick="event.stopPropagation();irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
-        <span>${ultimaAula ? `<span class="badge badge-blue" title="Última aula com presença registrada">Ultima Aula: ${ultimaAula}</span>` : `<span class="badge badge-gray" title="Nenhuma presença registrada ainda">Sem aulas registradas</span>`}</span>
-        <div>${horarioTag}</div>
+      <div class="turma-card__info">
+        <div class="turma-card__selos">${t.curso ? `<span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso)}</span>` : '<span class="badge badge-gray">Sem curso</span>'}${inativa ? '<span class="badge badge-gray">Inativa</span>' : ''}</div>
+        <span class="turma-card__linha">Prof. ${escapeHtml(professorNome(t))}</span>
+        <span class="turma-card__linha">${al.length} alunos${at > 0 ? ` · <span class="turma-card__alerta" onclick="event.stopPropagation();irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
+        <div class="turma-card__selos">${ultimaAula ? `<span class="badge badge-blue" title="Última aula com presença registrada">Última aula: ${ultimaAula}</span>` : `<span class="badge badge-gray" title="Nenhuma presença registrada ainda">Sem aulas registradas</span>`}${horarioTag}</div>
       </div>
-      <button class="btn-chamada" onclick="event.stopPropagation();abrirChamada(${t.id})">Acessar turma <span class="icon-mask icon-seta-direita" style="margin-left:6px;"></span></button>
+      <button class="btn-chamada" onclick="event.stopPropagation();abrirChamada(${t.id})">Acessar turma <span class="icon-mask icon-seta-direita"></span></button>
     </div>`;
   }).join('') || '<div class="empty">Nenhuma turma encontrada.</div>';
 }

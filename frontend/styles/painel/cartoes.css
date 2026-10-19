@@ -187,13 +187,11 @@
   text-decoration-style: solid;
 }
 
-/* O pé do cartão fica sempre embaixo, mesmo com cartões de alturas diferentes */
-.turma-card .btn-chamada {
-  margin-top: auto;
-}
-
-.turma-card__info + .btn-chamada {
-  margin-top: var(--e-4);
+/* O pé do cartão fica sempre embaixo, mesmo com cartões de alturas
+   diferentes na mesma fileira */
+.turma-card .turma-card__info {
+  flex: 1;
+  align-content: start;
 }
 
 /* ---------- Cartões de usuário (aba Usuários) ---------- */
