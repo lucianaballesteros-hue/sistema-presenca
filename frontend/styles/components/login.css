@@ -30,11 +30,11 @@
 .login-logo {
   display: flex;
   justify-content: center;
-  margin: 0 auto var(--space-5);
+  margin: 0 auto var(--space-4);
 }
 
 .login-logo img {
-  height: 52px;
+  height: 32px;
   width: auto;
   max-width: 100%;
 }
