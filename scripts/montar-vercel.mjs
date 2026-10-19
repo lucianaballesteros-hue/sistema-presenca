@@ -54,22 +54,39 @@
  */
 
 import { build } from "esbuild";
-import { cp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { dirname, join, normalize, resolve, sep } from "node:path";
 
 const RAIZ = resolve(import.meta.dirname, "..");
 const SAIDA = join(RAIZ, ".vercel", "output");
 const FUNCAO = join(SAIDA, "functions", "api", "index.func");
 
-/** Tudo que o navegador baixa direto, sem passar pela função. */
-const ESTATICOS = [
-  "index.html",
-  "admin-turmas.html",
-  "admin-alunos.html",
-  "cadastro.html",
-  "reposicao.html",
-  "frontend",
-];
+/**
+ * O que **não** é publicado como estático.
+ *
+ * Lista de exclusão, e não de inclusão, de propósito. A primeira versão
+ * listava o que copiar — e esquecia `backend/`. Como `auth.js` importa
+ * `backend/api/supabaseClient.js`, o grafo de módulos inteiro morria no
+ * navegador: `window.doLogin` nunca era criado e o botão "Entrar" não
+ * fazia nada. Sem erro na tela, sem erro no build.
+ *
+ * Antes da Build Output API a Vercel copiava o repositório inteiro, e
+ * isso funcionava por acidente. Voltar a esse comportamento — publicar
+ * tudo menos o que é claramente de servidor — faz o esquecimento mudar de
+ * lado: arquivo novo do site passa a funcionar sozinho, e o erro possível
+ * vira "publiquei demais", que é visível, em vez de "faltou um módulo",
+ * que é silencioso.
+ */
+const NAO_PUBLICAR = new Set([
+  // Servidor e ferramentas: nada disso é baixado pelo navegador.
+  "api", "scripts", "supabase", "sql", "docs", "node_modules",
+  // Ambiente e controle.
+  ".git", ".github", ".claude", ".vercel", ".vscode",
+  // Metadados do projeto.
+  "package.json", "package-lock.json", "tsconfig.json", "vercel.json",
+  ".gitignore", ".env", ".env.example", "README.md", "ARQUITETURA.md",
+]);
 
 async function montar() {
   await rm(SAIDA, { recursive: true, force: true });
@@ -110,10 +127,25 @@ async function montar() {
   /* --- 2. Os estáticos --- */
   const estatico = join(SAIDA, "static");
   await mkdir(estatico, { recursive: true });
-  for (const item of ESTATICOS) {
-    await cp(join(RAIZ, item), join(estatico, item), { recursive: true });
+
+  const copiados = [];
+  for (const e of await readdir(RAIZ, { withFileTypes: true })) {
+    // Nada que comece com ponto, e nada da lista de exclusão.
+    if (e.name.startsWith(".") || NAO_PUBLICAR.has(e.name)) continue;
+    await cp(join(RAIZ, e.name), join(estatico, e.name), { recursive: true });
+    copiados.push(e.name);
   }
-  console.log(`  estáticos: ${await contar(estatico)} arquivo(s)`);
+  console.log(`  estáticos: ${await contar(estatico)} arquivo(s) de ${copiados.join(", ")}`);
+
+  // O site não funciona sem estes: `auth.js` importa o cliente do Supabase
+  // de `backend/`, e um import quebrado derruba o grafo inteiro no
+  // navegador — sem erro de build, sem erro na tela.
+  for (const obrigatorio of ["index.html", "frontend", "backend"]) {
+    if (!copiados.includes(obrigatorio)) {
+      throw new Error(
+        `"${obrigatorio}" não foi publicado. Está em NAO_PUBLICAR ou sumiu da raiz?`);
+    }
+  }
 
   /* --- 3. As rotas, explícitas --- */
   await writeFile(join(SAIDA, "config.json"), JSON.stringify({
@@ -151,7 +183,65 @@ async function montar() {
   }, null, 2) + "\n");
 
   console.log(`  rotas: /api/* -> a função; o resto, arquivo estático`);
+
+  await conferirImports(estatico);
   console.log(`\n  pronto em .vercel/output`);
+}
+
+/**
+ * Segue os imports a partir das páginas e **falha o build** se faltar um.
+ *
+ * Existe porque faltar um módulo não dá erro em lugar nenhum: o build
+ * passa, a Vercel publica, a página carrega — e o navegador morre no
+ * primeiro import quebrado. Foi assim que a pasta `backend/` ficou fora
+ * da publicação e o botão "Entrar" parou de funcionar, sem sinal no build
+ * nem na tela.
+ *
+ * É a checagem que o navegador faria, antecipada para o build.
+ */
+async function conferirImports(estatico) {
+  const vistos = new Set();
+  const faltando = [];
+
+  async function seguir(arquivo, veioDe) {
+    if (vistos.has(arquivo)) return;
+    vistos.add(arquivo);
+
+    const caminho = join(estatico, arquivo);
+    if (!existsSync(caminho)) {
+      faltando.push(`${arquivo}  (importado por ${veioDe})`);
+      return;
+    }
+
+    const txt = await readFile(caminho, "utf8");
+    const specs = [
+      ...[...txt.matchAll(/(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]/g)].map((m) => m[1]),
+      ...[...txt.matchAll(/import\s*\(\s*['"]([^'"]+)['"]/g)].map((m) => m[1]),
+      // `<script src>` só em HTML: num `.js`, o que casa é o exemplo de
+      // uso dentro de um comentário — já deu falso positivo.
+      ...(arquivo.endsWith(".html")
+        ? [...txt.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1])
+        : []),
+    ];
+
+    for (const sp of specs) {
+      if (/^https?:|^\/\/|^data:/.test(sp)) continue;   // CDN
+      const base = sp.startsWith("/") ? "" : dirname(arquivo);
+      const alvo = normalize(join(base, sp.replace(/^\/+/, ""))).split(sep).join("/");
+      await seguir(alvo, arquivo);
+    }
+  }
+
+  for (const e of await readdir(estatico, { withFileTypes: true })) {
+    if (e.isFile() && e.name.endsWith(".html")) await seguir(e.name, "(página)");
+  }
+
+  if (faltando.length) {
+    throw new Error(
+      `${faltando.length} import(s) quebrado(s) na saída — a página carregaria ` +
+      `e morreria no navegador:\n   ${faltando.join("\n   ")}`);
+  }
+  console.log(`  imports: ${vistos.size} arquivos alcançados, nenhum quebrado`);
 }
 
 async function contar(dir) {
