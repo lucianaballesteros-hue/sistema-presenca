@@ -26,15 +26,29 @@
   margin-bottom: var(--space-6);
 }
 
-.logo-icon {
-  width: 44px;
-  height: 44px;
-  background: var(--primary-soft);
-  border-radius: 10px;
+/* Logo da Financial (troca claro/escuro, como no cabeçalho) */
+.login-logo {
   display: flex;
-  align-items: center;
   justify-content: center;
-  margin: 0 auto var(--space-3);
+  margin: 0 auto var(--space-5);
+}
+
+.login-logo img {
+  height: 52px;
+  width: auto;
+  max-width: 100%;
+}
+
+.login-logo .logo-dark {
+  display: none;
+}
+
+[data-theme="dark"] .login-logo .logo-light {
+  display: none;
+}
+
+[data-theme="dark"] .login-logo .logo-dark {
+  display: block;
 }
 
 .logo-box h1 {
