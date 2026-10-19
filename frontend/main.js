@@ -10,7 +10,7 @@
 import { state } from './state/store.js';
 import { toggleSenha, fecharModal, wireModalBackdrops } from './shared/dom.js';
 import { responderConfirm } from './shared/confirm.js';
-import { goTab } from './shared/navigation.js';
+import { goTab, alternarGrupoNav } from './shared/navigation.js';
 import { startUpdateNotifier } from './shared/updateNotifier.js';
 import { enhanceSelect } from './shared/customSelect.js';
 import { onLineChartMove, onLineChartLeave, onBarHover, onDonutHover, hideChartTooltip } from './shared/charts.js';
@@ -57,7 +57,7 @@ import { exportarExcel } from './features/relatorios/exportExcel.js';
 import { renderMetricas, setFocoMetricas } from './features/metricas/metricasView.js';
 
 import {
-  abrirMenuConfig, fecharMenuConfig, renderConfiguracoes,
+  renderConfiguracoes,
   selecionarTipoExclusao, renderListaExclusao, pedirExclusao,
   verificarTextoExclusaoItem, confirmarExclusaoConfig,
   abrirModalEditarCurso, verificarNomeCursoEdicao, salvarEdicaoCurso,
@@ -78,7 +78,7 @@ import {
 Object.assign(window, {
   toggleTema,
   doLogin, doLogout, abrirRecuperarSenha, voltarParaLogin, enviarLinkRecuperacao, salvarNovaSenhaRecuperacao,
-  goTab,
+  goTab, alternarGrupoNav,
   renderDash, setCurso, setGrupoTurmas, irParaAlertas,
   abrirModalNovaTurma, selecionarCorNovaTurma, salvarNovaTurma,
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
@@ -98,7 +98,7 @@ Object.assign(window, {
   renderRel, onMultiCheck, toggleMultiDropdown, abrirDotMenu, selecionarStatusDot,
   exportarExcel,
   renderMetricas, setFocoMetricas,
-  abrirMenuConfig, fecharMenuConfig, renderConfiguracoes,
+  renderConfiguracoes,
   selecionarTipoExclusao, renderListaExclusao, pedirExclusao,
   verificarTextoExclusaoItem, confirmarExclusaoConfig,
   abrirModalEditarCurso, verificarNomeCursoEdicao, salvarEdicaoCurso,
@@ -138,7 +138,6 @@ document.addEventListener('click', (e) => {
     if (menu) { menu.remove(); state.dotMenuContext = null; }
   }
   if (!dentro('ma-acoes-menu')) fecharMenuAluno();
-  if (!dentro('config-menu')) fecharMenuConfig();
   if (!dentro('novo-turma-picker')) fecharNovoTurmaPainel();
   document.querySelectorAll('.multi-select-panel.open').forEach(p => p.classList.remove('open'));
 });

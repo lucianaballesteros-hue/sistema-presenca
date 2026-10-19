@@ -111,6 +111,15 @@
         <circle cx="10" cy="10" r="3.25" />
         <path d="M10 2.5v1.5M10 16v1.5M2.5 10H4M16 10h1.5M4.7 4.7l1.06 1.06M14.24 14.24l1.06 1.06M4.7 15.3l1.06-1.06M14.24 5.76l1.06-1.06" />
       </symbol>
+      <!-- Engrenagem (Lucide "settings", licença ISC) — desenhada em 24 px,
+           por isso o traço 2 (≈ 1,7 no tamanho dos outros ícones) -->
+      <symbol id="i-config" viewBox="0 0 24 24">
+        <path stroke-width="2" d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+        <circle stroke-width="2" cx="12" cy="12" r="3" />
+      </symbol>
+      <symbol id="i-seta-baixo" viewBox="0 0 20 20">
+        <path d="m5.75 8 4.25 4.25L14.25 8" />
+      </symbol>
       <symbol id="i-check-circulo" viewBox="0 0 20 20">
         <circle cx="10" cy="10" r="7.75" />
         <path d="m6.9 10.2 2.2 2.2 4.1-4.6" />
@@ -230,8 +239,7 @@
   <div id="app" class="app hidden">
     <div id="chart-tooltip" class="chart-tooltip"></div>
 
-    <!-- BARRA LATERAL — a ordem dos .nav-btn importa: goTab() marca a aba
-         ativa pela posição de cada um. -->
+    <!-- BARRA LATERAL — cada aba é marcada pelo data-tab (goTab). -->
     <aside class="barra-lateral" id="barra-lateral" aria-label="Menu principal">
       <div class="header-logo barra-lateral__marca" onclick="location.reload()">
         <img class="logo-light" src="frontend/img/finexperts_pos%20preto.png" alt="Financial Experts" />
@@ -239,15 +247,24 @@
       </div>
       <nav class="nav" id="nav-bar" aria-label="Seções">
         <div class="nav-indicator" id="nav-indicator"></div>
-        <button class="nav-btn active" onclick="goTab('turmas')"><svg class="icone" aria-hidden="true"><use href="#i-turmas" /></svg>Turmas</button>
-        <button class="nav-btn" onclick="goTab('alunos')"><svg class="icone" aria-hidden="true"><use href="#i-alunos" /></svg>Alunos</button>
-        <button class="nav-btn" onclick="goTab('relatorio')"><svg class="icone" aria-hidden="true"><use href="#i-relatorio" /></svg>Relatórios</button>
-        <button class="nav-btn" onclick="goTab('metricas')"><svg class="icone" aria-hidden="true"><use href="#i-metricas" /></svg>Métricas</button>
-        <button class="nav-btn" onclick="goTab('reposicoes')"><svg class="icone" aria-hidden="true"><use href="#i-reposicoes" /></svg>Reposições</button>
-        <!-- Cadastro online: páginas separadas, só para admin. Aparece pela
-             mesma regra do botão de Configurações, em auth.js. -->
+        <button class="nav-btn active" data-tab="turmas" onclick="goTab('turmas')"><svg class="icone" aria-hidden="true"><use href="#i-turmas" /></svg>Turmas</button>
+        <button class="nav-btn" data-tab="alunos" onclick="goTab('alunos')"><svg class="icone" aria-hidden="true"><use href="#i-alunos" /></svg>Alunos</button>
+        <button class="nav-btn" data-tab="relatorio" onclick="goTab('relatorio')"><svg class="icone" aria-hidden="true"><use href="#i-relatorio" /></svg>Relatórios</button>
+        <button class="nav-btn" data-tab="metricas" onclick="goTab('metricas')"><svg class="icone" aria-hidden="true"><use href="#i-metricas" /></svg>Métricas</button>
+        <button class="nav-btn" data-tab="reposicoes" onclick="goTab('reposicoes')"><svg class="icone" aria-hidden="true"><use href="#i-reposicoes" /></svg>Reposições</button>
+        <!-- Cadastro online e Configurações: só para admin (auth.js mostra). -->
         <a class="nav-btn hidden" id="nav-cadastro" href="admin-turmas.html"
           title="Links de matrícula e fila de cadastros"><svg class="icone" aria-hidden="true"><use href="#i-cadastro" /></svg>Cadastro online<svg class="icone nav-btn__externo" aria-hidden="true"><use href="#i-abrir-externo" /></svg></a>
+        <div class="nav-grupo hidden" id="nav-config">
+          <button type="button" class="nav-btn nav-grupo__titulo" aria-expanded="false" aria-controls="nav-config-itens"
+            onclick="alternarGrupoNav(this)"><svg class="icone" aria-hidden="true"><use href="#i-config" /></svg>Configurações<svg class="icone nav-grupo__seta" aria-hidden="true"><use href="#i-seta-baixo" /></svg></button>
+          <div class="nav-grupo__itens" id="nav-config-itens">
+            <div>
+              <button class="nav-btn nav-btn--sub" data-tab="configuracoes" onclick="goTab('configuracoes')">Geral</button>
+              <button class="nav-btn nav-btn--sub" data-tab="professores" onclick="goTab('professores')">Usuários</button>
+            </div>
+          </div>
+        </div>
       </nav>
     </aside>
 
@@ -344,10 +361,6 @@
           </div>
 
           <div class="cabecalho__acoes">
-            <button class="botao-icone hidden" id="btn-config" onclick="abrirMenuConfig(event)"
-              title="Configurações do sistema" aria-label="Configurações do sistema">
-              <span class="icon-mask icon-config"></span>
-            </button>
             <button type="button" class="botao-conta" id="btn-conta" popovertarget="menu-conta" aria-label="Conta"
               title="Conta">
               <span class="avatar" id="av">--</span>
@@ -618,11 +631,15 @@
         <!-- TAB REPOSIÇÕES -->
         <div id="tab-reposicoes" class="screen">
           <div class="info-box">
-            <div>
-              Para criar uma reposição, abra o aluno na aba <strong>Alunos</strong> e clique em <strong>"Criar
-                reposição"</strong>. Aqui você acompanha os links já enviados.
-              Quando o aluno escolhe o horário, ele aparece na chamada da turma escolhida, na aula a repor, marcado como
-              <strong>Reposição</strong> — o que for marcado lá vai direto para a aula perdida na turma original dele.
+            <div class="info-box__corpo">
+              <div class="info-box__titulo">Como funciona a reposição</div>
+              <ol class="passos">
+                <li>Abra o aluno na aba <strong>Alunos</strong> e clique em <strong>Criar reposição</strong>.</li>
+                <li>Envie o link gerado para o aluno (ou responsável) escolher o horário. Os links enviados ficam
+                  listados aqui.</li>
+                <li>O aluno aparece na chamada da turma escolhida, marcado como <strong>Reposição</strong>. O que for
+                  marcado lá vai direto para a aula perdida na turma original.</li>
+              </ol>
             </div>
           </div>
           <div class="controles">

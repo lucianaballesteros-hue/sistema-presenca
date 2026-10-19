@@ -34,9 +34,10 @@ function iniciarBarra() {
   veu?.addEventListener('click', () => fecharBarraSobreposta(true));
 
   // No celular, escolher uma seção fecha o painel (os botões continuam
-  // chamando goTab pelo onclick deles; aqui só se fecha a barra).
+  // chamando goTab pelo onclick deles; aqui só se fecha a barra). Abrir ou
+  // fechar um grupo (Configurações) não conta como escolher uma seção.
   barra.addEventListener('click', evento => {
-    if (janelaEstreita.matches && evento.target.closest('.nav-btn')) fecharBarraSobreposta(false);
+    if (janelaEstreita.matches && evento.target.closest('.nav-btn:not(.nav-grupo__titulo)')) fecharBarraSobreposta(false);
   });
 
   document.addEventListener('keydown', evento => {

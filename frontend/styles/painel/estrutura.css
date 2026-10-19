@@ -62,8 +62,7 @@
   display: block;
 }
 
-/* Menu de seções. A ordem dos .nav-btn importa para o JS (goTab marca
-   o ativo pela posição), por isso eles ficam todos em sequência aqui. */
+/* Menu de seções. Cada aba é marcada pelo data-tab do botão (goTab). */
 .nav {
   display: grid;
   gap: 2px;
@@ -78,9 +77,9 @@
 .nav-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   width: 100%;
-  min-height: 36px;
+  min-height: 38px;
   padding: 0 10px;
   border-radius: 10px;
   color: var(--rotulo);
@@ -90,7 +89,10 @@
   text-decoration: none;
 }
 
+/* Ícones do menu um tom maiores que os do resto do sistema */
 .nav-btn .icone {
+  width: 22px;
+  height: 22px;
   color: var(--rotulo-2);
 }
 
@@ -130,10 +132,59 @@ a.nav-btn::before {
 }
 
 .nav-btn__externo {
-  width: 15px;
-  height: 15px;
+  width: 15px !important;
+  height: 15px !important;
   margin-left: auto;
   color: var(--rotulo-3) !important;
+}
+
+/* Grupo com submenu (Configurações → Geral / Usuários). Abre deslizando:
+   a grade dos itens vai de 0fr a 1fr; fechado, os itens também saem da
+   ordem do Tab (visibility). */
+.nav-grupo__seta {
+  width: 16px !important;
+  height: 16px !important;
+  margin-left: auto;
+  color: var(--rotulo-3) !important;
+  transition: rotate var(--rapido) ease;
+}
+
+.nav-grupo__titulo[aria-expanded="false"] .nav-grupo__seta {
+  rotate: -90deg;
+}
+
+/* Fechado com Geral ou Usuários aberto: o ícone do grupo fica azul */
+.nav-grupo:has(.nav-btn.active) .nav-grupo__titulo .icone:first-child {
+  color: var(--acento);
+}
+
+.nav-grupo__itens {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--medio) var(--mola);
+}
+
+.nav-grupo__itens > div {
+  display: grid;
+  gap: 2px;
+  min-height: 0;
+  padding-top: 2px;
+  overflow: hidden;
+}
+
+.nav-grupo__titulo[aria-expanded="false"] + .nav-grupo__itens {
+  grid-template-rows: 0fr;
+}
+
+.nav-grupo__titulo[aria-expanded="false"] + .nav-grupo__itens > div {
+  visibility: hidden;
+  transition: visibility 0s var(--medio);
+}
+
+/* Subitem: texto alinhado ao do título do grupo (10 + 22 + 11 px) */
+.nav-btn--sub {
+  min-height: 34px;
+  padding-left: 43px;
 }
 
 /* Barra oculta pelo botão (janela larga): a coluna encolhe e a barra

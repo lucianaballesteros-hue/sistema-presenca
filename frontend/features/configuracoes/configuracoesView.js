@@ -28,34 +28,6 @@ let tipoAtual = 'curso';
 let itemPendente = null; // item selecionado para exclusão (aberto no modal de confirmação final)
 let cursoEmEdicaoId = null;
 
-// Botão de engrenagem no header abre este menu (mesmo padrão visual do
-// dot-menu de relatórios/aluno) — "Geral" leva pra aba de exclusão abaixo;
-// "Usuários" reaproveita a tela cheia que já existia (tab-usuarios/
-// renderUsuarios), só que agora é alcançável por aqui, não pela nav
-// principal.
-export function abrirMenuConfig(e) {
-  e.stopPropagation();
-  const existing = document.getElementById('config-menu');
-  if (existing) { existing.remove(); return; }
-
-  const menu = document.createElement('div');
-  menu.id = 'config-menu';
-  menu.className = 'dot-menu';
-  menu.innerHTML = `
-    <div class="dot-menu-item" onclick="fecharMenuConfig();goTab('configuracoes');">Geral</div>
-    <div class="dot-menu-item" onclick="fecharMenuConfig();goTab('professores');">Usuários</div>
-  `;
-  document.body.appendChild(menu);
-  const rect = e.currentTarget.getBoundingClientRect();
-  const left = Math.max(8, rect.right - 150);
-  menu.style.left = left + 'px';
-  menu.style.top = (rect.bottom + 6) + 'px';
-}
-
-export function fecharMenuConfig() {
-  document.getElementById('config-menu')?.remove();
-}
-
 export function renderConfiguracoes() {
   document.getElementById('cfg-stats').innerHTML = `
     <div class="stat-card"><div class="stat-label">Cursos</div><div class="stat-val">${state.CURSOS.length}</div></div>
