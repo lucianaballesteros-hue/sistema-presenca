@@ -10,10 +10,6 @@
    sem padding), e a pílula mede a partir de .pbtns.
    ============================================================ */
 
-#chamada-view {
-  max-width: 72rem;
-}
-
 .chamada-top {
   display: grid;
   gap: var(--e-4);
@@ -59,23 +55,33 @@
   font: var(--t-nota);
 }
 
+/* "6 de 14 aulas com registro" — a amostra repete o quadradinho verde */
 .chamada-top__legenda {
   display: flex;
   align-items: center;
-  gap: 6px;
   margin-left: auto;
   color: var(--rotulo-2);
   font: var(--t-nota);
   font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.chamada-top__legenda:empty {
+  display: none;
 }
 
 .chamada-top__legenda::before {
   content: "";
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  background: var(--sucesso-suave);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sucesso) 30%, transparent);
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border-radius: 4px;
+  background: var(--green-soft);
+}
+
+.chamada-top__legenda strong {
+  color: var(--green-soft-text);
+  font-weight: 700;
 }
 
 /* Origem comum do anel e dos quadradinhos: sem padding nem borda */
@@ -135,6 +141,7 @@
   gap: var(--e-3);
   min-height: 60px;
   padding: 10px var(--e-5);
+  cursor: pointer;
   transition: background-color var(--rapido) ease;
 }
 
@@ -187,8 +194,14 @@
   font-weight: 500;
 }
 
-.aluno-nome:hover {
+/* A linha inteira abre o cadastro do aluno; o nome acende para mostrar.
+   Em cima dos botões de presença, não. */
+.aluno-row:hover:not(:has(.pbtns:hover)) .aluno-nome {
   color: var(--link);
+}
+
+.pbtns {
+  cursor: default;
 }
 
 .aluno-status-experimental,

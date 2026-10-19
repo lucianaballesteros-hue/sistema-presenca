@@ -11,9 +11,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.min.js"
     integrity="sha384-yiVMs0R/Jyz7OhoXa/DsEMUSBLjEhr/QJta2ONO+zB6I8/GmNg/7AUFrZmAJV7KV"
     crossorigin="anonymous"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"
-    integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT"
-    crossorigin="anonymous"></script>
   <script>
     // Aplica o tema imediatamente, antes do CSS carregar, para evitar flash
     (function () {
@@ -384,7 +381,7 @@
                   <select id="aula-sel" onchange="renderChamada()" data-custom-select></select>
                 </div>
                 <span id="chamada-status" class="chamada-status"></span>
-                <span class="chamada-top__legenda">Aula com registro</span>
+                <span class="chamada-top__legenda" id="ch-aulas-resumo"></span>
               </div>
               <div class="chamada-aulas__trilho">
                 <div class="aula-chip-indicator" id="aula-chip-indicator"></div>
@@ -738,7 +735,7 @@
 
   <!-- MODAL ALUNO -->
   <div class="modal-bg" id="modal-aluno">
-    <div class="modal">
+    <div class="modal modal--extra-largo">
       <div class="modal-header">
         <div class="modal-title" id="ma-nome"></div>
         <div class="modal-header__acoes">

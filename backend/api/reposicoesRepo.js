@@ -7,13 +7,12 @@ import { sb } from './supabaseClient.js';
 // com a FK entre as duas tabelas, o que pode falhar silenciosamente logo
 // após rodar a migração e fazer a lista parecer vazia mesmo com dados no banco.
 export async function carregarReposicoes() {
-  const { data: reposicoes, error } = await sb
-    .from('reposicoes')
-    .select('*')
-    .order('created_at', { ascending: false });
+  // As duas consultas são independentes: saem juntas
+  const [{ data: reposicoes, error }, { data: opcoes, error: errOpc }] = await Promise.all([
+    sb.from('reposicoes').select('*').order('created_at', { ascending: false }),
+    sb.from('reposicao_opcoes').select('*'),
+  ]);
   if (error) { console.error('Erro reposicoes:', error); return []; }
-
-  const { data: opcoes, error: errOpc } = await sb.from('reposicao_opcoes').select('*');
   if (errOpc) console.error('Erro reposicao_opcoes:', errOpc);
 
   return (reposicoes || []).map(r => ({

@@ -96,10 +96,14 @@ async function executarCargaInicial() {
   }
 
   try {
-    await carregarTurmas();
-    await carregarAlunos();
+    // Tudo sai de uma vez. Alunos e presenças só esperam as turmas na hora
+    // de filtrar, e o histórico (que precisa dos ids dos alunos) começa assim
+    // que os alunos chegam, sem esperar o resto.
+    const turmasProntas = carregarTurmas();
     await Promise.all([
-      carregarPresencas(), carregarHistorico(), carregarProfessores(), carregarCursos(),
+      turmasProntas,
+      carregarAlunos(turmasProntas).then(carregarHistorico),
+      carregarPresencas(turmasProntas), carregarProfessores(), carregarCursos(),
       carregarReposicoes().then(lista => { state.REPOSICOES = lista; }),
     ]);
     await sincronizarCursosComTurmas();

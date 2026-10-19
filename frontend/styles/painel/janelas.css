@@ -138,6 +138,13 @@
   margin-bottom: var(--e-5);
 }
 
+/* A ficha do aluno é larga: os seis dados cabem em duas linhas de três */
+@media (min-width: 600px) {
+  #modal-aluno .info-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .info-item {
   min-width: 0;
   padding: 12px 14px;

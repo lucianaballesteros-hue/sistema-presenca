@@ -7,7 +7,10 @@
 .table-wrap,
 .metr-table-wrap {
   overflow: auto;
-  overscroll-behavior: contain;
+  /* Só na horizontal: com "contain" nos dois eixos, a tabela que rola de
+     lado engolia a roda do mouse e a página não descia com o cursor em
+     cima dela. */
+  overscroll-behavior-x: contain;
   border: 1px solid var(--contorno);
   border-radius: var(--raio-painel);
   background: var(--superficie);
