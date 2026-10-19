@@ -3,8 +3,9 @@
    nova versão e os estados vazios.
    ============================================================ */
 
-/* ---------- Toast: cápsula escura no estilo HUD da Apple, com o
-   pontinho na cor do tipo (verde, azul ou vermelho) ---------- */
+/* ---------- Toast: cartão com o ícone na cor do tipo (verde =
+   feito, vermelho = erro, azul = informação), botão de fechar e uma
+   barrinha embaixo que mostra quanto falta para sumir ---------- */
 .toast-container {
   position: fixed;
   right: 24px;
@@ -13,51 +14,114 @@
   display: flex;
   flex-direction: column-reverse;
   align-items: flex-end;
-  gap: var(--e-2);
+  gap: var(--e-3);
   pointer-events: none;
 }
 
 .toast-item {
+  --tipo: var(--sucesso);
+  --tipo-suave: var(--sucesso-suave);
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: min(26rem, calc(100vw - 32px));
-  padding: 11px 18px 11px 14px;
-  border: 1px solid rgb(255 255 255 / 0.10);
-  border-radius: 999px;
-  background: rgb(29 29 31 / 0.88);
-  -webkit-backdrop-filter: var(--vidro-desfoque);
-  backdrop-filter: var(--vidro-desfoque);
+  gap: var(--e-3);
+  width: max-content;
+  min-width: 20rem;
+  max-width: min(28rem, calc(100vw - 32px));
+  min-height: 60px;
+  padding: 12px 10px 12px 14px;
+  overflow: hidden;
+  border: 1px solid var(--contorno);
+  border-radius: 16px;
+  background: var(--superficie);
   box-shadow: var(--sombra-menu);
-  color: #FFFFFF;
+  color: var(--rotulo);
+  font-size: 0.9375rem;
   font-weight: 500;
+  line-height: 1.35;
   cursor: pointer;
   pointer-events: auto;
   animation: toast-entrar 0.32s var(--mola);
 }
 
-.toast-item::before {
-  content: "";
+.toast-item.red {
+  --tipo: var(--perigo);
+  --tipo-suave: var(--perigo-suave);
+}
+
+.toast-item.blue {
+  --tipo: var(--acento);
+  --tipo-suave: var(--acento-suave);
+}
+
+.toast-item.saindo {
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-item__icone {
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 32px;
+  height: 32px;
+  padding: 5px;
   border-radius: 50%;
-  background: #34C759;
-  box-shadow: 0 0 0 3px rgb(52 199 89 / 0.25);
+  background: var(--tipo-suave);
+  color: var(--tipo);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.toast-item.blue::before {
-  background: #0A84FF;
-  box-shadow: 0 0 0 3px rgb(10 132 255 / 0.28);
+.toast-item__icone circle {
+  fill: currentColor;
 }
 
-.toast-item.red::before {
-  background: #FF453A;
-  box-shadow: 0 0 0 3px rgb(255 69 58 / 0.28);
+.toast-item__texto {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-[data-theme="dark"] .toast-item {
-  background: rgb(58 58 60 / 0.92);
+.toast-item__fechar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  align-self: flex-start;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--rotulo-3);
+}
+
+.toast-item__fechar .icone {
+  width: 16px;
+  height: 16px;
+}
+
+.toast-item__fechar:hover {
+  background: var(--preenchimento);
+  color: var(--rotulo);
+}
+
+/* Tempo restante: encolhe da direita para a esquerda; pausa com o mouse
+   em cima (o JS pausa a contagem junto) */
+.toast-item__tempo {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--tipo);
+  opacity: 0.55;
+  transform-origin: left;
+  animation: toast-tempo var(--duracao, 4s) linear forwards;
+}
+
+.toast-item:hover .toast-item__tempo {
+  animation-play-state: paused;
 }
 
 @keyframes toast-entrar {
@@ -67,12 +131,24 @@
   }
 }
 
+@keyframes toast-tempo {
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @media (max-width: 599px) {
   .toast-container {
     right: 16px;
     bottom: calc(16px + env(safe-area-inset-bottom));
     left: 16px;
-    align-items: center;
+    align-items: stretch;
+  }
+
+  .toast-item {
+    width: auto;
+    min-width: 0;
+    max-width: none;
   }
 }
 

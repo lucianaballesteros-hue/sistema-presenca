@@ -354,17 +354,21 @@
   counter-reset: passo;
 }
 
+/* O número fica fora do fluxo do texto: assim o texto e os negritos
+   correm numa linha só, quebrando normalmente */
 .passos li {
-  display: flex;
-  gap: 8px;
+  position: relative;
+  padding-left: 27px;
   counter-increment: passo;
   color: var(--rotulo-2);
 }
 
 .passos li::before {
   content: counter(passo);
+  position: absolute;
+  top: 0;
+  left: 0;
   display: grid;
-  flex: none;
   place-items: center;
   width: 19px;
   height: 19px;

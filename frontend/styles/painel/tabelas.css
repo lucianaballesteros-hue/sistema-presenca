@@ -133,4 +133,11 @@ td.empty {
   td {
     padding-inline: 12px;
   }
+
+  /* No celular cada célula fica numa linha só e a tabela rola de lado
+     dentro do cartão — espremida, os nomes quebravam uma palavra por
+     linha */
+  .table-wrap td {
+    white-space: nowrap;
+  }
 }

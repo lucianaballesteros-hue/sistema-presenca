@@ -125,11 +125,18 @@
   opacity: 0.9;
 }
 
+/* Linha de cima: cor, curso e as ações. O nome vem embaixo, com a
+   largura toda do cartão */
 .turma-card__topo {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: var(--e-3);
+}
+
+.turma-card__topo .turma-card__selos {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Cor escolhida para a turma */
@@ -141,14 +148,18 @@
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
 }
 
+/* Nome inteiro em até duas linhas — numa linha só, "ELAS Segunda 18:30
+   PR 2/26" virava "ELAS Segun…" e as turmas ficavam iguais entre si */
 .turma-card__nome {
-  flex: 1;
-  min-width: 0;
+  display: -webkit-box;
+  margin-bottom: var(--e-2);
   overflow: hidden;
   font: 600 1rem/1.375rem var(--fonte);       /* 16/22 */
   letter-spacing: -0.012em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .turma-card-actions {

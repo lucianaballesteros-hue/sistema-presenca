@@ -59,7 +59,9 @@ function alternarBarra() {
     const abrir = !app.hasAttribute('data-barra-aberta');
     app.toggleAttribute('data-barra-aberta', abrir);
     sincronizarBarra();
-    if (abrir) barra.querySelector('.nav-btn.active, .nav-btn')?.focus();
+    // (duas buscas: com "a, b" numa só, vinha sempre o primeiro botão da
+    // lista, não o da aba aberta)
+    if (abrir) (barra.querySelector('.nav-btn.active') || barra.querySelector('.nav-btn'))?.focus();
     return;
   }
   const ocultar = !app.hasAttribute('data-barra-oculta');

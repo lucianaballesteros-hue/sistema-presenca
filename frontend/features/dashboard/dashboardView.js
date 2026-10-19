@@ -68,14 +68,14 @@ export function renderDash() {
     return `<div class="turma-card ${inativa ? 'turma-card-inativa' : ''}" onclick="abrirChamada(${t.id})">
       <div class="turma-card__topo">
         <span class="turma-card__cor" style="background:${t.cor || '#3b82f6'};"></span>
-        <div class="turma-card__nome" title="${escapeHtml(t.turma)}">${escapeHtml(t.turma)}</div>
+        <div class="turma-card__selos">${t.curso ? `<span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso)}</span>` : '<span class="badge badge-gray">Sem curso</span>'}${inativa ? '<span class="badge badge-gray">Inativa</span>' : ''}</div>
         <div class="turma-card-actions">
           <button class="inline-edit-btn" title="Editar turma" aria-label="Editar turma" onclick="event.stopPropagation();abrirModalEditarTurma(${t.id})"><span class="icon-mask icon-editar"></span></button>
           ${podeGerenciarTurmasInativas() ? `<button class="inline-edit-btn" title="${inativa ? 'Reativar turma' : 'Inativar turma'}" aria-label="${inativa ? 'Reativar turma' : 'Inativar turma'}" onclick="event.stopPropagation();toggleTurmaAtiva(event, ${t.id})">${inativa ? '<span class="icon-mask icon-ativar"></span>' : '<span class="icon-mask icon-pausa"></span>'}</button>` : ''}
         </div>
       </div>
+      <div class="turma-card__nome" title="${escapeHtml(t.turma)}">${escapeHtml(t.turma)}</div>
       <div class="turma-card__info">
-        <div class="turma-card__selos">${t.curso ? `<span class="badge ${corBadge(t.curso)}">${escapeHtml(t.curso)}</span>` : '<span class="badge badge-gray">Sem curso</span>'}${inativa ? '<span class="badge badge-gray">Inativa</span>' : ''}</div>
         <span class="turma-card__linha">Prof. ${escapeHtml(professorNome(t))}</span>
         <span class="turma-card__linha">${al.length} alunos${at > 0 ? ` · <span class="turma-card__alerta" onclick="event.stopPropagation();irParaAlertas(${t.id})">${at} alerta${at > 1 ? 's' : ''}</span>` : ''}</span>
         <div class="turma-card__selos">${ultimaAula ? `<span class="badge badge-blue" title="Última aula com presença registrada">Última aula: ${ultimaAula}</span>` : `<span class="badge badge-gray" title="Nenhuma presença registrada ainda">Sem aulas registradas</span>`}${horarioTag}</div>
