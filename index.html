@@ -1010,7 +1010,7 @@
 
   <!-- MODAL NOVA TURMA -->
   <div class="modal-bg" id="modal-nova-turma">
-    <div class="modal">
+    <div class="modal modal--largo">
       <div class="modal-header">
         <div class="modal-title">Criar nova turma</div>
         <button class="close-btn" onclick="fecharModal('modal-nova-turma')" aria-label="Fechar"><svg class="icone" aria-hidden="true"><use href="#i-fechar" /></svg></button>
@@ -1021,17 +1021,19 @@
           onkeydown="if(event.key==='Enter')salvarNovaTurma()" />
         <div id="nt-nome-aviso" class="aviso-campo" style="display:none;"></div>
       </div>
-      <div class="field">
-        <label for="nt-curso">Curso</label>
-        <div class="curso-select-row">
-          <select id="nt-curso" onchange="verificarTurmaDuplicada()"></select>
-          <button type="button" class="select-add-btn" title="Criar novo curso" aria-label="Criar novo curso"
-            onclick="abrirModalNovoCurso('nt')">+</button>
+      <div class="campos-lado">
+        <div class="field">
+          <label for="nt-curso">Curso</label>
+          <div class="curso-select-row">
+            <select id="nt-curso" onchange="verificarTurmaDuplicada()"></select>
+            <button type="button" class="select-add-btn" title="Criar novo curso" aria-label="Criar novo curso"
+              onclick="abrirModalNovoCurso('nt')">+</button>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label for="nt-professor">Professor(a)</label>
-        <select id="nt-professor"></select>
+        <div class="field">
+          <label for="nt-professor">Professor(a)</label>
+          <select id="nt-professor"></select>
+        </div>
       </div>
       <div class="field">
         <label for="nt-total-aulas">Quantidade de aulas</label>
@@ -1083,7 +1085,7 @@
 
   <!-- MODAL EDITAR TURMA -->
   <div class="modal-bg" id="modal-editar-turma">
-    <div class="modal">
+    <div class="modal modal--largo">
       <div class="modal-header">
         <div class="modal-title">Editar turma</div>
         <button class="close-btn" onclick="fecharModal('modal-editar-turma')" aria-label="Fechar"><svg class="icone" aria-hidden="true"><use href="#i-fechar" /></svg></button>
@@ -1094,17 +1096,19 @@
         <input type="text" id="et-nome" placeholder="Ex: Segunda 19h"
           onkeydown="if(event.key==='Enter')salvarEditarTurma()" />
       </div>
-      <div class="field">
-        <label for="et-curso">Curso</label>
-        <div class="curso-select-row">
-          <select id="et-curso"></select>
-          <button type="button" class="select-add-btn" title="Criar novo curso" aria-label="Criar novo curso"
-            onclick="abrirModalNovoCurso('et')">+</button>
+      <div class="campos-lado">
+        <div class="field">
+          <label for="et-curso">Curso</label>
+          <div class="curso-select-row">
+            <select id="et-curso"></select>
+            <button type="button" class="select-add-btn" title="Criar novo curso" aria-label="Criar novo curso"
+              onclick="abrirModalNovoCurso('et')">+</button>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label for="et-professor">Professor(a)</label>
-        <select id="et-professor"></select>
+        <div class="field">
+          <label for="et-professor">Professor(a)</label>
+          <select id="et-professor"></select>
+        </div>
       </div>
       <div class="field">
         <label for="et-total-aulas">Quantidade de aulas</label>

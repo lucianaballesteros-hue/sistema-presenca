@@ -65,18 +65,26 @@ function kpiCardHtml({ value, label, badge }) {
 // Troca o "recorte" do dashboard inteiro: cada opção filtra turmas/alunos
 // pela palavra-chave do curso, usando a mesma cor que o curso já tem em
 // badges no resto do sistema (temaCurso, em backend/domain/status.js).
-function focoSwitchHtml(focoAtual) {
-  const geralAtivo = focoAtual === 'geral';
-  const botoes = [
-    `<button class="foco-btn ${geralAtivo ? 'active' : ''}" style="--foco-dot:var(--primary);" onclick="setFocoMetricas('geral')">
-      <span class="foco-btn-dot"></span>Geral
-    </button>`,
-    ...FOCOS_METRICAS.map(t => `<button class="foco-btn ${focoAtual === t.chave ? 'active' : ''}" style="--foco-dot:${t.cor};" onclick="setFocoMetricas('${t.chave}')">
-      <span class="foco-btn-dot"></span>${t.chave}
-    </button>`),
-  ];
-  const corIndicador = geralAtivo ? 'var(--primary-soft)' : FOCOS_METRICAS.find(t => t.chave === focoAtual)?.corSoft;
-  return `<div class="foco-indicator" id="metr-foco-indicator" style="background:${corIndicador};"></div>${botoes.join('')}`;
+// Os botões são montados uma vez só; depois cada troca só move a pílula.
+// Antes o seletor era redesenhado a cada clique, e a pílula nova nascia na
+// posição zero — a animação sempre recomeçava do "Geral".
+function atualizarFocoSwitch(focoAtual) {
+  const wrap = document.getElementById('metr-foco');
+  if (!wrap.querySelector('.foco-indicator')) {
+    wrap.innerHTML = `<div class="foco-indicator" id="metr-foco-indicator"></div>` + [
+      `<button class="foco-btn" data-foco="geral" style="--foco-dot:var(--primary);" onclick="setFocoMetricas('geral')">
+        <span class="foco-btn-dot"></span>Geral
+      </button>`,
+      ...FOCOS_METRICAS.map(t => `<button class="foco-btn" data-foco="${t.chave}" style="--foco-dot:${t.cor};" onclick="setFocoMetricas('${t.chave}')">
+        <span class="foco-btn-dot"></span>${t.chave}
+      </button>`),
+    ].join('');
+  }
+  wrap.querySelectorAll('.foco-btn').forEach(b => b.classList.toggle('active', b.dataset.foco === focoAtual));
+  document.getElementById('metr-foco-indicator').style.background = focoAtual === 'geral'
+    ? 'var(--primary-soft)'
+    : FOCOS_METRICAS.find(t => t.chave === focoAtual)?.corSoft;
+  moverIndicadorFoco();
 }
 
 function moverIndicadorFoco() {
@@ -104,8 +112,7 @@ export function renderMetricas() {
   const alunoIdsFoco = new Set(alunosFoco.map(a => a.id));
   const historicoFoco = foco === 'geral' ? state.HISTORICO : state.HISTORICO.filter(h => alunoIdsFoco.has(h.aluno_id));
 
-  document.getElementById('metr-foco').innerHTML = focoSwitchHtml(foco);
-  moverIndicadorFoco();
+  atualizarFocoSwitch(foco);
   document.getElementById('metr-page-sub').textContent = foco === 'geral'
     ? 'Visão geral do sistema, em tempo real'
     : `Visão geral de ${foco}, em tempo real`;

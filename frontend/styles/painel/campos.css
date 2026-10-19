@@ -12,6 +12,19 @@
   margin-bottom: var(--e-4);
 }
 
+/* Dois campos lado a lado nas janelas largas; no celular, um embaixo do outro */
+.campos-lado {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--e-4);
+}
+
+@media (max-width: 599px) {
+  .campos-lado {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .field > label {
   font-weight: 600;
   font-size: 0.8125rem;
