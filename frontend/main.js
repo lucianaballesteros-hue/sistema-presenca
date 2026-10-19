@@ -19,7 +19,7 @@ import { toggleTema } from './features/theme/theme.js';
 import { doLogin, doLogout, restoreSession } from './features/auth/auth.js';
 import { abrirRecuperarSenha, voltarParaLogin, enviarLinkRecuperacao, salvarNovaSenhaRecuperacao } from './features/auth/recovery.js';
 
-import { renderDash, setCurso, irParaAlertas } from './features/dashboard/dashboardView.js';
+import { renderDash, setCurso, setGrupoTurmas, irParaAlertas } from './features/dashboard/dashboardView.js';
 import {
   abrirModalNovaTurma, selecionarCorNovaTurma, salvarNovaTurma,
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
@@ -79,7 +79,7 @@ Object.assign(window, {
   toggleTema,
   doLogin, doLogout, abrirRecuperarSenha, voltarParaLogin, enviarLinkRecuperacao, salvarNovaSenhaRecuperacao,
   goTab,
-  renderDash, setCurso, irParaAlertas,
+  renderDash, setCurso, setGrupoTurmas, irParaAlertas,
   abrirModalNovaTurma, selecionarCorNovaTurma, salvarNovaTurma,
   abrirModalEditarTurma, selecionarCorEditarTurma, salvarEditarTurma,
   toggleTurmaAtiva, marcarPresetAtivo, aplicarPreset, limparHorario, verificarTurmaDuplicada,

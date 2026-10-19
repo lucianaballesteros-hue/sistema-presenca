@@ -23,33 +23,34 @@ export function renderDash() {
     <div class="stat-card"><div class="stat-label">Irregulares (&lt;70%)</div><div class="stat-val amber">${irregulares}</div></div>
     <div class="stat-card"><div class="stat-label">Alertas (3 últimas faltas)</div><div class="stat-val red">${alertas}</div></div>`;
 
-  const cursos = [...new Set(ativas.map(t => t.curso).filter(Boolean))];
-
-  // Professores não precisam acompanhar turmas encerradas — só admin vê essa pill/filtro.
-  if (!ehAdmin() && state.filtroCurso === '__inativas__') state.filtroCurso = '';
-
+  // Três filtros que se somam, no mesmo formato da aba Alunos: "Mostrar"
+  // escolhe o grupo (todas / suas / inativas), "Curso" recorta dentro dele e
+  // a busca procura por turma ou professor. Antes tudo era uma fileira só de
+  // pílulas, misturando curso com situação — e não dava para ver, por
+  // exemplo, só as suas turmas de um curso.
+  //
   // Vínculo de posse é sempre por professor_id (nunca por nome) — ver
   // professorNome() em backend/domain/status.js para o motivo.
   const minhasTurmas = ativas.filter(t => t.professor_id === state.perfilLogado?.id);
-  document.getElementById('curso-pills').innerHTML =
-    `<button class="cpill ${state.filtroCurso === '' ? 'active' : ''}" onclick="setCurso('')">Todos</button>` +
-    (minhasTurmas.length > 0
-      ? `<button class="cpill ${state.filtroCurso === '__minhas__' ? 'active' : ''}" onclick="setCurso('__minhas__')">Suas Turmas<span class="cpill-count">${minhasTurmas.length}</span></button>`
-      : '') +
-    cursos.map(c => `<button class="cpill ${state.filtroCurso === c ? 'active' : ''}" onclick="setCurso('${escapeAttr(c)}')">${escapeHtml(c)}</button>`).join('') +
-    (ehAdmin()
-      ? `<button class="cpill ${state.filtroCurso === '__inativas__' ? 'active' : ''}" onclick="setCurso('__inativas__')">Turmas inativas<span class="cpill-count">${turmasInativas.length}</span></button>`
-      : '');
+  const grupos = [
+    { valor: '', rotulo: 'Todas', turmas: ativas },
+    minhasTurmas.length > 0 && { valor: '__minhas__', rotulo: `Suas turmas (${minhasTurmas.length})`, turmas: minhasTurmas },
+    // Professores não acompanham turmas encerradas — só admin vê esse grupo.
+    ehAdmin() && { valor: '__inativas__', rotulo: `Inativas (${turmasInativas.length})`, turmas: turmasInativas },
+  ].filter(Boolean);
+  const grupo = grupos.find(g => g.valor === state.filtroGrupoTurmas) || grupos[0];
+  state.filtroGrupoTurmas = grupo.valor;
+  preencherFiltro('f-grupo-turmas', grupos.map(g => [g.valor, g.rotulo]), grupo.valor);
+  document.getElementById('filtro-grupo-turmas').classList.toggle('hidden', grupos.length < 2);
+
+  const cursos = [...new Set(grupo.turmas.map(t => t.curso).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  if (!cursos.includes(state.filtroCurso)) state.filtroCurso = '';
+  preencherFiltro('f-curso-turmas', [['', 'Todos'], ...cursos.map(c => [c, c])], state.filtroCurso);
 
   const buscaTurma = (document.getElementById('busca-turmas')?.value || '').toLowerCase();
-  let filtradas = state.filtroCurso === '__inativas__' && ehAdmin()
-    ? turmasInativas
-    : state.filtroCurso === '__minhas__'
-      ? minhasTurmas
-      : state.filtroCurso
-        ? ativas.filter(t => t.curso === state.filtroCurso)
-        : ativas;
+  let filtradas = state.filtroCurso ? grupo.turmas.filter(t => t.curso === state.filtroCurso) : grupo.turmas;
   if (buscaTurma) filtradas = filtradas.filter(t => t.turma.toLowerCase().includes(buscaTurma) || professorNome(t).toLowerCase().includes(buscaTurma));
+  document.getElementById('turmas-total').textContent = `${filtradas.length} ${filtradas.length === 1 ? 'turma' : 'turmas'}`;
   filtradas = filtradas.slice().sort((a, b) => {
     const da = ordemDia(a.turma), db = ordemDia(b.turma);
     if (da !== db) return da - db;
@@ -87,6 +88,23 @@ export function renderDash() {
 export function setCurso(c) {
   state.filtroCurso = c;
   renderDash();
+}
+
+export function setGrupoTurmas(g) {
+  state.filtroGrupoTurmas = g;
+  renderDash();
+}
+
+// Reescreve as opções de um <select> de filtro só quando mudaram — o
+// renderDash roda a cada letra digitada na busca.
+function preencherFiltro(id, opcoes, valor) {
+  const sel = document.getElementById(id);
+  const html = opcoes.map(([v, r]) => `<option value="${escapeAttr(v)}">${escapeHtml(r)}</option>`).join('');
+  if (sel.dataset.opcoes !== html) {
+    sel.innerHTML = html;
+    sel.dataset.opcoes = html;
+  }
+  sel.value = valor;
 }
 
 export function irParaAlertas(turmaId) {

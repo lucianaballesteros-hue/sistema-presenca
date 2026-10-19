@@ -365,10 +365,22 @@
             <div class="controles">
               <label class="busca">
                 <svg class="icone busca__lupa" aria-hidden="true"><use href="#i-lupa" /></svg>
-                <input type="text" id="busca-turmas" class="busca__campo" placeholder="Buscar turma..."
-                  aria-label="Buscar turma" oninput="renderDash()">
+                <input type="text" id="busca-turmas" class="busca__campo" placeholder="Buscar turma ou professor..."
+                  aria-label="Buscar turma ou professor" oninput="renderDash()">
               </label>
-              <div class="curso-pills" id="curso-pills"></div>
+              <div class="filtro">
+                <span class="filtro__rotulo">Curso</span>
+                <select id="f-curso-turmas" onchange="setCurso(this.value)" data-custom-select>
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div class="filtro" id="filtro-grupo-turmas">
+                <span class="filtro__rotulo">Mostrar</span>
+                <select id="f-grupo-turmas" onchange="setGrupoTurmas(this.value)" data-custom-select>
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <span class="controles__total" id="turmas-total"></span>
             </div>
             <div id="turmas-grid" class="turmas-grid"></div>
           </div>

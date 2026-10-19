@@ -527,6 +527,15 @@ a.nav-btn::before {
   margin-bottom: var(--e-5);
 }
 
+/* "18 turmas": quantos itens os filtros deixaram, encostado à direita */
+.controles__total {
+  margin-left: auto;
+  color: var(--rotulo-2);
+  font: var(--t-nota);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* Título de seção dentro de uma tela */
 .secao__titulo {
   font: var(--t-titulo-secao);

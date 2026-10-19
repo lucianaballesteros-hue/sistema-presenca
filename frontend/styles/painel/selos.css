@@ -121,23 +121,6 @@
   color: var(--sobre-acento);
 }
 
-/* Celular: as pílulas rolam de lado em vez de quebrarem em várias linhas */
-@media (max-width: 599px) {
-  .controles .curso-pills {
-    flex: 1 1 100%;
-    flex-wrap: nowrap;
-    margin: -4px calc(-1 * var(--margem));
-    padding: 4px var(--margem);
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-
-  .controles .curso-pills::-webkit-scrollbar {
-    display: none;
-  }
-}
-
 @media (forced-colors: active) {
   .badge,
   .cpill {

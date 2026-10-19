@@ -250,6 +250,11 @@
   font-weight: 400;
 }
 
+/* Lista recém-desenhada: as pílulas já nascem no lugar (ver chamadaView.js) */
+.sem-transicao .pbtn-indicator {
+  transition: none !important;
+}
+
 /* Presente / Falta / Gravação: trilha do controle segmentado */
 .pbtns {
   position: relative;

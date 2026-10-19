@@ -84,10 +84,20 @@ function statusDaLinha(row, key) {
   return state.PRESENCAS[key]?.[Number(row.dataset.alunoId)] || '';
 }
 
-function posicionarIndicadoresLinhas(key) {
-  document.querySelectorAll('#alunos-list .aluno-row').forEach(row => {
+// `semAnimar`: linhas recém-desenhadas (troca de aula, atualização vinda de
+// outra aba) já nascem com a pílula no lugar. Sem isso, toda pílula nova
+// saía do zero e deslizava até o botão — a animação parecia recomeçar a
+// cada troca.
+function posicionarIndicadoresLinhas(key, semAnimar = false) {
+  const lista = document.getElementById('alunos-list');
+  if (semAnimar) lista.classList.add('sem-transicao');
+  lista.querySelectorAll('.aluno-row').forEach(row => {
     moverIndicadorPbtn(row.querySelector('.pbtns'), statusDaLinha(row, key));
   });
+  if (semAnimar) {
+    void lista.offsetWidth; // aplica as posições antes de religar a transição
+    lista.classList.remove('sem-transicao');
+  }
 }
 
 function reposicionarIndicadoresChamada() {
@@ -193,7 +203,7 @@ export function renderChamada() {
   document.getElementById('alunos-list').innerHTML =
     [...linhasAlunos, ...linhasReposicao].join('') || '<div class="empty">Nenhum aluno nesta turma.</div>';
 
-  posicionarIndicadoresLinhas(key);
+  posicionarIndicadoresLinhas(key, true);
 }
 
 function atualizarLinha(row, val) {
