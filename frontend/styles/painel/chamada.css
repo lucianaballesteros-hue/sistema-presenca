@@ -1,0 +1,308 @@
+/* ============================================================
+   CHAMADA — a tela de fazer a chamada de uma turma (abre dentro
+   da aba Turmas; o nome da turma vai para o cabeçalho). Um cartão
+   com a aula e os quadradinhos das aulas, os contadores e a lista
+   de alunos, no formato de lista agrupada do iOS.
+
+   Os indicadores que deslizam (anel da aula ativa, pílula de
+   presença) são medidos pelo JS em pixels: o anel e a grade de
+   aulas dividem o mesmo ponto de origem (.chamada-aulas__trilho,
+   sem padding), e a pílula mede a partir de .pbtns.
+   ============================================================ */
+
+.chamada-top {
+  display: grid;
+  gap: var(--e-4);
+  margin-bottom: var(--e-4);
+  padding: var(--e-4) var(--e-5);
+  border: 1px solid var(--contorno);
+  border-radius: var(--raio-cartao);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.chamada-top__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-3) var(--e-4);
+}
+
+/* Logo do curso: sem caixa de fundo (o do Master é branco sobre
+   transparente) — a sombra garante o contraste */
+.chamada-logo {
+  display: none;
+  flex-shrink: 0;
+  width: auto;
+  height: auto;
+  max-width: 150px;
+  max-height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.5));
+}
+
+.chamada-logo.visible {
+  display: block;
+}
+
+.chamada-top .filtro {
+  background: var(--janela);
+  box-shadow: none;
+}
+
+.chamada-status {
+  color: var(--sucesso);
+  font: var(--t-nota);
+}
+
+/* "6 de 14 aulas com registro" — a amostra repete o quadradinho verde */
+.chamada-top__legenda {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  color: var(--rotulo-2);
+  font: var(--t-nota);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.chamada-top__legenda:empty {
+  display: none;
+}
+
+.chamada-top__legenda::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border-radius: 4px;
+  background: var(--green-soft);
+}
+
+.chamada-top__legenda strong {
+  color: var(--green-soft-text);
+  font-weight: 700;
+}
+
+/* Origem comum do anel e dos quadradinhos: sem padding nem borda */
+.chamada-aulas__trilho {
+  position: relative;
+}
+
+.aula-chip-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: var(--cw, 0px);
+  height: var(--ch, 30px);
+  transform: translate(var(--cx, 0px), var(--cy, 0px));
+  border: 2px solid var(--acento);
+  border-radius: 12px;
+  pointer-events: none;
+  transition: transform 0.28s var(--mola), width 0.22s ease, height 0.22s ease, opacity 0.15s;
+}
+
+/* ---------- Contadores ---------- */
+.chamada-counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+  margin-bottom: var(--e-4);
+}
+
+.chamada-counters > span {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--superficie);
+  box-shadow: inset 0 0 0 1px var(--contorno), var(--sombra-cartao);
+  color: var(--rotulo-2);
+  font: var(--t-nota);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Lista de alunos ---------- */
+.alunos-list {
+  overflow: hidden;
+  border: 1px solid var(--contorno);
+  border-radius: var(--raio-cartao);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.aluno-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  min-height: 60px;
+  padding: 10px var(--e-5);
+  cursor: pointer;
+  transition: background-color var(--rapido) ease;
+}
+
+/* Separador recuado, como nas listas do iOS */
+.aluno-row + .aluno-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: calc(var(--e-5) + 34px);
+  height: 1px;
+  background: var(--separador-leve);
+}
+
+.aluno-row:hover {
+  background: color-mix(in srgb, var(--rotulo) 3%, var(--superficie));
+}
+
+.aluno-row.inativo {
+  opacity: 0.45;
+}
+
+.aluno-row.experimental {
+  background: color-mix(in srgb, var(--amarelo) 12%, var(--superficie));
+}
+
+/* Aluno de outra turma vindo repor esta aula */
+.aluno-row.reposicao {
+  background: color-mix(in srgb, var(--acento) 5%, var(--superficie));
+  box-shadow: inset 3px 0 0 var(--acento);
+}
+
+.aluno-num {
+  flex: none;
+  width: 22px;
+  color: var(--rotulo-3);
+  font: var(--t-nota);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.aluno-nome {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--e-2);
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* A linha inteira abre o cadastro do aluno; o nome acende para mostrar.
+   Em cima dos botões de presença, não. */
+.aluno-row:hover:not(:has(.pbtns:hover)) .aluno-nome {
+  color: var(--link);
+}
+
+.pbtns {
+  cursor: default;
+}
+
+.aluno-status-experimental,
+.aluno-status-reposicao {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.aluno-status-experimental {
+  background: var(--amarelo-suave);
+  color: var(--amarelo-texto);
+}
+
+.aluno-status-reposicao {
+  background: var(--acento-suave);
+  color: var(--link);
+}
+
+.status-dot-exp,
+.status-dot-rep {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-dot-exp {
+  background: var(--amarelo);
+}
+
+.status-dot-rep {
+  background: var(--acento);
+}
+
+.aluno-reposicao-origem {
+  color: var(--rotulo-2);
+  font: var(--t-nota);
+  font-weight: 400;
+}
+
+/* Lista recém-desenhada: as pílulas já nascem no lugar (ver chamadaView.js) */
+.sem-transicao .pbtn-indicator {
+  transition: none !important;
+}
+
+/* Presente / Falta / Gravação: trilha do controle segmentado */
+.pbtns {
+  position: relative;
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--preenchimento);
+}
+
+/* Celular: nome em cima, os três botões embaixo ocupando a linha toda
+   (o alvo de toque mais repetido do sistema) */
+@media (max-width: 760px) {
+  .aluno-row {
+    flex-wrap: wrap;
+    row-gap: var(--e-2);
+    padding: 12px var(--e-4);
+  }
+
+  .aluno-row + .aluno-row::before {
+    left: var(--e-4);
+  }
+
+  .aluno-num {
+    width: auto;
+    min-width: 18px;
+    text-align: left;
+  }
+
+  .aluno-nome {
+    flex: 1 1 calc(100% - 40px);
+  }
+
+  .pbtns {
+    width: 100%;
+  }
+
+  .pbtn {
+    flex: 1 1 0;
+    padding: 0 6px;
+  }
+
+  .chamada-top {
+    padding: var(--e-4);
+  }
+
+  .chamada-top__legenda {
+    display: none;
+  }
+}

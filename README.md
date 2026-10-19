@@ -22,7 +22,8 @@ frontend/               camada de interface: telas, estado da UI, estilos e asse
   state/                estado mutável central da aplicação (store.js)
   shared/                utilitários genéricos (escape de HTML, toasts, navegação, confirm() customizado,
                          detecção de duplicados, selects estilizados, motor de gráficos SVG)
-  styles/                CSS organizado por base/ (reset, tema, "liquid glass") → layout/ (header, nav, content) → components/
+  styles/                painel/ — o CSS do painel (index.html), no mesmo padrão visual da Gestão de Reuniões
+                         base/, layout/, components/ + preview-admin.css — estilos das páginas do cadastro online
                          + public-reposicao.css (autocontido, só da página de reposição)
   public/                código da página pública de reposição — isolado, não importa nada de state/features do painel
   img/                   logos usadas pelo painel e pela página pública

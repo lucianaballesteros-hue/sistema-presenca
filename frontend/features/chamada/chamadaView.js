@@ -84,10 +84,20 @@ function statusDaLinha(row, key) {
   return state.PRESENCAS[key]?.[Number(row.dataset.alunoId)] || '';
 }
 
-function posicionarIndicadoresLinhas(key) {
-  document.querySelectorAll('#alunos-list .aluno-row').forEach(row => {
+// `semAnimar`: linhas recém-desenhadas (troca de aula, atualização vinda de
+// outra aba) já nascem com a pílula no lugar. Sem isso, toda pílula nova
+// saía do zero e deslizava até o botão — a animação parecia recomeçar a
+// cada troca.
+function posicionarIndicadoresLinhas(key, semAnimar = false) {
+  const lista = document.getElementById('alunos-list');
+  if (semAnimar) lista.classList.add('sem-transicao');
+  lista.querySelectorAll('.aluno-row').forEach(row => {
     moverIndicadorPbtn(row.querySelector('.pbtns'), statusDaLinha(row, key));
   });
+  if (semAnimar) {
+    void lista.offsetWidth; // aplica as posições antes de religar a transição
+    lista.classList.remove('sem-transicao');
+  }
 }
 
 function reposicionarIndicadoresChamada() {
@@ -119,8 +129,17 @@ function atualizarContadores(aula) {
     `<span style="color:var(--green);">✓ ${p} presentes</span><span style="color:var(--red);">✗ ${f} faltas</span><span style="color:var(--amber);">↺ ${r} gravações</span><span>○ ${s} sem registro</span>`;
 }
 
+// O clique nos botões não sobe para a linha (que abre o cadastro do aluno).
+// Resumo ao lado da aula: quantas aulas já têm registro — a amostra verde
+// é a mesma cor dos quadradinhos, e serve de legenda para eles.
+function atualizarResumoAulas(registroAulas) {
+  const feitas = registroAulas.filter(Boolean).length;
+  document.getElementById('ch-aulas-resumo').innerHTML =
+    `<strong>${feitas}</strong>&nbsp;de ${registroAulas.length} aulas com registro`;
+}
+
 function pbtnsHtml(acao) {
-  return `<div class="pbtns">
+  return `<div class="pbtns" onclick="event.stopPropagation()">
         <div class="pbtn-indicator"></div>
         <button class="pbtn pbtn-p" data-val="P" onclick="${acao('P')}">✓ Presente</button>
         <button class="pbtn pbtn-f" data-val="F" onclick="${acao('F')}">✗ Falta</button>
@@ -146,9 +165,9 @@ function avisoReposicaoForaHtml(alunoId, aula) {
 function linhaReposicaoHtml({ rep, aluno }, num) {
   const origem = state.TURMAS.find(t => t.id === rep.turma_origem_id);
   const titulo = `Repondo ${rep.aula}${origem ? ' da turma ' + origem.turma : ''} — o lançamento vai para a turma original do aluno`;
-  return `<div class="aluno-row reposicao" data-aluno-id="${aluno.id}" data-rep-id="${rep.id}">
+  return `<div class="aluno-row reposicao" data-aluno-id="${aluno.id}" data-rep-id="${rep.id}" onclick="abrirModalAluno(${aluno.id})">
       <div class="aluno-num">${num}</div>
-      <div class="aluno-nome" style="cursor:pointer;" onclick="abrirModalAluno(${aluno.id})" title="${escapeHtml(titulo)}">${escapeHtml(aluno.nome)}<span class="aluno-status-reposicao"><span class="status-dot-rep"></span>Reposição</span>${origem ? `<span class="aluno-reposicao-origem">${escapeHtml(origem.turma)}</span>` : ''}</div>
+      <div class="aluno-nome" title="${escapeHtml(titulo)}">${escapeHtml(aluno.nome)}<span class="aluno-status-reposicao"><span class="status-dot-rep"></span>Reposição</span>${origem ? `<span class="aluno-reposicao-origem">${escapeHtml(origem.turma)}</span>` : ''}</div>
       ${pbtnsHtml(v => `marcarReposicao(${rep.id},'${v}')`)}
     </div>`;
 }
@@ -166,6 +185,7 @@ export function renderChamada() {
     const tc = tem ? 'var(--green-soft-text)' : 'var(--gray-soft-text)';
     return `<div class="aula-chip ${ativa ? 'ativa' : ''}" style="background:${bg};color:${tc};cursor:pointer;" title="Ir para ${au}${tem ? ' (já tem registro)' : ' (sem registro)'}" onclick="selecionarAula('${escapeAttr(au)}')">${i + 1}</div>`;
   }).join('');
+  atualizarResumoAulas(registroAulas);
   moverIndicadorAula();
 
   atualizarContadores(aula);
@@ -173,9 +193,9 @@ export function renderChamada() {
   const alunos = alunosDaChamada();
   const reposicoes = reposicoesNaAula(state.turmaAtual.id, aula);
   const linhasAlunos = alunos.map((a, i) => {
-    return `<div class="aluno-row ${a.experimental ? 'experimental' : ''}" data-aluno-id="${a.id}">
+    return `<div class="aluno-row ${a.experimental ? 'experimental' : ''}" data-aluno-id="${a.id}" onclick="abrirModalAluno(${a.id})" title="Ver detalhes do aluno">
       <div class="aluno-num">${i + 1}</div>
-      <div class="aluno-nome" style="cursor:pointer;" onclick="abrirModalAluno(${a.id})" title="Ver detalhes do aluno">${escapeHtml(a.nome)}${a.experimental ? '<span class="aluno-status-experimental"><span class="status-dot-exp"></span>Experimental</span>' : ''}${avisoReposicaoForaHtml(a.id, aula)}</div>
+      <div class="aluno-nome">${escapeHtml(a.nome)}${a.experimental ? '<span class="aluno-status-experimental"><span class="status-dot-exp"></span>Experimental</span>' : ''}${avisoReposicaoForaHtml(a.id, aula)}</div>
       ${pbtnsHtml(v => `marcar(${a.id},'${v}')`)}
     </div>`;
   });
@@ -183,7 +203,7 @@ export function renderChamada() {
   document.getElementById('alunos-list').innerHTML =
     [...linhasAlunos, ...linhasReposicao].join('') || '<div class="empty">Nenhum aluno nesta turma.</div>';
 
-  posicionarIndicadoresLinhas(key);
+  posicionarIndicadoresLinhas(key, true);
 }
 
 function atualizarLinha(row, val) {
@@ -208,12 +228,14 @@ export async function marcar(alunoId, val) {
 
   const aulas = aulasDaTurma(state.turmaAtual);
   const idx = aulas.indexOf(aula);
+  const registroAulas = registroPorAulaDaTurma(state.turmaAtual);
   const chip = document.querySelectorAll('#ch-aulas-grid .aula-chip')[idx];
   if (chip) {
-    const tem = registroPorAulaDaTurma(state.turmaAtual)[idx];
+    const tem = registroAulas[idx];
     chip.style.background = tem ? 'var(--green-soft)' : 'var(--gray-soft)';
     chip.style.color = tem ? 'var(--green-soft-text)' : 'var(--gray-soft-text)';
   }
+  atualizarResumoAulas(registroAulas);
 
   const statusEl = document.getElementById('chamada-status');
   if (statusEl) statusEl.textContent = 'Salvando...';

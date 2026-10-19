@@ -2,10 +2,9 @@ import { state } from '../../state/store.js';
 import { calcAluno, aulasDaTurma } from '../../../backend/domain/attendance.js';
 import { professorNome } from '../../../backend/domain/status.js';
 import { showToast } from '../../shared/dom.js';
+import { carregarXLSX } from '../../shared/xlsx.js';
 
-// A biblioteca xlsx é carregada via <script> global no index.html (sem passo
-// de build neste projeto). Ela só é usada aqui, então mantemos o acoplamento
-// ao global `XLSX` isolado neste único arquivo.
+// A biblioteca xlsx só é baixada na primeira exportação (ver shared/xlsx.js).
 
 // Nomes de turma são texto livre (sem restrição no formulário) mas o Excel
 // proíbe \ / ? * [ ] : em nome de aba e rejeita a pasta de trabalho inteira
@@ -20,6 +19,7 @@ export async function exportarExcel() {
   if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
 
   try {
+    const XLSX = await carregarXLSX();
     const wb = XLSX.utils.book_new();
     const resumoRows = [
       ['Relatório de Frequência — Todas as Turmas'],

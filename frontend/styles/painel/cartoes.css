@@ -1,0 +1,315 @@
+/* ============================================================
+   CARTÕES — números do topo das telas, cartões de turma e de
+   usuário. Brancos sobre o cinza da janela, cantos de 20 px e
+   sombra leve, como os cartões da Gestão de Reuniões.
+   ============================================================ */
+
+/* ---------- Números (Turmas, Usuários, Configurações) ---------- */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--e-4);
+  margin-bottom: var(--e-5);
+}
+
+.stats-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .stats-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--e-3);
+  }
+
+  .stats-row-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.stat-card {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--e-4) var(--e-5);
+  border: 1px solid var(--contorno);
+  border-radius: var(--raio-painel);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.stat-label {
+  overflow: hidden;
+  font: var(--t-chamada);
+  font-weight: 500;
+  color: var(--rotulo-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-val {
+  font: 700 1.75rem/2.125rem var(--fonte-titulo);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--rotulo);
+}
+
+.stat-val.red {
+  color: var(--perigo);
+}
+
+.stat-val.green {
+  color: var(--sucesso);
+}
+
+.stat-val.amber {
+  color: var(--aviso);
+}
+
+@media (max-width: 519px) {
+  .stat-card {
+    padding: var(--e-3) var(--e-4);
+  }
+
+  .stat-val {
+    font-size: 1.5rem;
+    line-height: 1.875rem;
+  }
+
+  .stats-row-3 .stat-label {
+    white-space: normal;
+  }
+}
+
+/* ---------- Cartões de turma ----------
+   No máximo 4 por fileira: a coluna nunca é mais estreita que 1/4 da
+   largura (então não cabe uma 5ª) nem que 13,5rem (em tela menor, cai
+   para 3, 2 ou 1 coluna sozinha — acompanha também a barra lateral
+   aberta ou oculta). Com 13,5rem, um notebook a 1280 px (1920 em escala
+   de 150%) ainda mostra as 4. O -0.1px evita que um arredondamento
+   derrube a 4ª. */
+.turmas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, max(13.5rem, (100% - 3 * var(--e-4)) / 4 - 0.1px)), 1fr));
+  gap: var(--e-4);
+}
+
+.turma-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--contorno);
+  border-radius: var(--raio-cartao);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow var(--rapido) ease, transform var(--rapido) ease, opacity var(--rapido) ease;
+}
+
+.turma-card:hover {
+  box-shadow: var(--sombra-cartao-hover);
+}
+
+.turma-card:active {
+  transform: scale(0.985);
+}
+
+/* Turma inativa (só admin vê): apagada até passar o mouse */
+.turma-card-inativa {
+  opacity: 0.6;
+}
+
+.turma-card-inativa:hover {
+  opacity: 0.9;
+}
+
+/* Linha de cima: cor, curso e as ações. O nome vem embaixo, com a
+   largura toda do cartão */
+.turma-card__topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--e-3);
+}
+
+.turma-card__topo .turma-card__selos {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Cor escolhida para a turma */
+.turma-card__cor {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+/* Nome inteiro em até duas linhas — numa linha só, "ELAS Segunda 18:30
+   PR 2/26" virava "ELAS Segun…" e as turmas ficavam iguais entre si */
+.turma-card__nome {
+  display: -webkit-box;
+  margin-bottom: var(--e-2);
+  overflow: hidden;
+  font: 600 1rem/1.375rem var(--fonte);       /* 16/22 */
+  letter-spacing: -0.012em;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.turma-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  margin: -4px -6px -4px 0;
+}
+
+.turma-card__info {
+  display: grid;
+  gap: 8px;
+  font: 400 0.8125rem/1.125rem var(--fonte);  /* 13/18 */
+  color: var(--rotulo-2);
+}
+
+.turma-card__selos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Selos e horário do cartão no mesmo tamanho do resto do sistema */
+.turma-card .badge {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 0.75rem;                        /* 12 */
+  line-height: 24px;
+}
+
+.turma-card .horario-tag {
+  height: 24px;
+  padding: 0 10px 0 8px;
+  font-size: 0.75rem;
+}
+
+.turma-card .horario-tag.sem-horario {
+  padding: 0 10px;
+}
+
+.turma-card .horario-tag .icon-mask {
+  width: 13px;
+  height: 13px;
+}
+
+.turma-card .btn-chamada {
+  min-height: 40px;
+  margin-top: 18px;
+  font-size: 0.875rem;                       /* 14 */
+}
+
+.turma-card__linha {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "1 alerta": leva para a lista de alunos em alerta da turma */
+.turma-card__alerta {
+  color: var(--perigo);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.turma-card__alerta:hover {
+  text-decoration-style: solid;
+}
+
+/* O pé do cartão fica sempre embaixo, mesmo com cartões de alturas
+   diferentes na mesma fileira */
+.turma-card .turma-card__info {
+  flex: 1;
+  align-content: start;
+}
+
+/* ---------- Cartões de usuário (aba Usuários) ---------- */
+.prof-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: var(--e-4);
+}
+
+.prof-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: var(--e-4) var(--e-5);
+  border: 1px solid var(--contorno);
+  border-radius: var(--raio-cartao);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+  transition: box-shadow var(--rapido) ease;
+}
+
+.prof-card:hover {
+  box-shadow: var(--sombra-cartao-hover);
+}
+
+.prof-av {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  color: #FFFFFF;
+  font: 600 1.0625rem/1 var(--fonte);
+  letter-spacing: 0.01em;
+}
+
+.prof-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.prof-nome {
+  overflow: hidden;
+  font: var(--t-titulo-cartao);
+  font-size: 1rem;
+  letter-spacing: -0.012em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prof-email {
+  overflow: hidden;
+  font: var(--t-chamada);
+  color: var(--rotulo-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prof-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--e-2);
+}
+
+.prof-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  flex: none;
+  align-self: flex-start;
+}

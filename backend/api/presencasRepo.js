@@ -1,27 +1,24 @@
 import { sb } from './supabaseClient.js';
 import { state } from '../../frontend/state/store.js';
+import { buscarTodasAsPaginas } from './paginacao.js';
 
-const PAGE_SIZE = 1000;
+// `turmasProntas`: como em carregarAlunos — a busca sai junto com a das
+// turmas, e só o filtro final espera por elas.
+export async function carregarPresencas(turmasProntas) {
+  const { data, error } = await buscarTodasAsPaginas((de, ate, count) =>
+    sb.from('presencas').select('*', { count })
+      .order('turma_id').order('aluno_id').order('aula').range(de, ate));
+  if (error) console.error('Erro presencas:', error);
+  await turmasProntas;
 
-export async function carregarPresencas() {
-  state.PRESENCAS = {};
   const turmaIds = new Set(state.TURMAS.map(t => t.id));
-  let from = 0;
-
-  while (true) {
-    const { data, error } = await sb.from('presencas').select('*').range(from, from + PAGE_SIZE - 1);
-    if (error) { console.error('Erro presencas:', error); break; }
-    if (!data || data.length === 0) break;
-
-    data.filter(p => turmaIds.has(p.turma_id)).forEach(p => {
-      const key = `${p.turma_id}_${p.aula}`;
-      if (!state.PRESENCAS[key]) state.PRESENCAS[key] = {};
-      state.PRESENCAS[key][p.aluno_id] = p.status;
-    });
-
-    if (data.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
-  }
+  const presencas = {};
+  data.filter(p => turmaIds.has(p.turma_id)).forEach(p => {
+    const key = `${p.turma_id}_${p.aula}`;
+    if (!presencas[key]) presencas[key] = {};
+    presencas[key][p.aluno_id] = p.status;
+  });
+  state.PRESENCAS = presencas;
 }
 
 export async function salvarPresenca(turmaId, alunoId, aula, status) {

@@ -1,0 +1,712 @@
+/* ============================================================
+   CAMPOS — formulários, busca, filtros em cápsula (pop-up do
+   macOS), os menus de escolha (customSelect.js e os multi-select
+   do Relatório), o seletor de turma do "Novo aluno", horário,
+   dias da semana e cor da turma.
+   ============================================================ */
+
+/* ---------- Campos de formulário ---------- */
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: var(--e-4);
+}
+
+/* Dois campos lado a lado nas janelas largas; no celular, um embaixo do outro */
+.campos-lado {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--e-4);
+}
+
+@media (max-width: 599px) {
+  .campos-lado {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.field > label {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--rotulo);
+}
+
+.field input,
+.field select,
+#obs-texto,
+#transf-sel {
+  width: 100%;
+  height: var(--altura-campo);
+  padding: 0 14px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: var(--raio-campo);
+  background: var(--superficie);
+  color: var(--rotulo);
+  outline: none;
+  transition: border-color var(--rapido) ease, box-shadow var(--rapido) ease;
+}
+
+.field input::placeholder,
+#obs-texto::placeholder,
+.busca__campo::placeholder,
+.turma-picker-busca::placeholder,
+.rep-opcao-obs::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+#obs-texto:focus-visible,
+#transf-sel:focus-visible,
+.horario-selects select:focus-visible,
+.rep-opcao-header select:focus-visible,
+.rep-opcao-body input:focus-visible,
+.turma-picker-busca:focus-visible {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 4px var(--anel-foco-suave);
+}
+
+/* Lista de opções com as setas ↕ dos menus do macOS no lugar da seta
+   do Windows */
+.field select,
+#transf-sel,
+.horario-selects select,
+.rep-opcao-header select {
+  appearance: none;
+  padding-right: 34px;
+  background-image: var(--seta-select);
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 9px 14px;
+  cursor: pointer;
+}
+
+/* Campo de senha com o botão mostrar/ocultar dentro, à direita */
+.senha-wrap {
+  position: relative;
+}
+
+.senha-wrap input {
+  padding-right: 48px;
+}
+
+/* Explicação embaixo de um campo */
+.campo__ajuda {
+  font: var(--t-chamada);
+  color: var(--rotulo-2);
+}
+
+/* Aviso não bloqueante embaixo do campo (nome repetido); o JS mostra */
+.aviso-campo {
+  font: var(--t-chamada);
+  color: var(--aviso);
+}
+
+/* Mensagem de erro do formulário (o JS liga com style.display). Sem
+   style próprio, aparece sozinha quando ganha texto — é o caso do
+   erro de "Criar reposição", que o JS só preenche. */
+.field-error {
+  display: none;
+  margin-bottom: var(--e-3);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--perigo-suave);
+  color: var(--perigo);
+  font: var(--t-chamada);
+}
+
+.field-error:not(:empty) {
+  display: block;
+}
+
+/* ---------- Busca (cápsula com lupa) ---------- */
+.busca {
+  position: relative;
+  flex: 1 1 16rem;
+  max-width: 30rem;
+}
+
+.busca__lupa {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 13px;
+  width: 18px;
+  height: 18px;
+  color: var(--rotulo-2);
+  translate: 0 -50%;
+  pointer-events: none;
+}
+
+.busca__campo {
+  width: 100%;
+  height: var(--altura-controle);
+  padding: 0 16px 0 38px;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 999px;
+  background: var(--superficie);
+  box-shadow: var(--sombra-controle);
+  color: var(--rotulo);
+  outline: none;
+  transition: border-color var(--rapido) ease, box-shadow var(--rapido) ease;
+}
+
+.busca__campo:focus-visible {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 4px var(--anel-foco-suave), var(--sombra-controle);
+}
+
+/* ---------- Filtro em cápsula (botão pop-up) ----------
+   Rótulo fixo à esquerda ("Curso"), valor atual em negrito e as duas
+   setas do macOS. Por dentro é o mesmo botão + painel que o
+   customSelect.js (ou o HTML do Relatório) monta: o ::after do botão
+   cobre a cápsula inteira, então clicar no rótulo também abre. */
+.filtro {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-width: 0;
+  max-width: 22rem;
+  height: var(--altura-controle);
+  padding-left: 15px;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 999px;
+  background: var(--superficie);
+  box-shadow: var(--sombra-controle);
+  transition: border-color var(--rapido) ease, box-shadow var(--rapido) ease, background-color var(--rapido) ease;
+}
+
+.filtro:hover {
+  background: color-mix(in srgb, var(--superficie) 94%, var(--rotulo));
+}
+
+.filtro:has(.multi-select-panel.open) {
+  border-color: var(--contorno-campo);
+}
+
+.filtro:focus-within:has(:focus-visible) {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 4px var(--anel-foco-suave), var(--sombra-controle);
+}
+
+.filtro__rotulo {
+  flex: none;
+  color: var(--rotulo-2);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* O wrap do botão sai do caminho: o painel se posiciona pela cápsula */
+.filtro .multi-select-wrap {
+  position: static;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+}
+
+.filtro .multi-select-btn {
+  height: 100%;
+  min-width: 0;
+  padding: 0 12px 0 7px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.filtro .multi-select-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+}
+
+.filtro .multi-select-btn:focus-visible {
+  outline: none;
+}
+
+.filtro .multi-select-btn:active {
+  transform: none;
+}
+
+/* Com filtro aplicado (Relatório: alguma opção marcada) a cápsula fica
+   azulada, para se ver de relance o que está filtrando. */
+.filtro:has(.multi-select-btn.active) {
+  border-color: var(--acento-borda);
+  background: var(--acento-suave);
+}
+
+.filtro:has(.multi-select-btn.active) .multi-select-btn {
+  color: var(--link);
+}
+
+.filtro:has(.multi-select-btn.active) .multi-select-btn .hint-text {
+  background-color: var(--link);
+}
+
+@media (max-width: 599px) {
+  .busca {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .filtro {
+    flex: 1 1 calc(50% - var(--e-3));
+    max-width: none;
+  }
+
+  .filtro .multi-select-wrap,
+  .filtro .multi-select-btn {
+    flex: 1;
+  }
+}
+
+/* ---------- Botão + painel de escolha (customSelect.js e Relatório) ---------- */
+.multi-select-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.multi-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  min-width: 0;
+  height: var(--altura-controle);
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--rotulo);
+  white-space: nowrap;
+}
+
+/* O valor corta com "…" (ex.: várias turmas marcadas no Relatório) */
+.multi-select-btn > span:first-child {
+  min-width: 0;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* O "▾" que o JS escreve vira as setas ↕ do macOS */
+.multi-select-btn .hint-text,
+.turma-picker-btn .hint-text {
+  flex: none;
+  width: 9px;
+  height: 14px;
+  font-size: 0;
+  background-color: var(--rotulo-2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 16' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2 6 3-3 3 3M2 10l3 3 3-3'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 16' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2 6 3-3 3 3M2 10l3 3 3-3'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* Menu que abre do botão: material claro translúcido, como um menu do
+   macOS. */
+.multi-select-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  display: none;
+  min-width: max(100%, 12rem);
+  max-width: min(22rem, calc(100vw - 32px));
+  max-height: min(22rem, 60vh);
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 14px;
+  background: var(--vidro-menu);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--vidro-brilho), var(--sombra-menu);
+  color: var(--rotulo);
+}
+
+.multi-select-panel.open {
+  display: block;
+  animation: abrir-menu 140ms ease-out;
+}
+
+@keyframes abrir-menu {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.multi-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: default;
+  user-select: none;
+  line-height: 1.25;
+}
+
+.multi-check:hover {
+  background: var(--preenchimento);
+}
+
+.multi-check input[type="checkbox"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--acento);
+  cursor: pointer;
+}
+
+/* Escolha única (customSelect.js): ✓ na opção atual e realce azul com
+   texto branco sob o ponteiro, como nos menus do macOS. */
+.cs-option {
+  position: relative;
+  padding-left: 30px;
+  white-space: nowrap;
+}
+
+.cs-option:hover {
+  background: var(--acento);
+  color: var(--sobre-acento);
+}
+
+.cs-option.cs-selected {
+  font-weight: 600;
+}
+
+.cs-option.cs-selected::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 13px;
+  height: 13px;
+  translate: 0 -50%;
+  background-color: var(--link);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4.5 10.5 3.6 3.6 7.4-8.2'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4.5 10.5 3.6 3.6 7.4-8.2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.cs-option.cs-selected:hover::before {
+  background-color: var(--sobre-acento);
+}
+
+/* ---------- Seletor de turma com busca (modal "Adicionar novo aluno") ----------
+   O painel fica no fluxo: ao abrir, empurra o resto do modal. */
+.turma-picker {
+  position: relative;
+}
+
+.turma-picker-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2);
+  width: 100%;
+  height: var(--altura-campo);
+  padding: 0 14px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: var(--raio-campo);
+  background: var(--superficie);
+  color: var(--rotulo);
+  text-align: left;
+}
+
+.turma-picker-btn:active {
+  transform: none;
+}
+
+.turma-picker:has(.turma-picker-panel.open) .turma-picker-btn {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 4px var(--anel-foco-suave);
+}
+
+.turma-picker-btn-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.turma-picker-panel {
+  display: none;
+  margin-top: var(--e-2);
+  padding: var(--e-3);
+  border: 1px solid var(--contorno);
+  border-radius: 16px;
+  background: var(--janela);
+}
+
+.turma-picker-panel.open {
+  display: block;
+}
+
+.turma-picker-busca {
+  width: 100%;
+  height: 36px;
+  margin-bottom: var(--e-2);
+  padding: 0 12px 0 34px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: 10px;
+  background: var(--superficie) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%238E8E93' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='8.75' cy='8.75' r='5.5'/%3E%3Cpath d='m12.9 12.9 4.1 4.1'/%3E%3C/svg%3E") 11px center / 16px no-repeat;
+  color: var(--rotulo);
+  outline: none;
+}
+
+.turma-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--e-2);
+}
+
+.turma-picker-chips .cpill {
+  min-height: 28px;
+  padding: 0 11px;
+  font-size: 0.75rem;
+  box-shadow: none;
+}
+
+.turma-picker-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.turma-picker-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+
+.turma-picker-opt:hover {
+  background: var(--preenchimento);
+}
+
+.turma-picker-opt.selected {
+  background: var(--acento-suave);
+  box-shadow: inset 0 0 0 1px var(--acento-borda);
+}
+
+.turma-picker-opt-nome {
+  max-width: 40%;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.turma-picker-opt-prof {
+  max-width: 38%;
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--rotulo-2);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Seletor de curso (select + botão de criar curso) ---------- */
+.curso-select-row {
+  display: flex;
+  gap: var(--e-2);
+}
+
+.curso-select-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- Horário da turma ---------- */
+.horario-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 9px 0 7px;
+  border-radius: 999px;
+  background: var(--preenchimento);
+  color: var(--rotulo);
+  font: var(--t-nota);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.horario-tag .icon-mask {
+  width: 13px;
+  height: 13px;
+  color: var(--rotulo-2);
+}
+
+.horario-tag:hover {
+  background: var(--preenchimento-2);
+}
+
+.horario-tag.sem-horario {
+  padding: 0 9px;
+  border: 1px dashed var(--contorno-campo);
+  background: none;
+  color: var(--rotulo-2);
+}
+
+.horario-tag.sem-horario:hover {
+  border-color: var(--acento-borda);
+  color: var(--link);
+}
+
+.horario-selects {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+.horario-selects select {
+  flex: 1;
+  height: var(--altura-campo);
+  padding-left: 14px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: var(--raio-campo);
+  background-color: var(--superficie);
+  color: var(--rotulo);
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.horario-selects .sep {
+  color: var(--rotulo-2);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.horario-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--e-1);
+}
+
+/* Dias da semana: chips que ligam e desligam */
+.dias-check-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.dia-check {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: 10px;
+  background: var(--superficie);
+  color: var(--rotulo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dia-check:hover {
+  background: var(--preenchimento);
+}
+
+.dia-check.selecionado {
+  border-color: var(--acento);
+  background: var(--acento);
+  color: var(--sobre-acento);
+}
+
+.dia-check input {
+  display: none;
+}
+
+/* Cor da turma: o escolhido ganha o anel azul de seleção */
+.cor-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.cor-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+.cor-swatch.selected {
+  box-shadow: 0 0 0 2px var(--superficie), 0 0 0 4px var(--acento);
+}
+
+/* Celular e tablet: texto dos campos em 16 px — menor que isso o iPhone
+   dá zoom na página ao tocar no campo. */
+@media (max-width: 599px), (pointer: coarse) {
+
+  .field input,
+  .field select,
+  .busca__campo,
+  .turma-picker-busca,
+  .horario-selects select,
+  #obs-texto,
+  #transf-sel,
+  .rep-opcao-header select,
+  .rep-opcao-body input,
+  #imp-tbody input,
+  #imp-tbody select,
+  .rep-link-box input {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 599px) {
+  .dias-check-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .cor-swatch {
+    width: 34px;
+    height: 34px;
+  }
+
+  .dia-check {
+    height: 40px;
+  }
+}
+
+@media (forced-colors: active) {
+
+  .busca__campo,
+  .filtro,
+  .multi-select-panel,
+  .turma-picker-btn {
+    border: 1px solid ButtonText;
+  }
+
+  .cs-option:hover,
+  .dia-check.selecionado {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}

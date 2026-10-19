@@ -6,10 +6,10 @@ import { alunoJaExiste, normalizarNome as normalizarTexto } from '../../shared/d
 import { inserirAluno } from '../../../backend/api/alunosRepo.js';
 import { registrarMovimentacao } from '../../../backend/api/historicoRepo.js';
 import { atualizarTelas } from '../../shared/refresh.js';
+import { carregarXLSX } from '../../shared/xlsx.js';
 
-// A biblioteca xlsx é carregada via <script> global no index.html (sem passo
-// de build neste projeto) — mesma dependência já usada em exportExcel.js,
-// aqui só pra LER a planilha em vez de gerar uma.
+// A biblioteca xlsx só é baixada na primeira importação (ver shared/xlsx.js)
+// — mesma dependência de exportExcel.js, aqui só pra LER a planilha.
 let linhasImportacao = [];
 
 // Palavras que aparecem no nome da aba/curso mas não ajudam a identificar
@@ -79,11 +79,12 @@ export function importarPlanilhaSelecionada(e) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = (evt) => {
+  reader.onload = async (evt) => {
     try {
+      const XLSX = await carregarXLSX();
       const data = new Uint8Array(evt.target.result);
       const wb = XLSX.read(data, { type: 'array' });
-      processarPastaDeTrabalho(wb);
+      processarPastaDeTrabalho(wb, XLSX);
     } catch (err) {
       console.error('Erro ao ler planilha:', err);
       showToast('Não foi possível ler essa planilha. Verifique o arquivo.', 'red');
@@ -96,7 +97,7 @@ export function importarPlanilhaSelecionada(e) {
 // Percorre TODAS as abas da planilha (cada uma pode representar um curso
 // diferente, ex: "Alunos Master", "Alunos Evolution"). Abas sem colunas de
 // Nome/Turma são ignoradas silenciosamente (ex: uma aba de resumo/instruções).
-function processarPastaDeTrabalho(wb) {
+function processarPastaDeTrabalho(wb, XLSX) {
   linhasImportacao = [];
   let abasComDados = 0;
 

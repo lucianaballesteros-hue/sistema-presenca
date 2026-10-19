@@ -1,38 +1,29 @@
 import { sb } from './supabaseClient.js';
 import { state } from '../../frontend/state/store.js';
+import { buscarTodasAsPaginas } from './paginacao.js';
 
-const PAGE_SIZE = 1000;
+// Carrega todos os alunos das turmas visíveis para o usuário logado (as
+// páginas de 1000 saem em paralelo — ver paginacao.js). Monta a lista numa
+// variável local e só escreve em state.ALUNOS no final, para que a função
+// fique segura mesmo que duas chamadas concorrentes rodem ao mesmo tempo (ver
+// guarda em inicializarApp, que é a defesa principal contra isso).
+//
+// `turmasProntas`: a busca dos alunos não depende das turmas, só o filtro
+// final — então a carga inicial dispara as duas juntas e passa aqui a
+// promessa das turmas, que só é esperada na hora de filtrar.
+export async function carregarAlunos(turmasProntas) {
+  const { data, error } = await buscarTodasAsPaginas((de, ate, count) =>
+    sb.from('alunos').select('*', { count }).order('nome').order('id').range(de, ate));
+  if (error) console.error('Erro alunos:', error);
+  await turmasProntas;
 
-// Carrega todos os alunos das turmas visíveis para o usuário logado, paginando
-// em blocos de 1000 (limite de linhas por página do Supabase/PostgREST).
-// Monta a lista numa variável local e só escreve em state.ALUNOS no final —
-// nunca no meio da paginação — para que a função fique segura mesmo que duas
-// chamadas concorrentes rodem ao mesmo tempo (ver guarda em inicializarApp,
-// que é a defesa principal contra isso). Escrever em state.ALUNOS a cada
-// página, como antes, deixava a lista vulnerável: duas chamadas concorrentes
-// (cada uma com seu próprio controle local de "já vi esse id") empurravam
-// para o MESMO array compartilhado, duplicando todo aluno na tela.
-export async function carregarAlunos() {
   const turmaIds = new Set(state.TURMAS.map(t => t.id));
   const idsVistos = new Set();
-  const alunos = [];
-  let from = 0;
-
-  while (true) {
-    const { data, error } = await sb.from('alunos').select('*').order('nome').range(from, from + PAGE_SIZE - 1);
-    if (error) { console.error('Erro alunos:', error); break; }
-    if (!data || data.length === 0) break;
-
-    data.filter(a => turmaIds.has(a.turma_id) && !idsVistos.has(a.id)).forEach(a => {
-      idsVistos.add(a.id);
-      alunos.push(a);
-    });
-
-    if (data.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
-  }
-
-  state.ALUNOS = alunos;
+  state.ALUNOS = data.filter(a => {
+    if (!turmaIds.has(a.turma_id) || idsVistos.has(a.id)) return false;
+    idsVistos.add(a.id);
+    return true;
+  });
 }
 
 export async function inserirAluno(payload) {

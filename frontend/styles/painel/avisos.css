@@ -1,0 +1,300 @@
+/* ============================================================
+   AVISOS — toast (empilhável), tela de carregamento, banner de
+   nova versão e os estados vazios.
+   ============================================================ */
+
+/* ---------- Toast: cartão com o ícone na cor do tipo (verde =
+   feito, vermelho = erro, azul = informação), botão de fechar e uma
+   barrinha embaixo que mostra quanto falta para sumir ---------- */
+.toast-container {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: var(--e-3);
+  pointer-events: none;
+}
+
+.toast-item {
+  --tipo: var(--sucesso);
+  --tipo-suave: var(--sucesso-suave);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  width: max-content;
+  min-width: 20rem;
+  max-width: min(28rem, calc(100vw - 32px));
+  min-height: 60px;
+  padding: 12px 10px 12px 14px;
+  overflow: hidden;
+  border: 1px solid var(--contorno);
+  border-radius: 16px;
+  background: var(--superficie);
+  box-shadow: var(--sombra-menu);
+  color: var(--rotulo);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: toast-entrar 0.32s var(--mola);
+}
+
+.toast-item.red {
+  --tipo: var(--perigo);
+  --tipo-suave: var(--perigo-suave);
+}
+
+.toast-item.blue {
+  --tipo: var(--acento);
+  --tipo-suave: var(--acento-suave);
+}
+
+.toast-item.saindo {
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-item__icone {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 5px;
+  border-radius: 50%;
+  background: var(--tipo-suave);
+  color: var(--tipo);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.toast-item__icone circle {
+  fill: currentColor;
+}
+
+.toast-item__texto {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toast-item__fechar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  align-self: flex-start;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--rotulo-3);
+}
+
+.toast-item__fechar .icone {
+  width: 16px;
+  height: 16px;
+}
+
+.toast-item__fechar:hover {
+  background: var(--preenchimento);
+  color: var(--rotulo);
+}
+
+/* Tempo restante: encolhe da direita para a esquerda; pausa com o mouse
+   em cima (o JS pausa a contagem junto) */
+.toast-item__tempo {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--tipo);
+  opacity: 0.55;
+  transform-origin: left;
+  animation: toast-tempo var(--duracao, 4s) linear forwards;
+}
+
+.toast-item:hover .toast-item__tempo {
+  animation-play-state: paused;
+}
+
+@keyframes toast-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+}
+
+@keyframes toast-tempo {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (max-width: 599px) {
+  .toast-container {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 16px;
+    align-items: stretch;
+  }
+
+  .toast-item {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+/* ---------- Carregando ---------- */
+#app-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-3);
+  background: var(--janela);
+  color: var(--rotulo-2);
+  font: var(--t-chamada);
+}
+
+#app-loading.visible {
+  display: flex;
+}
+
+/* Indicador de atividade: anel fino no azul do sistema */
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--preenchimento-2);
+  border-top-color: var(--acento);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: middle;
+  border: 2px solid var(--preenchimento-2);
+  border-top-color: var(--acento);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* ---------- Estados vazios ---------- */
+.loading,
+.empty {
+  padding: var(--e-8) var(--e-4);
+  color: var(--rotulo-2);
+  font: var(--t-chamada);
+  text-align: center;
+}
+
+.turmas-grid > .empty,
+.prof-grid > .empty {
+  grid-column: 1 / -1;
+  padding: 12vh var(--e-4);
+}
+
+#rel-area > .empty {
+  padding: 12vh var(--e-4);
+}
+
+/* ---------- Banner de nova versão publicada ---------- */
+#update-banner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: 8px 8px 8px 18px;
+  border: 1px solid rgb(255 255 255 / 0.10);
+  border-radius: 999px;
+  background: rgb(29 29 31 / 0.9);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--sombra-menu);
+  color: #FFFFFF;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 90px);
+  transition: transform 0.45s var(--mola), opacity 0.3s ease;
+  pointer-events: none;
+}
+
+#update-banner.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: all;
+}
+
+#update-banner .spin {
+  display: inline-block;
+  animation: girar 1.5s linear infinite;
+}
+
+#upd-btn {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: #1D1D1F;
+  font-weight: 600;
+}
+
+#upd-btn:hover {
+  background: #E8E8ED;
+}
+
+#upd-x {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: rgb(255 255 255 / 0.6);
+  font-size: 20px;
+  line-height: 1;
+}
+
+#upd-x:hover {
+  background: rgb(255 255 255 / 0.12);
+  color: #FFFFFF;
+}
+
+@media (max-width: 479px) {
+  #update-banner {
+    right: 16px;
+    left: 16px;
+    transform: translateY(90px);
+  }
+
+  #update-banner.visible {
+    transform: none;
+  }
+
+  #update-banner > span:nth-child(2) {
+    flex: 1;
+  }
+}

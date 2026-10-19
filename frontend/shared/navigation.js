@@ -4,8 +4,6 @@ import { renderProfessores } from '../features/professores/professoresView.js';
 import { renderReposicoes } from '../features/reposicoes/reposicoesView.js';
 import { renderConfiguracoes } from '../features/configuracoes/configuracoesView.js';
 
-const TABS = ['turmas', 'alunos', 'relatorio', 'metricas', 'reposicoes'];
-
 // Desliza a pílula de seleção do nav até embaixo do botão ativo — medindo a
 // posição real do botão em vez de recalcular por índice, então continua
 // certo mesmo se a aba "Professores" estiver escondida (não-admin) ou se o
@@ -19,8 +17,16 @@ export function moverIndicadorNav() {
   indicador.style.setProperty('--nav-w', ativo.offsetWidth + 'px');
 }
 
+// Abre/fecha um grupo do menu (Configurações → Geral / Usuários)
+export function alternarGrupoNav(botao, aberto = botao.getAttribute('aria-expanded') !== 'true') {
+  botao.setAttribute('aria-expanded', String(aberto));
+}
+
 export function goTab(tab) {
-  document.querySelectorAll('.nav-btn').forEach((b, i) => b.classList.toggle('active', TABS[i] === tab));
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  // Aba de dentro de um grupo: o grupo abre para mostrar onde a pessoa está
+  const grupo = document.querySelector(`.nav-grupo:has(.nav-btn[data-tab="${tab}"]) .nav-grupo__titulo`);
+  if (grupo) alternarGrupoNav(grupo, true);
   document.querySelectorAll('#app .screen').forEach(s => s.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   moverIndicadorNav();

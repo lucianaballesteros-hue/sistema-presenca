@@ -1,0 +1,643 @@
+/* ============================================================
+   MÉTRICAS — o painel de indicadores: seletor de foco (Geral /
+   cursos), cartões de destaque, KPIs, gráficos SVG, donuts,
+   tabelas comparativas e o feed de atividade.
+   ============================================================ */
+
+.metr-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e-3);
+  margin-bottom: var(--e-5);
+}
+
+/* ---- Seletor de foco: controle segmentado. O JS desliza a pílula
+   (.foco-indicator) até o botão ativo e a pinta no tom do curso. ---- */
+.foco-switch {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  max-width: 100%;
+  padding: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-radius: 10px;
+  background: var(--preenchimento);
+  scrollbar-width: none;
+}
+
+.foco-switch::-webkit-scrollbar {
+  display: none;
+}
+
+.foco-indicator {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  z-index: 0;
+  width: var(--foco-w, 0px);
+  transform: translateX(var(--foco-x, 0px));
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12), 0 0 0 0.5px rgb(0 0 0 / 0.06);
+  transition: transform 0.32s var(--mola), width 0.28s var(--mola), background-color 0.25s ease;
+  pointer-events: none;
+}
+
+.foco-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 16px;
+  border-radius: 8px;
+  color: var(--rotulo);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.foco-btn:active {
+  transform: none !important;
+}
+
+.foco-btn-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--foco-dot);
+}
+
+.foco-btn.active {
+  color: var(--rotulo);
+  font-weight: 600;
+}
+
+@media (max-width: 599px) {
+  .foco-switch {
+    width: 100%;
+  }
+
+  .foco-btn {
+    flex: 1 0 auto;
+    justify-content: center;
+  }
+}
+
+/* ---- Linhas do painel ---- */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--e-4);
+  margin-bottom: var(--e-4);
+}
+
+.metr-row-charts {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--e-4);
+  margin-bottom: var(--e-4);
+}
+
+.metr-row-3col {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-4);
+  margin-bottom: var(--e-8);
+}
+
+.metr-row-2col {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  align-items: start;
+  gap: var(--e-4);
+  margin-bottom: var(--e-6);
+}
+
+.metr-row-2col > .metr-section {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1080px) {
+  .kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metr-row-charts,
+  .metr-row-3col,
+  .metr-row-2col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 479px) {
+  .kpi-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Seções e cartões ---- */
+.metr-section {
+  margin-bottom: var(--e-8);
+}
+
+.metr-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  margin-bottom: var(--e-3);
+}
+
+.metr-section-title {
+  font: var(--t-titulo-2);
+  letter-spacing: -0.012em;
+}
+
+.metr-card {
+  min-width: 0;
+  padding: var(--e-5);
+  border: 1px solid var(--contorno);
+  border-radius: var(--raio-cartao);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+/* ---- Cartões de destaque (gradiente) ---- */
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  padding: var(--e-5);
+  border-radius: var(--raio-cartao);
+  color: #FFFFFF;
+  box-shadow: var(--sombra-cartao);
+}
+
+.hero-card::after {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.14);
+}
+
+.hero-label {
+  position: relative;
+  font: var(--t-chamada);
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+.hero-value {
+  position: relative;
+  margin-top: var(--e-2);
+  font: 700 2.25rem/2.5rem var(--fonte-titulo);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-value small {
+  margin-left: 2px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.hero-desc {
+  position: relative;
+  margin-top: var(--e-2);
+  font: var(--t-nota);
+  font-weight: 400;
+  opacity: 0.88;
+}
+
+/* ---- KPIs ---- */
+.kpi-card {
+  min-width: 0;
+  padding: var(--e-5);
+  border: 1px solid var(--contorno);
+  border-radius: var(--raio-cartao);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.kpi-card-label {
+  font: var(--t-chamada);
+  font-weight: 500;
+  color: var(--rotulo-2);
+}
+
+.kpi-card-value {
+  margin-top: var(--e-2);
+  font: 700 2rem/2.25rem var(--fonte-titulo);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-card-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  margin-top: var(--e-2);
+}
+
+.kpi-card-foot-text {
+  font: var(--t-nota);
+  font-weight: 400;
+  color: var(--rotulo-2);
+}
+
+.delta-badge {
+  flex-shrink: 0;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.delta-badge.up {
+  background: var(--sucesso-suave);
+  color: var(--sucesso-texto);
+}
+
+.delta-badge.down {
+  background: var(--perigo-suave);
+  color: var(--perigo-texto);
+}
+
+.delta-badge.flat {
+  background: var(--neutro-suave);
+  color: var(--neutro-texto);
+}
+
+/* ---- Gráficos ---- */
+.chart-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2);
+  margin-bottom: var(--e-4);
+}
+
+.chart-card-title {
+  font: var(--t-titulo-secao);
+}
+
+.chart-card-link {
+  color: var(--link);
+  font: var(--t-nota);
+  cursor: pointer;
+}
+
+.chart-card-link:hover {
+  text-decoration: underline;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-4);
+  margin-bottom: var(--e-2);
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--rotulo-2);
+  font: var(--t-nota);
+  font-weight: 400;
+}
+
+.chart-legend-key {
+  flex-shrink: 0;
+  width: 12px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.chart-wrap {
+  width: 100%;
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart-grid {
+  stroke: var(--separador-leve);
+  stroke-width: 1;
+}
+
+.chart-axis-label {
+  fill: var(--rotulo-3);
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.chart-point-label {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chart-crosshair {
+  stroke: var(--rotulo-4);
+  stroke-width: 1;
+  pointer-events: none;
+  transition: opacity 0.1s;
+}
+
+.chart-bar {
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+.chart-bar:hover {
+  opacity: 0.8;
+}
+
+.chart-bar-label {
+  fill: var(--rotulo-2);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Tooltip único e compartilhado dos gráficos (fixed) */
+.chart-tooltip {
+  position: fixed;
+  z-index: 400;
+  display: none;
+  min-width: 130px;
+  padding: 8px 12px;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 12px;
+  background: var(--vidro-menu);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--sombra-menu);
+  pointer-events: none;
+}
+
+.chart-tooltip-title {
+  margin-bottom: 5px;
+  color: var(--rotulo-2);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 1.5px 0;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.chart-tooltip-key {
+  flex-shrink: 0;
+  width: 10px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.chart-tooltip-label {
+  color: var(--rotulo-2);
+}
+
+.chart-tooltip-val {
+  margin-left: auto;
+  padding-left: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Donut ---- */
+.donut-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-5);
+}
+
+.donut-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.donut-wrap svg {
+  display: block;
+}
+
+.chart-donut-seg {
+  cursor: pointer;
+  transition: filter 0.1s;
+}
+
+.chart-donut-seg:hover {
+  filter: brightness(1.12);
+}
+
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  text-align: center;
+}
+
+.donut-center-val {
+  font: 700 1.25rem/1.5rem var(--fonte-titulo);
+  font-variant-numeric: tabular-nums;
+}
+
+.donut-center-label {
+  margin-top: 1px;
+  color: var(--rotulo-2);
+  font-size: 0.6875rem;
+}
+
+.donut-legend {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--e-2);
+  min-width: 120px;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rotulo-2);
+  font: var(--t-chamada);
+}
+
+.donut-legend-dot {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.donut-legend-item b {
+  margin-left: auto;
+  color: var(--rotulo);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Ação necessária (alunos em alerta) ---- */
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  margin: 0 -8px;
+  overflow-y: auto;
+}
+
+.alert-row {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: 8px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.alert-row:hover {
+  background: var(--preenchimento);
+}
+
+.alert-row-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vermelho-cheio);
+  box-shadow: 0 0 0 3px var(--perigo-suave);
+}
+
+.alert-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-row-nome {
+  overflow: hidden;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alert-row-turma {
+  overflow: hidden;
+  color: var(--rotulo-2);
+  font: var(--t-nota);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alert-row-meta {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* ---- Atividade recente ---- */
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  max-height: 290px;
+  overflow-y: auto;
+}
+
+.activity-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-3);
+  padding: var(--e-2) var(--e-1);
+}
+
+.activity-row-rail {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: center;
+  align-self: stretch;
+}
+
+.activity-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+}
+
+.activity-line {
+  flex: 1;
+  width: 1px;
+  margin-top: 3px;
+  background: var(--separador);
+}
+
+.activity-row:last-child .activity-line {
+  display: none;
+}
+
+.activity-body {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: var(--e-2);
+}
+
+.activity-desc {
+  color: var(--rotulo-2);
+  font: var(--t-chamada);
+}
+
+.activity-desc b {
+  color: var(--rotulo);
+  font-weight: 600;
+}
+
+.activity-time {
+  margin-top: 2px;
+  color: var(--rotulo-3);
+  font: var(--t-nota);
+  font-weight: 400;
+}
+
+.metr-empty {
+  padding: var(--e-6) var(--e-3);
+  color: var(--rotulo-2);
+  font: var(--t-chamada);
+  text-align: center;
+}

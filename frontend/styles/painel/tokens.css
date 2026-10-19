@@ -1,0 +1,310 @@
+/* ============================================================
+   TOKENS DE DESIGN — o mesmo padrão da Gestão de Reuniões:
+   aparência no estilo Apple, cinzas neutros do macOS, cartões
+   brancos e o azul do sistema como cor de ação. Cores nomeadas
+   pelo papel, não pelo tom.
+
+   Este sistema tem tema escuro (o botão de tema na conta e na
+   tela de acesso), então cada token é definido duas vezes:
+   :root (claro) e [data-theme="dark"] (escuro).
+
+   NOMES ANTIGOS (--bg, --text-3, --green, --primary-soft...):
+   o JavaScript monta muita coisa com estilo inline usando esses
+   nomes (cores da chamada, gráficos, barras de frequência). Eles
+   continuam existindo no fim de cada bloco, apontando para os
+   tons novos — assim o que o JS desenha já sai no visual novo,
+   sem mexer em nenhuma linha de lógica.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* Superfícies */
+  --janela: #F5F5F7;
+  --superficie: #FFFFFF;
+  --superficie-2: #FBFBFD;
+
+  /* Texto */
+  --rotulo: #1D1D1F;      /* 16,8:1 no branco */
+  --rotulo-2: #6E6E73;    /*  5,1:1 no branco */
+  --rotulo-3: #8E8E93;    /*  3,3:1 — ícones, bordas, texto miúdo de apoio */
+  --rotulo-4: #AEAEB2;    /*  só decoração (traço "—", segmento "sem registro") */
+  --placeholder: #6E6E73;
+
+  --separador: rgb(0 0 0 / 0.10);
+  --separador-leve: rgb(0 0 0 / 0.06);
+  --preenchimento: rgb(118 118 128 / 0.12);
+  --preenchimento-2: rgb(118 118 128 / 0.20);
+  --campo-menu: #F2F2F7;
+  --contorno: rgb(0 0 0 / 0.06);
+  --contorno-campo: rgb(0 0 0 / 0.14);
+
+  /* Azul do sistema: ação principal, seleção e foco */
+  --acento: #0071E3;
+  --acento-hover: #0077ED;
+  --link: #0066CC;
+  --acento-suave: #EEF5FD;
+  --acento-suave-2: #E4EFFC;
+  --acento-borda: rgb(0 113 227 / 0.28);
+  --sobre-acento: #FFFFFF;
+  --anel-foco: var(--acento);
+  --anel-foco-suave: rgb(0 113 227 / 0.25);
+
+  /* Estados (texto com 4,5:1 ou mais no branco) */
+  --perigo: #D70015;
+  --perigo-suave: #FFF0F1;
+  --perigo-texto: #A8000F;
+  --sucesso: #1E7B34;
+  --sucesso-suave: #EAF6EC;
+  --sucesso-texto: #17652A;
+  --aviso: #B25000;
+  --aviso-suave: #FFF4E5;
+  --aviso-texto: #8A3E00;
+  --roxo: #8944AB;
+  --roxo-suave: #F5EDFA;
+  --roxo-texto: #6E2F8E;
+  --rosa: #C4245C;
+  --rosa-suave: #FDEEF3;
+  --rosa-texto: #9C1A48;
+  --amarelo: #E6B800;
+  --amarelo-suave: #FFF8D6;
+  --amarelo-texto: #6B5000;
+  --neutro-suave: #EFEFF2;
+  --neutro-texto: #48484A;
+
+  /* Cores cheias do sistema (pontos, barras e gráficos) */
+  --verde-cheio: #34C759;
+  --vermelho-cheio: #FF3B30;
+  --laranja-cheio: #FF9500;
+
+  /* Monograma cinza, como no app Contatos */
+  --avatar-topo: #8E8E93;
+  --avatar-base: #6E6E73;
+
+  /* Vidro (camada funcional: barra lateral, cabeçalho, menus) */
+  --vidro: rgb(255 255 255 / 0.72);
+  --vidro-forte: rgb(255 255 255 / 0.86);
+  --vidro-menu: rgb(255 255 255 / 0.94);
+  --vidro-brilho: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --vidro-contorno: rgb(0 0 0 / 0.08);
+  --vidro-desfoque: blur(24px) saturate(1.8);
+
+  --sombra-controle: 0 1px 2px rgb(0 0 0 / 0.05), 0 2px 8px rgb(0 0 0 / 0.04);
+  --sombra-painel: 0 2px 8px rgb(0 0 0 / 0.04), 0 18px 48px rgb(0 0 0 / 0.10);
+  --sombra-menu: 0 2px 8px rgb(0 0 0 / 0.06), 0 14px 44px rgb(0 0 0 / 0.16);
+  --sombra-cartao: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.04);
+  --sombra-cartao-hover: 0 2px 6px rgb(0 0 0 / 0.06), 0 12px 32px rgb(0 0 0 / 0.08);
+  --fundo-janela-modal: rgb(0 0 0 / 0.28);
+
+  /* Setas ↕ dos menus do macOS nos <select> nativos (cinza do rótulo-2) */
+  --seta-select: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 16' fill='none' stroke='%236E6E73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2 6 3-3 3 3M2 10l3 3 3-3'/%3E%3C/svg%3E");
+
+  /* Gradientes dos cartões de destaque das Métricas */
+  --grad-azul: linear-gradient(135deg, #0062D1 0%, #2E9BFF 100%);
+  --grad-verde: linear-gradient(135deg, #1A8A3F 0%, #3CC567 100%);
+  --grad-laranja: linear-gradient(135deg, #D2600A 0%, #FF9F2E 100%);
+
+  /* ---------- Tipografia ----------
+     Fonte do sistema: SF Pro no Mac, Segoe UI Variable no Windows. */
+  --fonte: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fonte-titulo: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --t-titulo-grande: 700 1.625rem/2rem var(--fonte-titulo);   /* 26/32 */
+  --t-titulo-2: 700 1.25rem/1.625rem var(--fonte-titulo);     /* 20/26 */
+  --t-titulo-cartao: 600 1.0625rem/1.375rem var(--fonte);     /* 17/22 */
+  --t-titulo-secao: 600 0.9375rem/1.25rem var(--fonte);       /* 15/20 */
+  --t-corpo: 400 0.875rem/1.25rem var(--fonte);               /* 14/20 */
+  --t-chamada: 400 0.8125rem/1.125rem var(--fonte);           /* 13/18 */
+  --t-nota: 500 0.75rem/1rem var(--fonte);                    /* 12/16 */
+
+  /* ---------- Espaço, forma, movimento ---------- */
+  --e-1: 4px;
+  --e-2: 8px;
+  --e-3: 12px;
+  --e-4: 16px;
+  --e-5: 20px;
+  --e-6: 24px;
+  --e-8: 32px;
+  --margem: 28px;
+
+  --altura-controle: 36px;
+  --altura-campo: 40px;
+  --raio-cartao: 20px;
+  --raio-painel: 18px;
+  --raio-campo: 12px;
+
+  --largura-barra: 15.5rem;
+  --largura-max: 105rem;
+  --mola: cubic-bezier(0.32, 0.72, 0, 1);
+  --rapido: 160ms;
+  --medio: 320ms;
+
+  /* ---------- Nomes antigos (usados pelo JS em estilo inline) ---------- */
+  --bg: var(--janela);
+  --surface: var(--superficie);
+  --surface-2: var(--superficie-2);
+  --surface-3: var(--janela);
+  --surface-hover: var(--preenchimento);
+  --surface-hover-2: var(--preenchimento);
+  --surface-soft: var(--acento-suave);
+  --border: var(--separador);
+  --border-2: var(--separador-leve);
+  --border-input: var(--contorno-campo);
+  --text: var(--rotulo);
+  --text-2: var(--rotulo-2);
+  --text-3: var(--rotulo-2);
+  --text-muted: var(--rotulo-2);
+  --text-faded: var(--rotulo-3);
+  --text-very-faded: var(--rotulo-4);
+  --primary: var(--acento);
+  --primary-hover: var(--acento-hover);
+  --primary-soft: var(--acento-suave-2);
+  --primary-soft-text: #0058B9;
+  --primary-light: var(--acento);
+  --green: var(--sucesso);
+  --green-soft: var(--sucesso-suave);
+  --green-soft-text: var(--sucesso-texto);
+  --green-bar: var(--verde-cheio);
+  --red: var(--perigo);
+  --red-soft: var(--perigo-suave);
+  --red-soft-text: var(--perigo-texto);
+  --red-bar: var(--vermelho-cheio);
+  --amber: var(--aviso);
+  --amber-soft: var(--aviso-suave);
+  --amber-soft-text: var(--aviso-texto);
+  --amber-bar: var(--laranja-cheio);
+  --gray-soft: var(--neutro-suave);
+  --gray-soft-text: var(--neutro-texto);
+  --bar-track: var(--preenchimento-2);
+  --dot-empty: var(--preenchimento-2);
+  --grad-blue: var(--grad-azul);
+  --grad-green: var(--grad-verde);
+  --grad-amber: var(--grad-laranja);
+  --space-1: var(--e-1);
+  --space-2: var(--e-2);
+  --space-3: var(--e-3);
+  --space-4: var(--e-4);
+  --space-5: var(--e-5);
+  --space-6: var(--e-6);
+  --space-8: var(--e-8);
+}
+
+/* ============================================================
+   TEMA ESCURO — os mesmos papéis com os tons escuros do macOS:
+   janela quase preta, cartões em cinza-grafite e o azul mais
+   claro do sistema (#0A84FF), que mantém o contraste no escuro.
+   ============================================================ */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --janela: #111113;
+  --superficie: #1C1C1E;
+  --superficie-2: #212123;
+
+  --rotulo: #F5F5F7;
+  --rotulo-2: #A1A1A6;
+  --rotulo-3: #7C7C80;
+  --rotulo-4: #5A5A5E;
+  --placeholder: #8E8E93;
+
+  --separador: rgb(255 255 255 / 0.12);
+  --separador-leve: rgb(255 255 255 / 0.07);
+  --preenchimento: rgb(118 118 128 / 0.24);
+  --preenchimento-2: rgb(118 118 128 / 0.36);
+  --campo-menu: #2C2C2E;
+  --contorno: rgb(255 255 255 / 0.08);
+  --contorno-campo: rgb(255 255 255 / 0.18);
+
+  --acento: #0A84FF;
+  --acento-hover: #2C95FF;
+  --link: #3B9EFF;
+  --acento-suave: rgb(10 132 255 / 0.16);
+  --acento-suave-2: rgb(10 132 255 / 0.22);
+  --acento-borda: rgb(10 132 255 / 0.45);
+  --anel-foco-suave: rgb(10 132 255 / 0.35);
+
+  --perigo: #FF453A;
+  --perigo-suave: rgb(255 69 58 / 0.16);
+  --perigo-texto: #FF7B72;
+  --sucesso: #30D158;
+  --sucesso-suave: rgb(48 209 88 / 0.15);
+  --sucesso-texto: #5EDB7D;
+  --aviso: #FF9F0A;
+  --aviso-suave: rgb(255 159 10 / 0.16);
+  --aviso-texto: #FFB340;
+  --roxo: #BF5AF2;
+  --roxo-suave: rgb(191 90 242 / 0.18);
+  --roxo-texto: #D58BFF;
+  --rosa: #FF375F;
+  --rosa-suave: rgb(255 55 95 / 0.16);
+  --rosa-texto: #FF7A95;
+  --amarelo: #FFD60A;
+  --amarelo-suave: rgb(255 214 10 / 0.14);
+  --amarelo-texto: #FFE066;
+  --neutro-suave: rgb(118 118 128 / 0.24);
+  --neutro-texto: #C7C7CC;
+
+  --verde-cheio: #30D158;
+  --vermelho-cheio: #FF453A;
+  --laranja-cheio: #FF9F0A;
+
+  --avatar-topo: #6E6E73;
+  --avatar-base: #48484A;
+
+  --vidro: rgb(36 36 38 / 0.72);
+  --vidro-forte: rgb(30 30 32 / 0.86);
+  --vidro-menu: rgb(40 40 42 / 0.94);
+  --vidro-brilho: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --vidro-contorno: rgb(255 255 255 / 0.10);
+
+  --sombra-controle: 0 1px 2px rgb(0 0 0 / 0.30);
+  --sombra-painel: 0 2px 8px rgb(0 0 0 / 0.30), 0 18px 48px rgb(0 0 0 / 0.40);
+  --sombra-menu: 0 2px 8px rgb(0 0 0 / 0.35), 0 14px 44px rgb(0 0 0 / 0.55);
+  --sombra-cartao: 0 1px 2px rgb(0 0 0 / 0.30);
+  --sombra-cartao-hover: 0 2px 6px rgb(0 0 0 / 0.35), 0 12px 32px rgb(0 0 0 / 0.35);
+  --fundo-janela-modal: rgb(0 0 0 / 0.55);
+
+  --seta-select: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 16' fill='none' stroke='%23A1A1A6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2 6 3-3 3 3M2 10l3 3 3-3'/%3E%3C/svg%3E");
+
+  --grad-azul: linear-gradient(135deg, #0A6FE0 0%, #3BA2FF 100%);
+  --grad-verde: linear-gradient(135deg, #1E8E45 0%, #34C759 100%);
+  --grad-laranja: linear-gradient(135deg, #D66A0C 0%, #FF9F0A 100%);
+
+  --primary-soft-text: #6CB6FF;
+}
+
+/* Contraste aumentado: rótulos secundários e bordas mais fortes,
+   vidro vira superfície opaca (HIG › Accessibility › Vision). */
+@media (prefers-contrast: more) {
+  :root:not([data-theme="dark"]) {
+    --rotulo-2: #48484A;
+    --rotulo-3: #6E6E73;
+    --placeholder: #48484A;
+    --separador: rgb(0 0 0 / 0.30);
+    --contorno: rgb(0 0 0 / 0.30);
+    --contorno-campo: rgb(0 0 0 / 0.55);
+    --vidro-contorno: rgb(0 0 0 / 0.40);
+  }
+
+  :root {
+    --vidro: var(--superficie);
+    --vidro-forte: var(--superficie);
+    --vidro-menu: var(--superficie);
+  }
+}
+
+/* Transparência reduzida: sem desfoque, superfícies opacas. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --vidro: var(--superficie);
+    --vidro-forte: var(--superficie);
+    --vidro-menu: var(--superficie);
+    --vidro-desfoque: none;
+  }
+}
+
+@media (max-width: 599px) {
+  :root {
+    --margem: 16px;
+  }
+}

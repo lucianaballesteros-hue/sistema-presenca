@@ -1,0 +1,133 @@
+/* ============================================================
+   SELOS — etiquetas em cápsula (curso, status, contagens) e as
+   pílulas de filtro por curso do painel de Turmas. Tons suaves
+   com o texto na cor do estado, como as etiquetas da Apple.
+   ============================================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  height: 22px;
+  padding: 0 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  font: var(--t-nota);
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.badge-blue {
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+}
+
+.badge-green {
+  background: var(--sucesso-suave);
+  color: var(--sucesso-texto);
+}
+
+.badge-amber {
+  background: var(--aviso-suave);
+  color: var(--aviso-texto);
+}
+
+.badge-red {
+  background: var(--perigo-suave);
+  color: var(--perigo-texto);
+}
+
+.badge-gray {
+  background: var(--neutro-suave);
+  color: var(--neutro-texto);
+}
+
+.badge-purple {
+  background: var(--roxo-suave);
+  color: var(--roxo-texto);
+}
+
+.badge-pink {
+  background: var(--rosa-suave);
+  color: var(--rosa-texto);
+}
+
+.badge-yellow {
+  background: var(--amarelo-suave);
+  color: var(--amarelo-texto);
+}
+
+/* Destaque no nome de alunos experimentais */
+.nome-experimental {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--amarelo-suave);
+  color: var(--amarelo-texto);
+}
+
+/* ---------- Pílulas de filtro por curso (painel de Turmas) ---------- */
+.curso-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2);
+  min-width: 0;
+}
+
+.cpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--altura-controle);
+  padding: 0 14px;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 999px;
+  background: var(--superficie);
+  box-shadow: var(--sombra-controle);
+  color: var(--rotulo);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cpill:hover {
+  background: color-mix(in srgb, var(--superficie) 94%, var(--rotulo));
+}
+
+.cpill.active {
+  border-color: var(--acento-borda);
+  background: var(--acento-suave);
+  color: var(--link);
+  font-weight: 600;
+}
+
+.cpill-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--preenchimento);
+  color: var(--rotulo-2);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cpill.active .cpill-count {
+  background: var(--acento);
+  color: var(--sobre-acento);
+}
+
+@media (forced-colors: active) {
+  .badge,
+  .cpill {
+    border: 1px solid CanvasText;
+  }
+
+  .cpill.active {
+    outline: 2px solid Highlight;
+  }
+}

@@ -1,0 +1,652 @@
+/* ============================================================
+   BOTÕES — todos em cápsula, como na Gestão de Reuniões. As
+   classes antigas (btn-save, btn-sec, btn-danger...) continuam:
+   o JS escreve e troca essas classes (ex.: o modal de confirmação
+   alterna btn-save ↔ btn-danger-solid).
+   ============================================================ */
+
+/* ---------- Ação principal da página (cabeçalho) ----------
+   Cápsula azul com "+", uma por tela. No celular vira só o ícone. */
+.botao-destaque {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  height: var(--altura-controle);
+  padding: 0 16px 0 12px;
+  border-radius: 999px;
+  background: var(--acento);
+  color: var(--sobre-acento);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--sombra-controle);
+}
+
+.botao-destaque .icone {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+
+.botao-destaque:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* Ação secundária do cabeçalho: cápsula de vidro com ícone */
+.botao-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  height: var(--altura-controle);
+  padding: 0 16px 0 12px;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 999px;
+  background: var(--vidro);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--vidro-brilho), var(--sombra-controle);
+  color: var(--rotulo);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.botao-secundario .icone {
+  width: 18px;
+  height: 18px;
+  color: var(--rotulo-2);
+}
+
+.botao-secundario:hover:not(:disabled) {
+  background: var(--vidro-forte);
+}
+
+.botao-secundario:disabled {
+  opacity: 0.6;
+}
+
+/* Exportar Excel: o JS troca o texto do botão ("Gerando..."), então o
+   ícone vem por CSS e sobrevive à troca. */
+#btn-exportar::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background-color: var(--rotulo-2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 3.5v9M6.25 9 10 12.75 13.75 9'/%3E%3Cpath d='M3.75 13.5v1.25a1.75 1.75 0 0 0 1.75 1.75h9a1.75 1.75 0 0 0 1.75-1.75V13.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 3.5v9M6.25 9 10 12.75 13.75 9'/%3E%3Cpath d='M3.75 13.5v1.25a1.75 1.75 0 0 0 1.75 1.75h9a1.75 1.75 0 0 0 1.75-1.75V13.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+@media (max-width: 599px) {
+
+  .botao-destaque,
+  .botao-secundario {
+    width: var(--altura-controle);
+    padding: 0;
+  }
+
+  .botao-destaque__texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Exportar: o texto é do JS ("Gerando..."), então some só visualmente
+     (font-size 0) e o ícone do ::before fica; o nome acessível continua */
+  #btn-exportar {
+    font-size: 0;
+    gap: 0;
+  }
+}
+
+/* ---------- Botão de ícone de vidro (barra de ferramentas) ---------- */
+.botao-icone,
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--altura-controle);
+  height: var(--altura-controle);
+  padding: 0;
+  border: 1px solid var(--vidro-contorno);
+  border-radius: 999px;
+  background: var(--vidro);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--vidro-brilho), var(--sombra-controle);
+  color: var(--rotulo);
+}
+
+.botao-icone:hover,
+.theme-toggle:hover {
+  background: var(--vidro-forte);
+}
+
+.botao-icone .icon-mask,
+.theme-toggle .icon-mask {
+  width: 19px;
+  height: 19px;
+}
+
+.botao-voltar .icone {
+  stroke-width: 2.1;
+}
+
+/* Lua/sol do botão de tema */
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.theme-toggle .sun-icon,
+[data-theme="dark"] .theme-toggle .moon-icon {
+  display: none;
+}
+
+[data-theme="dark"] .theme-toggle .sun-icon {
+  display: block;
+}
+
+/* ---------- Primário de formulário (login) ---------- */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--e-5);
+  border-radius: 999px;
+  background: var(--acento);
+  color: var(--sobre-acento);
+  font-weight: 600;
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btn-primary:disabled {
+  opacity: 0.72;
+}
+
+/* Ação só de texto, no azul ("Esqueci minha senha", "Voltar para o login") */
+.link-acao {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--e-2);
+  border-radius: 8px;
+  color: var(--link);
+  font-weight: 500;
+}
+
+.link-acao:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Botões de modal e de tabela ---------- */
+.btn-save,
+.btn-sec,
+.btn-danger,
+.btn-danger-solid,
+.btn-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--altura-controle);
+  padding: 0 var(--e-4);
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn-save {
+  background: var(--acento);
+  color: var(--sobre-acento);
+}
+
+.btn-save:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btn-save:disabled,
+.btn-danger-solid:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-sec {
+  border: 1px solid var(--contorno-campo);
+  background: var(--superficie);
+  color: var(--rotulo);
+}
+
+.btn-sec:hover:not(:disabled) {
+  background: var(--preenchimento);
+}
+
+.btn-danger {
+  background: var(--perigo-suave);
+  color: var(--perigo);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--perigo) 16%, var(--superficie));
+}
+
+.btn-danger-solid {
+  background: var(--perigo);
+  color: #FFFFFF;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btn-warning {
+  background: var(--aviso-suave);
+  color: var(--aviso);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--aviso) 16%, var(--superficie));
+}
+
+/* Botões pequenos dentro das tabelas (Link, Chamada, Cancelar, Excluir) */
+td .btn-sec,
+td .btn-danger {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 0.8125rem;
+}
+
+/* Editar (cartões de usuário e tabelas de Configurações) */
+.btn-edit-prof {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--rotulo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn-edit-prof .icon-mask {
+  width: 14px;
+  height: 14px;
+  color: var(--rotulo-2);
+}
+
+.btn-edit-prof:hover {
+  background: var(--preenchimento);
+}
+
+/* Planilha (aba Alunos) — usa o visual de .botao-secundario no cabeçalho */
+.btn-import-planilha .icone {
+  color: var(--sucesso);
+}
+
+/* "Acessar turma" no pé do cartão */
+.btn-chamada {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 38px;
+  margin-top: var(--e-4);
+  border-radius: 999px;
+  background: var(--preenchimento);
+  color: var(--link);
+  font-weight: 600;
+}
+
+.btn-chamada .icon-mask {
+  width: 14px;
+  height: 14px;
+  margin-left: 2px !important;
+}
+
+.btn-chamada:hover {
+  background: var(--acento);
+  color: var(--sobre-acento);
+}
+
+/* ---------- Ícones redondos (fechar, menu, editar inline) ---------- */
+.close-btn,
+.menu-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--preenchimento);
+  color: var(--rotulo-2);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.close-btn .icone {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.4;
+}
+
+.menu-btn .icon-mask {
+  width: 18px;
+  height: 18px;
+}
+
+.close-btn:hover,
+.menu-btn:hover {
+  background: var(--preenchimento-2);
+  color: var(--rotulo);
+}
+
+.inline-edit-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--rotulo-3);
+}
+
+.inline-edit-btn .icon-mask {
+  width: 16px;
+  height: 16px;
+}
+
+.inline-edit-btn:hover {
+  background: var(--preenchimento);
+  color: var(--rotulo);
+}
+
+/* "+" ao lado do select de curso */
+.select-add-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--altura-campo);
+  height: var(--altura-campo);
+  padding: 0;
+  border: 1px solid var(--contorno-campo);
+  border-radius: var(--raio-campo);
+  background: var(--superficie);
+  color: var(--acento);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.select-add-btn:hover {
+  background: var(--acento-suave);
+}
+
+/* ---------- Presença na chamada (Presente / Falta / Gravação) ----------
+   Controle segmentado: os três ficam numa trilha cinza e a pílula
+   colorida (.pbtn-indicator, que o JS desliza e pinta) marca o
+   escolhido. O texto de cada opção já vem na cor do seu estado. */
+.pbtn {
+  position: relative;
+  z-index: 1;
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pbtn:active {
+  transform: none !important;
+}
+
+.pbtn.on {
+  font-weight: 700;
+}
+
+.pbtn-p {
+  color: var(--sucesso-texto);
+}
+
+.pbtn-f {
+  color: var(--perigo-texto);
+}
+
+.pbtn-r {
+  color: var(--aviso-texto);
+}
+
+.pbtn:not(.on):hover {
+  background: var(--preenchimento);
+}
+
+.pbtn-indicator {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  z-index: 0;
+  width: var(--pw, 0px);
+  transform: translateX(var(--px, 0px));
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.10), 0 0 0 0.5px rgb(0 0 0 / 0.05);
+  transition: transform 0.28s var(--mola), width 0.22s ease, background-color 0.2s ease;
+  pointer-events: none;
+}
+
+/* Sem marcação, a pílula encolhe a zero: some a sombra junto */
+.pbtn-indicator[style*="transparent"] {
+  box-shadow: none;
+}
+
+/* ---------- "Aula experimental" (modal de novo aluno) ---------- */
+.btn-toggle-experimental {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--altura-campo);
+  border: 1px dashed var(--amarelo);
+  border-radius: var(--raio-campo);
+  background: var(--superficie);
+  color: var(--amarelo-texto);
+  font-weight: 600;
+}
+
+.btn-toggle-experimental::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 1.6px solid currentColor;
+  border-radius: 5px;
+  flex: none;
+}
+
+.btn-toggle-experimental.active {
+  border-style: solid;
+  background: var(--amarelo-suave);
+}
+
+.btn-toggle-experimental.active::before {
+  border-color: var(--amarelo-texto);
+  background: var(--amarelo-texto) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 10.5 3.3 3.3L15 6.8'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+
+/* ---------- Presets de horário / abas de Configurações ---------- */
+.preset-btn {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--rotulo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.preset-btn:hover {
+  background: var(--preenchimento);
+}
+
+.preset-btn.ativo {
+  border-color: var(--acento-borda);
+  background: var(--acento-suave);
+  color: var(--link);
+}
+
+/* Controle segmentado (Cursos / Turmas / Alunos em Configurações) */
+.segmentado-botoes {
+  display: inline-grid;
+  grid-auto-columns: minmax(6.5rem, 1fr);
+  grid-auto-flow: column;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--preenchimento);
+}
+
+.segmentado-botoes .preset-btn {
+  min-height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--rotulo);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.segmentado-botoes .preset-btn:hover {
+  background: none;
+}
+
+.segmentado-botoes .preset-btn.ativo {
+  background: var(--superficie);
+  color: var(--rotulo);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12), 0 0 0 0.5px rgb(0 0 0 / 0.06);
+}
+
+[data-theme="dark"] .segmentado-botoes .preset-btn.ativo {
+  background: #636366;
+}
+
+/* ---------- Mostrar/ocultar senha ---------- */
+.senha-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: var(--rotulo-2);
+  translate: 0 -50%;
+}
+
+.senha-toggle:active {
+  transform: none !important;
+}
+
+.senha-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.senha-toggle:hover {
+  background: var(--preenchimento);
+  color: var(--rotulo);
+}
+
+/* ---------- Categorias de observação (modal do aluno) ---------- */
+.obs-cat-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 62px;
+  padding: 8px 4px;
+  border: 1px solid var(--contorno-campo);
+  border-radius: 12px;
+  background: var(--superficie);
+  color: var(--rotulo);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.obs-cat-btn:hover {
+  background: var(--preenchimento);
+}
+
+.obs-cat-btn.selected {
+  border-color: var(--acento-borda);
+  background: var(--acento-suave);
+  color: var(--link);
+  box-shadow: 0 0 0 1px var(--acento-borda);
+}
+
+.obs-cat-btn .icon {
+  font-size: 15px;
+}
+
+@media (max-width: 899px), (pointer: coarse) {
+
+  .close-btn,
+  .menu-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .inline-edit-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .pbtn {
+    min-height: 40px;
+    font-size: 0.875rem;
+  }
+}
+
+@media (forced-colors: active) {
+
+  .botao-destaque,
+  .botao-secundario,
+  .botao-icone,
+  .theme-toggle,
+  .btn-primary,
+  .btn-save,
+  .btn-danger,
+  .btn-danger-solid,
+  .btn-chamada {
+    border: 1px solid ButtonText;
+  }
+
+  .pbtn.on,
+  .preset-btn.ativo {
+    outline: 2px solid Highlight;
+  }
+}

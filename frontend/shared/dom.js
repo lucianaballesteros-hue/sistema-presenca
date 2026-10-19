@@ -19,15 +19,49 @@ export function escapeAttr(str) {
   return escapeHtml(paraStringJs);
 }
 
+// Ícone de cada tipo de aviso (desenhado em 20 px, como os do sprite)
+const ICONES_TOAST = {
+  green: '<path d="m6.6 10.3 2.3 2.3 4.5-5"/>',
+  red: '<path d="M10 6v5"/><circle cx="10" cy="14" r=".6"/>',
+  blue: '<path d="M10 9v5"/><circle cx="10" cy="6.2" r=".6"/>',
+};
+
+// Aviso no canto da tela. Some sozinho (erro fica mais tempo, para dar
+// tempo de ler); passar o mouse pausa a contagem — a barrinha embaixo
+// mostra quanto falta — e clicar fecha na hora.
 export function showToast(msg, type = 'green') {
   const container = document.getElementById('toast');
+  const duracao = type === 'red' ? 6000 : 4000;
   const item = document.createElement('div');
   item.className = `toast-item ${type}`;
-  item.textContent = msg;
-  const remover = () => item.remove();
-  item.addEventListener('click', remover); // clique fecha na hora
+  item.setAttribute('role', type === 'red' ? 'alert' : 'status');
+  item.style.setProperty('--duracao', duracao + 'ms');
+  item.innerHTML = `
+    <svg class="toast-item__icone" viewBox="0 0 20 20" aria-hidden="true">${ICONES_TOAST[type] || ICONES_TOAST.green}</svg>
+    <span class="toast-item__texto"></span>
+    <button type="button" class="toast-item__fechar" aria-label="Fechar aviso"><svg class="icone" aria-hidden="true"><use href="#i-fechar" /></svg></button>
+    <span class="toast-item__tempo" aria-hidden="true"></span>`;
+  item.querySelector('.toast-item__texto').textContent = msg;
+
+  let restante = duracao;
+  let inicio = Date.now();
+  let timer = setTimeout(remover, restante);
+  function remover() {
+    clearTimeout(timer);
+    if (item.classList.contains('saindo')) return;
+    item.classList.add('saindo');
+    setTimeout(() => item.remove(), 200);
+  }
+  item.addEventListener('mouseenter', () => {
+    clearTimeout(timer);
+    restante -= Date.now() - inicio;
+  });
+  item.addEventListener('mouseleave', () => {
+    inicio = Date.now();
+    timer = setTimeout(remover, Math.max(restante, 800));
+  });
+  item.addEventListener('click', remover);
   container.appendChild(item);
-  setTimeout(remover, 2800);
 }
 
 export function fecharModal(id) {
