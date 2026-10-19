@@ -96,10 +96,11 @@
     white-space: nowrap;
   }
 
-  /* O de exportar não tem ícone em SVG (vem do ::before): fica com o texto */
+  /* Exportar: o texto é do JS ("Gerando..."), então some só visualmente
+     (font-size 0) e o ícone do ::before fica; o nome acessível continua */
   #btn-exportar {
-    width: auto;
-    padding: 0 14px 0 10px;
+    font-size: 0;
+    gap: 0;
   }
 }
 

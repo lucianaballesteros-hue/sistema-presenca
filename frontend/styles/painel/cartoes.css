@@ -81,10 +81,16 @@
   }
 }
 
-/* ---------- Cartões de turma ---------- */
+/* ---------- Cartões de turma ----------
+   No máximo 4 por fileira: a coluna nunca é mais estreita que 1/4 da
+   largura (então não cabe uma 5ª) nem que 13,5rem (em tela menor, cai
+   para 3, 2 ou 1 coluna sozinha — acompanha também a barra lateral
+   aberta ou oculta). Com 13,5rem, um notebook a 1280 px (1920 em escala
+   de 150%) ainda mostra as 4. O -0.1px evita que um arredondamento
+   derrube a 4ª. */
 .turmas-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, max(13.5rem, (100% - 3 * var(--e-4)) / 4 - 0.1px)), 1fr));
   gap: var(--e-4);
 }
 
@@ -92,7 +98,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: var(--e-5);
+  padding: 18px;
   border: 1px solid var(--contorno);
   border-radius: var(--raio-cartao);
   background: var(--superficie);
@@ -139,8 +145,8 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font: var(--t-titulo-cartao);
-  letter-spacing: -0.018em;
+  font: 600 0.9375rem/1.25rem var(--fonte);   /* 15/20 */
+  letter-spacing: -0.012em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -155,8 +161,8 @@
 
 .turma-card__info {
   display: grid;
-  gap: 6px;
-  font: var(--t-chamada);
+  gap: 5px;
+  font: 400 0.75rem/1rem var(--fonte);        /* 12/16 */
   color: var(--rotulo-2);
 }
 
@@ -164,7 +170,36 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+}
+
+/* Selos e horário do cartão um tom menores que no resto do sistema */
+.turma-card .badge {
+  height: 20px;
+  padding: 0 8px;
+  font-size: 0.6875rem;                      /* 11 */
+  line-height: 20px;
+}
+
+.turma-card .horario-tag {
+  height: 20px;
+  padding: 0 8px 0 6px;
+  font-size: 0.6875rem;
+}
+
+.turma-card .horario-tag.sem-horario {
+  padding: 0 8px;
+}
+
+.turma-card .horario-tag .icon-mask {
+  width: 12px;
+  height: 12px;
+}
+
+.turma-card .btn-chamada {
+  min-height: 34px;
+  margin-top: 14px;
+  font-size: 0.8125rem;                      /* 13 */
 }
 
 .turma-card__linha {

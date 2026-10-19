@@ -69,11 +69,12 @@ Um único HTML com todas as telas dentro (nenhuma navegação de página — é 
 
 | Bloco | O que é |
 |---|---|
-| `<head>` | Ícone, `<meta name="app-version">` (lido por `updateNotifier.js`), os dois `<script>` de CDN (Supabase e xlsx), um script inline que aplica o tema salvo **antes** do CSS carregar (evita flash de tela clara ao abrir no escuro), e as 18 `<link rel="stylesheet">` de `frontend/styles/`. |
+| `<head>` | Ícone, `<meta name="app-version">` (lido por `updateNotifier.js`), os dois `<script>` de CDN (Supabase e xlsx), um script inline que aplica o tema salvo **antes** do CSS carregar (evita flash de tela clara ao abrir no escuro), e as 15 `<link rel="stylesheet">` de `frontend/styles/painel/`. |
+| `<svg class="sprite">` | Os ícones do painel (traço único, no estilo SF Symbols — o mesmo conjunto da Gestão de Reuniões), usados com `<svg><use href="#i-..."></svg>`. |
 | `#login-page` | Formulário de e-mail/senha. |
 | `#recover-request-page` | Passo 1 da recuperação de senha: pedir o e-mail (escondido por padrão). |
 | `#recovery-page` | Passo 2 da recuperação de senha: definir a nova senha, aberto pelo link recebido por e-mail (escondido por padrão). |
-| `#app` | A aplicação depois de logado: `#chart-tooltip` (tooltip único e compartilhado de todos os gráficos de Métricas), cabeçalho (`.header`), menu de abas (`.nav`) e o conteúdo (`.content`). |
+| `#app` | A aplicação depois de logado, no mesmo desenho da Gestão de Reuniões: `#chart-tooltip` (tooltip único e compartilhado de todos os gráficos de Métricas), a barra lateral (`#barra-lateral`, com o logo e o menu de abas `.nav#nav-bar`), o cabeçalho (`#cabecalho`: botão da barra lateral, título/subtítulo/ação principal da aba ativa, engrenagem de Configurações e o avatar da conta), o conteúdo (`.content`) e o menu da conta (`#menu-conta`, popover com o nome, a troca de tema e o "Sair"). |
 | `#tab-turmas` | Contém **duas visões que se alternam**: `#dash-view` (grade de turmas) e `#chamada-view` (fazer chamada de uma turma). Só uma fica visível por vez. |
 | `#tab-alunos` | Tabela de alunos com filtros + botões "+ Novo aluno" e "Adicionar planilha" (importação em massa). |
 | `#tab-relatorio` | Filtros (multi-select) + tabelas de frequência por turma + botão de exportar Excel. |
@@ -84,8 +85,11 @@ Um único HTML com todas as telas dentro (nenhuma navegação de página — é 
 | `.modal-bg#modal-*` | **Quinze modais**: aluno, criar reposição, link da reposição gerado, editar aluno, transferir aluno, novo aluno, conferência de importação de planilha, novo professor, editar professor, nova turma, editar turma, novo curso, editar curso, confirmar exclusão permanente, e o modal de confirmação genérico (substitui o `confirm()` nativo). Todos escondidos por padrão, abrem recebendo a classe `.open`. |
 | `#toast`, `#app-loading`, `#update-banner` | Elementos de feedback global (aviso rápido, tela de carregamento, banner de "nova versão disponível"). |
 | `<script type="module" src="frontend/main.js">` | Carrega a aplicação. Fica no fim do `<body>` para simplicidade, mas como é `type="module"`, o navegador já executa de forma adiada (equivalente a `defer`) — ou seja, roda depois que todo o HTML acima foi criado. |
+| `<script type="module" src="frontend/shared/shell.js">` | A casca visual (mostrar/ocultar a barra lateral, painel sobreposto no celular, efeito de rolagem do cabeçalho, posição do menu da conta). Fica num módulo **separado** do `main.js` de propósito: é só apresentação e não chama nenhuma função do sistema — se um dia falhar, o sistema continua funcionando. |
 
-**A barra de navegação (`.nav`) só tem 5 botões: Turmas, Alunos, Relatórios, Métricas, Reposições.** "Professores" e "Configurações" não estão lá — só são alcançáveis pelo ícone de engrenagem (`#btn-config`) no cabeçalho, visível apenas para admins, que abre um menu pequeno com as duas opções (ver [seção 10.8](#108-configuracoes--zona-de-exclusão-permanente-admin)). Consequência prática: `goTab()` (seção 9) só sabe destacar visualmente um dos 5 botões da `.nav` — ao navegar para "professores" ou "configuracoes", a tela troca normalmente, mas nenhum botão da barra fica marcado como ativo (não há um botão correspondente a apontar).
+**O menu de abas (`.nav`, na barra lateral) só tem 5 botões: Turmas, Alunos, Relatórios, Métricas, Reposições** — mais o link "Cadastro online" (só admin), que leva às páginas à parte do cadastro. ⚠️ `goTab()` (seção 9) marca o ativo **pela posição** de cada `.nav-btn` no documento (`TABS[i]`), então a ordem e a quantidade desses botões não pode mudar sem mexer junto em `navigation.js`. "Professores" e "Configurações" não estão no menu — só são alcançáveis pelo ícone de engrenagem (`#btn-config`) no cabeçalho, visível apenas para admins, que abre um menu pequeno com as duas opções (ver [seção 10.8](#108-configuracoes--zona-de-exclusão-permanente-admin)). Consequência prática: ao navegar para "professores" ou "configuracoes", a tela troca normalmente, mas nenhum item do menu fica marcado como ativo (não há um botão correspondente a apontar).
+
+**O título do cabeçalho troca sozinho, sem JS.** Cada aba tem o seu bloco `.cabecalho__tela[data-tela="..."]` (título, subtítulo e a ação principal, como "Nova turma") e `estrutura.css` mostra só o da aba que está com `.active` — a mesma classe que o `goTab()` já põe. Com a chamada aberta (`#chamada-view` visível), o cabeçalho vira o da turma: voltar, `#ch-titulo` e `#ch-sub`, que o `abrirChamada()` preenche.
 
 Quase todo elemento interativo tem um atributo inline (`onclick`, `onchange`, `oninput`, `onkeydown`) chamando uma função pelo nome — essas funções são exatamente as que o `main.js` registra em `window` (seção 11).
 
@@ -93,37 +97,40 @@ Quase todo elemento interativo tem um atributo inline (`onclick`, `onchange`, `o
 
 ## 4. `frontend/styles/`
 
-O CSS é dividido por responsabilidade. A ordem de carregamento no `<head>` importa (CSS depois sobrescreve CSS de antes):
+O painel (`index.html`) segue o **mesmo padrão visual da Gestão de Reuniões**: aparência no estilo Apple, cinzas neutros do macOS, cartões brancos, o azul do sistema como cor de ação, barra lateral de vidro, botões em cápsula e ícones de traço fino. O CSS dele mora em `frontend/styles/painel/`, dividido por responsabilidade. A ordem de carregamento no `<head>` importa (CSS depois sobrescreve CSS de antes):
 
 ```
-base/reset.css          reset básico (*, body, a)
-base/theme-tokens.css   TODAS as variáveis de cor (:root = tema claro, [data-theme="dark"] = escuro)
-base/liquid-glass.css   camada transversal: transição/resposta tátil (:active{scale}) em qualquer elemento
-                         clicável do sistema inteiro, aplicada uma única vez em vez de repetida por componente;
-                         respeita prefers-reduced-motion
-layout/header.css       cabeçalho fixo no topo (logo, ícone de tema, ícone de configurações, avatar, botão sair)
-layout/nav.css          menu de abas (5 botões + pílula deslizante)
-layout/content.css      container central + containers específicos da tela de chamada
-components/login.css    card de login + as duas telas de recuperação de senha
-components/buttons.css  TODOS os botões do sistema (primário, salvar, cancelar, perigo, aviso,
-                         toggle de tema, presença P/F/R, presets de horário, categorias de observação...)
-components/badges.css   selos coloridos (badge-verde/âmbar/vermelho/...) e as pills de filtro por curso
-components/forms.css    campos de formulário, seletor de horário, seletor de dias, seletor de cor,
-                         indicador "mostrar senha", classes .search-input e .field-error
-components/cards.css    cards de estatística, turma, professor e as seções de métricas
-components/tables.css   tabela padrão, barra de frequência, tabela de métricas
-components/modals.css   estrutura dos modais + caixas de aviso/informação/perigo (.danger-box)
-components/dots.css     os "pontinhos" de histórico no relatório + o menu que abre ao clicar neles
-components/multiselect.css  barra de filtros + os dropdowns de múltipla escolha (relatório e o
-                         componente genérico de "select estilizado" de customSelect.js)
-components/metricas.css estilos do dashboard de Métricas: seletor de foco, KPIs, cards de gráfico,
-                         donuts, tabelas comparativas, feed de atividade — o único conteúdo do
-                         sistema que usa uma largura máxima maior que o padrão (@1680px em vez de @1200px)
-components/toast.css    toast, tela de carregamento, banner de atualização, estado vazio
-components/reposicoes.css  tabela/pills de status da aba Reposições + o card de sugestões automáticas
+painel/tokens.css      TODAS as variáveis (cores claro/escuro, tipografia, espaços, sombras, vidro) +
+                       os nomes antigos (--text-3, --green, --primary-soft...) apontando para os tons
+                       novos — o JS monta muita coisa com estilo inline usando esses nomes
+painel/base.css        reset, texto, ícones (.icone do sprite e .icon-mask: os ícones que o JS escreve,
+                       desenhados em SVG por máscara), foco, utilitários (.hidden, .flex-row...),
+                       resposta ao toque e prefers-reduced-motion
+painel/acesso.css      cartão de login + as duas telas de recuperação de senha
+painel/estrutura.css   barra lateral (menu de abas), cabeçalho fixo com o título da aba ativa,
+                       menu da conta, conteúdo e a linha de busca/filtros (.controles)
+painel/botoes.css      TODOS os botões (ação do cabeçalho, salvar, cancelar, perigo, presença P/F/R,
+                       presets de horário, segmentado de Configurações, categorias de observação...)
+painel/campos.css      campos de formulário, busca em cápsula, filtros em cápsula (pop-up do macOS)
+                       por cima do customSelect.js e dos multi-select do Relatório, seletor de turma
+                       do "Novo aluno", horário, dias e cor da turma, .field-error
+painel/selos.css       selos (badge-*) e as pílulas de filtro por curso do painel de Turmas
+painel/cartoes.css     números do topo das telas, cartões de turma (máx. 4 por fileira) e de usuário
+painel/tabelas.css     tabela padrão, barra de frequência, tabelas de Métricas
+painel/janelas.css     modais (no celular viram folha que sobe do pé da tela), confirmação, menus
+                       flutuantes (.dot-menu) e caixas de informação/aviso/perigo
+painel/chamada.css     tela de chamada: cartão da aula, quadradinhos, contadores e lista de alunos
+painel/relatorio.css   os "pontinhos" de histórico do relatório
+painel/metricas.css    painel de Métricas: seletor de foco, destaques, KPIs, gráficos, donuts, feed
+painel/reposicoes.css  modal de criar reposição, link gerado e pílulas de status da aba Reposições
+painel/avisos.css      toast, tela de carregamento, banner de atualização, estados vazios
 ```
 
-**Como funciona o tema escuro**: todas as cores usadas nos outros arquivos são `var(--nome)`. `theme-tokens.css` define esses nomes duas vezes — uma vez dentro de `:root` (valores claros) e outra dentro de `[data-theme="dark"]` (valores escuros). Quando `toggleTema()` (seção 10.1) adiciona `data-theme="dark"` na tag `<html>`, todas as variáveis trocam de valor de uma vez, sem tocar em nenhum outro CSS.
+**Como funciona o tema escuro**: todas as cores usadas nos outros arquivos são `var(--nome)`. `tokens.css` define esses nomes duas vezes — uma vez dentro de `:root` (valores claros) e outra dentro de `[data-theme="dark"]` (os tons escuros do macOS). Quando `toggleTema()` (seção 10.1) adiciona `data-theme="dark"` na tag `<html>`, todas as variáveis trocam de valor de uma vez, sem tocar em nenhum outro CSS.
+
+**Os indicadores que deslizam** (anel da aula ativa e pílula de presença na chamada, pílula do seletor de foco das Métricas) são medidos pelo JS em pixels (`offsetLeft`/`offsetWidth`). O CSS só pode mudar a aparência deles mantendo o mesmo ponto de origem — por isso o anel e a grade de aulas ficam juntos em `.chamada-aulas__trilho`, sem padding (ver comentário em `chamada.css`). A pílula da barra de navegação antiga não existe mais: no menu vertical o item ativo ganha o realce próprio, e `moverIndicadorNav()` continua rodando sem efeito visual.
+
+**Os estilos antigos continuam no repositório** (`base/`, `layout/header.css`, `layout/content.css` e `components/` exceto os arquivos que eram só do painel): são eles que as páginas do **cadastro online** (`admin-alunos.html`, `admin-turmas.html`, junto com `preview-admin.css`) carregam. Mexer neles muda essas páginas, não o painel.
 
 `frontend/styles/public-reposicao.css` é um arquivo **à parte**, carregado só por `reposicao.html` — não faz parte dessa cadeia (ver [seção 16.3](#163-lado-público-sem-login--reposicaohtml)).
 
@@ -250,7 +257,8 @@ Regras de como uma reposição aparece na chamada (seção 10.4). Uma reposiçã
 - **`validators.js`**: `isEmailValido` — checagem simples de formato de e-mail.
 - **`refresh.js`**: `atualizarTelas({ filtros, chamada })` — **redesenho central depois de qualquer alteração de dado**. Antes, cada ação chamava na mão a lista de telas que ela achava que precisava atualizar (`renderTabelaAlunos(); renderDash();` e variações), e esse conjunto quase nunca estava completo: quem inativava, cancelava ou excluía um aluno **estando dentro de uma turma** não via nada mudar, porque nenhuma dessas listas incluía `renderChamada()` — só saindo e voltando na tela o dado aparecia certo (o mesmo valia para a aba Métricas, que só se redesenha ao entrar). Agora existe um lugar só que sabe o que está à vista (aba ativa + se a chamada está aberta) e redesenha tudo; toda ação que mexe em aluno/turma/presença termina chamando essa função. Como todo redesenho sai do `state` que já está em memória (nenhum vai à rede), chamar todos de uma vez é barato o suficiente para acontecer a cada clique. Dois detalhes: `filtros: true` só em quem mexe no conjunto de turmas/cursos, porque `popularFiltros()` recria o HTML dos multiselects e apagaria o que o usuário tiver marcado neles; `chamada: false` só em `marcar()`, que atualiza a linha clicada na mão de propósito, para não matar a animação do indicador no meio.
 - **`permissoes.js`**: `ehAdmin()` e `podeGerenciarTurmasInativas()` — quem pode o quê, num lugar só (antes esse `papel === 'admin'` estava solto em cada tela, o que tornava fácil esquecer um botão para trás ao mudar a regra). Hoje a única diferença de papel na interface é: admin vê o botão de Configurações, vê/usa a pill "Turmas inativas" e é o único que inativa ou reativa turma. Professor enxerga **todas** as turmas ativas do sistema, não só as dele. ⚠️ É regra de **interface**, não de segurança — quem de fato impede uma escrita indevida é o RLS no Supabase (seção 15).
-- **`navigation.js`**: `goTab(tab)` — troca qual aba está visível e, se a aba for relatório/métricas/professores/reposições/configurações, manda ela se redesenhar (essas telas são recalculadas na hora de entrar, não ficam atualizando sozinhas em segundo plano). Também expõe `moverIndicadorNav()` (desliza a pílula do menu até o botão ativo, medindo a posição real do botão em vez de recalcular por índice — continua certo mesmo com "Professores"/"Configurações" fora da barra).
+- **`navigation.js`**: `goTab(tab)` — troca qual aba está visível e, se a aba for relatório/métricas/professores/reposições/configurações, manda ela se redesenhar (essas telas são recalculadas na hora de entrar, não ficam atualizando sozinhas em segundo plano). Também expõe `moverIndicadorNav()` (desliza a pílula do menu até o botão ativo, medindo a posição real do botão em vez de recalcular por índice). No menu vertical da barra lateral essa pílula fica escondida (`estrutura.css`) e o item ativo tem realce próprio; a função segue sendo chamada, sem efeito visual.
+- **`shell.js`**: a casca visual do painel, carregada num `<script type="module">` próprio (não pelo `main.js`): mostra/oculta a barra lateral (a escolha fica no `localStorage`, chave `presenca:barra-lateral-oculta`), transforma a barra num painel sobreposto em janelas estreitas (fecha ao escolher uma seção, no véu ou com Esc), liga o efeito de rolagem do cabeçalho e posiciona o menu da conta. Não chama nenhuma função do sistema.
 - **`updateNotifier.js`**: a cada 30 segundos, busca o próprio `index.html` de novo e compara a tag `<meta name="app-version">` com a que já está carregada; se mudou, mostra o banner "Atualização disponível". É a forma (simples, sem service worker) de avisar quem está com a aba aberta que subiu uma versão nova.
 - **`confirm.js`**: `confirmar({ titulo, mensagem, textoConfirmar, textoCancelar, perigo })` — diálogo de confirmação no próprio layout do sistema (modal `#modal-confirm`), substituindo o `confirm()` nativo do navegador em todo o app. Retorna uma Promise (`if (!await confirmar({...})) return;`); `responderConfirm(valor)` é chamada pelos botões do modal e resolve essa Promise.
 - **`customSelect.js`**: `enhanceSelect(select)` — um `<select>` nativo não pode ter sua lista aberta estilizada (o navegador desenha esse popup com o chrome do próprio SO). Esta função troca só a **apresentação** de um `<select>` marcado com `data-custom-select` por um botão + painel no estilo "liquid glass" do resto do sistema, mantendo o `<select>` real (escondido) como única fonte da verdade — nada que leia/escreva `.value` ou escute `change` nesses elementos precisa mudar. Ligado automaticamente em `main.js` para todo `select[data-custom-select]` presente no HTML estático no momento do boot.
@@ -271,7 +279,7 @@ Um arquivo, uma função: `toggleTema()` alterna o atributo `data-theme` da tag 
 
 - **`doLogin()`**: lê e-mail/senha da tela, chama `sb.auth.signInWithPassword`. Se der certo, guarda o usuário em `state.usuarioLogado`, busca o perfil (`carregarPerfil`) e chama `inicializarApp()`.
 - **`carregarPerfil()`**: busca a linha de `professores` cujo `user_id` bate com o usuário autenticado — é daqui que vem `state.perfilLogado.papel` (`admin`/`professor`) e `.nome`.
-- **`inicializarApp()` / `executarCargaInicial()`**: mostra a tela de carregamento, preenche o avatar/nome no cabeçalho, mostra o ícone de Configurações (`#btn-config`) só se for admin, e dispara o carregamento de tudo — turmas → alunos → (em paralelo) presenças/histórico/professores/**cursos**/**reposições** → **`sincronizarCursosComTurmas()`** — antes de popular filtros e desenhar o dashboard, a tabela de alunos e o relatório pela primeira vez, e então ligar as notificações de reposição em tempo real (`iniciarNotificacoesReposicoes()`, seção 10.9).
+- **`inicializarApp()` / `executarCargaInicial()`**: mostra a tela de carregamento, preenche o avatar (cabeçalho) e o nome (menu da conta), mostra o ícone de Configurações (`#btn-config`) só se for admin, e dispara o carregamento de tudo — turmas → alunos → (em paralelo) presenças/histórico/professores/**cursos**/**reposições** → **`sincronizarCursosComTurmas()`** — antes de popular filtros e desenhar o dashboard, a tabela de alunos e o relatório pela primeira vez, e então ligar as notificações de reposição em tempo real (`iniciarNotificacoesReposicoes()`, seção 10.9).
   - **Guarda contra corrida (`cargaEmAndamento`)**: `inicializarApp()` reaproveita a Promise de uma carga já em andamento em vez de rodar tudo de novo se for chamada duas vezes antes da primeira terminar. Isso existe porque `restoreSession()` (abaixo) pode ainda estar esperando `getSession()` responder quando o usuário já clica em "Entrar" — sem essa guarda, duas cargas paralelas duplicavam alunos (e arriscavam duplicar turmas/cursos) na tela, às vezes de forma permanente se a corrida alcançasse um `INSERT` em `sincronizarCursosComTurmas()`. `carregarAlunos()` (seção 7) também foi endurecida por conta própria, como segunda linha de defesa.
 - **`doLogout()`**: `sb.auth.signOut()` e volta para a tela de login.
 - **`restoreSession()`**: ao abrir a página, pergunta ao Supabase se já existe uma sessão válida (token salvo no navegador) e, se sim, faz login automático sem pedir e-mail/senha de novo — a menos que a página tenha sido aberta a partir de um link de recuperação de senha (`estaEmRecuperacaoSenha()`).
