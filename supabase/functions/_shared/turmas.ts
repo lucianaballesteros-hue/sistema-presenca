@@ -231,8 +231,22 @@ export function filtrarMatriculaveis(
 ): TurmaSponte[] {
   const { anoLetivo, exigirVaga = true } = opcoes;
 
+  // Meia-noite de hoje: turma que termina hoje ainda vale o dia inteiro.
+  const hoje = new Date().toISOString().slice(0, 10);
+
   return turmas.filter((t) => {
     if (turmaEncerrada(t)) return false;
+
+    // Terminou, mas ninguém encerrou no Sponte.
+    //
+    // A situação é preenchida à mão, e a turma só vira "Encerrada" quando
+    // alguém se lembra. Em 21/10/2026 havia 4 turmas "Abertas" cujo
+    // término já tinha passado — a mais antiga em junho. Vender matrícula
+    // para uma delas cria contrato num curso que acabou.
+    //
+    // A data de término é fato; a situação é lembrança. Entre as duas, a
+    // data decide.
+    if (t.dataTermino && t.dataTermino < hoje) return false;
     if (anoLetivo !== undefined && t.anoLetivo !== anoLetivo) return false;
     if (exigirVaga && t.maxAlunos > 0 && t.vagasLivres <= 0) return false;
     return true;
