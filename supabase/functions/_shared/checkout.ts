@@ -62,6 +62,9 @@ export interface FichaParaCheckout {
   valorTotal: number | null;
   parcelasCartao: number | null;
   formaCobrancaNome: string | null;
+  /** Taxa de matrícula congelada no link. `null` quando o plano não tem. */
+  valorTaxa: number | null;
+  parcelasTaxa: number | null;
   pagamentoLink: string | null;
   linkId: number | null;
   progresso: ProgressoMatricula | null;
@@ -84,8 +87,17 @@ export interface DependenciasCheckout {
     detalhe?: Record<string, unknown>;
     erro?: string | null;
   }): void;
-  /** A data de término da turma, para o contrato. `null` se desconhecida. */
-  dataTerminoDaTurma(turmaId: number | null): Promise<string | null>;
+  /**
+   * As datas da turma, em ISO. Campo ausente vem `null`.
+   *
+   * O término alimenta o contrato; o **início** decide quando a primeira
+   * mensalidade vence. Vêm juntos porque sair duas vezes ao Sponte pela
+   * mesma turma seria desperdício.
+   */
+  datasDaTurma(turmaId: number | null): Promise<{
+    inicio: string | null;
+    termino: string | null;
+  }>;
   /** Com `false`, nada é escrito no ERP — a sequência roda em simulação. */
   escritaLiberada: boolean;
   /** Prefixa os nomes criados com "TESTE-SISTEMA". */
@@ -114,6 +126,42 @@ export interface ResultadoCheckout {
  * `enviado`/`erro` já passaram por aqui.
  */
 export const STATUS_PODE_MATRICULAR = new Set(["pendente", "aprovado"]);
+
+/**
+ * Dias até a primeira cobrança, quando ela é imediata.
+ *
+ * Cinco é o prazo que o sistema sempre usou, e continua valendo para a
+ * taxa de matrícula: tempo de o aluno receber o link, abrir e pagar.
+ */
+export const DIAS_ATE_COBRAR = 5;
+
+/**
+ * Quando a primeira mensalidade vence.
+ *
+ * A escola vende turma que começa no ano seguinte, e o aluno paga a taxa
+ * agora para garantir a vaga. As mensalidades acompanham o curso, não o
+ * cadastro: quem se matricula em outubro numa turma de fevereiro não
+ * começa a pagar em outubro.
+ *
+ * **Nunca no passado** (SPEC-002 RN-05). Turma já iniciada, ou sem data,
+ * cobra como sempre cobrou. Cobrança que nasce vencida chega ao aluno
+ * como atraso que ele não causou — e aciona a régua no mesmo dia.
+ *
+ * A fonte é a turma, não o plano. O plano tem `DataInicialMensalidade`,
+ * mas em 21/10/2026 as cinco da escola apontavam para o passado — campo
+ * de configuração esquecido. A data da turma é o fato (RN-04).
+ */
+export function primeiroVencimentoMensalidade(
+  inicioDaTurma: string | null | undefined,
+  hoje: Date = new Date(),
+): string {
+  const piso = new Date(hoje);
+  piso.setDate(piso.getDate() + DIAS_ATE_COBRAR);
+  const pisoIso = piso.toISOString().slice(0, 10);
+
+  if (!inicioDaTurma) return pisoIso;
+  return inicioDaTurma > pisoIso ? inicioDaTurma : pisoIso;
+}
 
 export async function executarCheckout(
   c: FichaParaCheckout,
@@ -159,7 +207,18 @@ export async function executarCheckout(
   const formaCobrancaId = forma.formaCobrancaId;
 
   const iniciouEm = Date.now();
-  const turmaDataTermino = await d.dataTerminoDaTurma(c.turmaId);
+  const turma = await d.datasDaTurma(c.turmaId);
+  const turmaDataTermino = turma.termino;
+
+  // Quando a primeira mensalidade vence.
+  //
+  // A escola vende turma que começa no ano seguinte: quem se matricula
+  // hoje numa turma de fevereiro não deve começar a pagar em outubro.
+  //
+  // Nunca no passado, porém (RN-05). Turma que já começou, ou sem data
+  // de início, cobra como sempre cobrou — cobrança que nasce vencida é
+  // pior que cobrança adiada.
+  const primeiroVencimento = primeiroVencimentoMensalidade(turma.inicio);
 
   const p = await executarMatricula(
     d.cred,
@@ -175,6 +234,9 @@ export async function executarCheckout(
       responsavelEmail: c.responsavelEmail, responsavelCelular: c.responsavelCelular,
       sponteTurmaId: c.turmaId, sponteCursoId: c.cursoId,
       turmaDataTermino,
+      primeiroVencimento,
+      valorTaxa: c.valorTaxa,
+      parcelasTaxa: c.parcelasTaxa,
       planoCursoId: c.planoCursoId, bolsaId: c.bolsaId,
       valorParcela: c.valorParcela ?? 0, parcelas: c.parcelas ?? 1,
       // O que será cobrado de fato: o total do contrato, numa cobrança só.
@@ -198,6 +260,13 @@ export async function executarCheckout(
     sponte_responsavel_reusado: !!p.responsavelReusado,
     forma_cobranca_id: formaCobrancaId || null,
     forma_cobranca_nome: forma?.descricao ?? c.formaCobrancaNome ?? null,
+    // Fica na ficha para a conferência saber o que foi prometido ao aluno
+    // — e para o aluno poder ser lembrado disso se ligar perguntando.
+    mensalidades_iniciam_em: primeiroVencimento,
+    // Gravada mesmo em caso de erro adiante: é ela que impede a retomada
+    // de lançar uma segunda taxa num ERP que não tem exclusão.
+    sponte_conta_taxa_id: p.contaTaxaId,
+    valor_taxa: c.valorTaxa ?? null,
   };
 
   d.registrar({

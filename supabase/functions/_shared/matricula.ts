@@ -143,13 +143,14 @@ export type PassoMatricula =
   | "criar_aluno"
   | "criar_responsavel"
   | "criar_matricula"
+  | "criar_taxa"
   | "criar_plano"
   | "localizar_parcela"
   | "gerar_link";
 
 export const PASSOS: PassoMatricula[] = [
   "verificar_cpf", "criar_aluno", "criar_responsavel", "criar_matricula",
-  "criar_plano", "localizar_parcela", "gerar_link",
+  "criar_taxa", "criar_plano", "localizar_parcela", "gerar_link",
 ];
 
 /**
@@ -189,6 +190,17 @@ export interface ProgressoMatricula {
    * próprio aluno; para menor, o responsável informado no cadastro.
    */
   responsavelId: number | null;
+  /**
+   * Conta a receber da taxa de matrícula, quando o plano tem uma.
+   *
+   * Guardada porque o Sponte **não exclui por API**: sem isto, refazer o
+   * checkout de uma ficha em erro criaria uma segunda taxa, e a segunda
+   * sairia a mão, na tela deles (SPEC-002 RN-09).
+   *
+   * `null` quando o plano não tem taxa — o caso dos cinco planos da
+   * escola em 21/10/2026.
+   */
+  contaTaxaId: number | null;
   /**
    * O responsável já existia no ERP e foi reusado pelo CPF.
    *
@@ -230,7 +242,7 @@ export function progressoVazio(): ProgressoMatricula {
   return {
     sponteAlunoId: null, alunoJaExistia: false, dadosAtualizados: false,
     responsavelReusado: false,
-    responsavelId: null, contratoId: null,
+    responsavelId: null, contaTaxaId: null, contratoId: null,
     planoCriado: false, contaReceberId: null, numeroParcela: null,
     linkPagamento: null, aguardandoFatura: false,
     ultimoPasso: null, erro: null, erroPasso: null,
@@ -278,6 +290,17 @@ export interface DadosMatricula {
    * Sem este valor, caímos em 31/12 do ano corrente.
    */
   turmaDataTermino?: string | null;
+  /**
+   * Vencimento da primeira mensalidade, ISO `aaaa-mm-dd`.
+   *
+   * Resolvido pelo checkout a partir do início da turma, nunca no
+   * passado. Ausente, cai no comportamento antigo: hoje + 5 dias.
+   */
+  primeiroVencimento?: string | null;
+  /** Taxa de matrícula por parcela, do plano do Sponte. `null` = sem taxa. */
+  valorTaxa?: number | null;
+  /** Em quantas vezes a taxa é cobrada. Quase sempre 1. */
+  parcelasTaxa?: number | null;
 
   planoCursoId: number | null;
   bolsaId: number | null;
@@ -770,12 +793,73 @@ function valorDaParcela(d: DadosMatricula): number {
   return Number((total / n).toFixed(2));
 }
 
+/**
+ * Lança a taxa de matrícula como cobrança **própria**, e devolve a conta.
+ *
+ * Existe porque a escola vende turma que começa no ano seguinte: o aluno
+ * paga a taxa agora, para garantir a vaga, e as mensalidades vencem
+ * quando o curso começar. São duas cobranças com vencimentos diferentes,
+ * logo dois planos — `InsertPlano` cria um de cada vez.
+ *
+ * **O que distingue a taxa é `nCategoriaID = 6`**, não o `nTipoPlano`.
+ * Conferido contra produção em 21/10/2026: com categoria 6 as parcelas
+ * saem rotuladas "Taxa de matricula"; os tipos 2 e 3 foram aceitos e
+ * deram o mesmo rótulo. O tipo decide a aba do contrato; a categoria
+ * decide o que a cobrança é.
+ *
+ * A forma é a mesma das mensalidades (−21, Link de Pagamento Sponte Pay)
+ * porque é esta a cobrança que o aluno paga no checkout — e só essa forma
+ * aparece na tela de Geração de Link.
+ *
+ * Devolve o `ContaReceberID` para o progresso guardar: sem ele, refazer o
+ * checkout criaria uma segunda taxa, e o Sponte não exclui por API.
+ */
+async function criarPlanoTaxa(
+  cred: CredenciaisSponte, d: DadosMatricula, contratoId: number | null,
+  alunoId: number, opc: OpcoesChamada,
+): Promise<number | null> {
+  // A taxa vence já: é ela que garante a vaga.
+  const venc = new Date();
+  venc.setDate(venc.getDate() + 5);
+
+  const xml = await chamarSoap(
+    "InsertPlano",
+    [
+      ...credenciais(cred),
+      ["nContratoID", contratoId ? String(contratoId) : ""],
+      ["nContratoAulaLivreID", ""],
+      ["nAlunoID", String(alunoId)],
+      ["nTipoPlano", String(TIPO_PLANO_MENSALIDADE)],
+      // Sem bolsa: o desconto incide sobre a mensalidade, e mesmo isso é
+      // suposição não confirmada com a Sponte (ver `aplicarBolsa`).
+      // Aplicá-lo à taxa seria dar desconto que ninguém autorizou.
+      ["nBolsaID", ""],
+      ["dDataPrimeiroVencimento", venc],
+      ["nNumeroParcelas", d.parcelasTaxa ?? 1],
+      ["nValorParcelas", d.valorTaxa ?? 0],
+      ["nFormaCobrancaID", d.formaCobrancaId],
+      ["nCategoriaID", CATEGORIA.TAXA_MATRICULA],
+      ["sObservacao", "Taxa de matrícula — cadastro online"],
+      ["nClienteID", ""],
+      ["nContaID", CONTA_CREDITO_PADRAO],
+    ],
+    opc,
+  );
+
+  const id = xml.match(/<ContaReceberID>(\d+)<\/ContaReceberID>/)?.[1];
+  return id && Number(id) > 0 ? Number(id) : null;
+}
+
 async function criarPlano(
   cred: CredenciaisSponte, d: DadosMatricula, contratoId: number | null,
   alunoId: number, opc: OpcoesChamada,
 ): Promise<void> {
-  const venc = new Date();
-  venc.setDate(venc.getDate() + 5);   // 5 dias para pagar a primeira
+  // A data vem de fora: quem sabe quando a turma começa é o checkout.
+  // Antes era sempre "hoje + 5", e quem se matriculava em outubro numa
+  // turma de fevereiro começava a pagar em outubro (SPEC-002 RN-03).
+  const venc = d.primeiroVencimento
+    ? new Date(`${d.primeiroVencimento}T00:00:00`)
+    : (() => { const x = new Date(); x.setDate(x.getDate() + 5); return x; })();
 
   await chamarSoap(
     "InsertPlano",
@@ -820,6 +904,63 @@ async function criarPlano(
  * sido gravado, o pior momento possível. `AlunoID=` sozinho dá erro 21, mas
  * com valor funciona.
  */
+/**
+ * A cobrança que o aluno paga agora, dentre as parcelas em aberto.
+ *
+ * Separada de `localizarParcela` para poder ser testada sem rede: a regra
+ * de desempate é o que decide se o link sai para a taxa ou para a
+ * mensalidade, e isso não se confere chamando o Sponte.
+ *
+ * Recebe o XML cru de `GetParcelas`. Resposta vazia devolve `null` — e
+ * isso **não** é erro: o `GetParcelas` mostrou-se instável em 21/10/2026,
+ * devolvendo blocos vazios em chamadas sucessivas para o mesmo aluno.
+ * Perder a matrícula já feita por causa disso seria pior que ficar sem o
+ * link, que a régua do Sponte gera depois.
+ */
+export function escolherParcelaDoLink(
+  xml: string,
+): { contaReceberId: number; numeroParcela: string } | null {
+  const blocos = xml.match(/<wsParcela>[\s\S]*?<\/wsParcela>/g) ?? [];
+  // `\\s` e não `\s`: dentro do template a barra simples é consumida pela
+  // string e a classe viraria `[sS]`, casando só essas duas letras.
+  const campo = (b: string, n: string) =>
+    (b.match(new RegExp(`<${n}>([\\s\\S]*?)</${n}>`))?.[1] ?? "").trim();
+
+  /** `dd/mm/aaaa` → `aaaammdd`, que ordena como texto. Sem data, vai ao fim. */
+  const ordemData = (b: string) => {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(campo(b, "Vencimento"));
+    return m ? `${m[3]}${m[2]}${m[1]}` : "99999999";
+  };
+
+  /** Taxa antes de mensalidade, no desempate. */
+  const ehTaxa = (b: string) => (/taxa/i.test(campo(b, "Categoria")) ? 0 : 1);
+
+  const emAberto = blocos
+    .filter((b) => Number(campo(b, "ContaReceberID")) > 0 && !campo(b, "DataPagamento"))
+    // Ordena por **vencimento**, não por número de parcela.
+    //
+    // Com taxa de matrícula existem dois planos, e cada um tem a sua
+    // "parcela 1". Ordenando só pelo número, o desempate ficava por
+    // conta da ordem em que o Sponte devolve o XML: o link sairia para a
+    // taxa ou para a mensalidade sem critério — metade das vezes para a
+    // errada (SPEC-002 RN-07).
+    //
+    // Quem vence primeiro é o que o aluno paga agora. Empate de data é
+    // resolvido pela categoria: a taxa é o que garante a vaga.
+    .sort((a, b) =>
+      ordemData(a).localeCompare(ordemData(b))
+      || ehTaxa(a) - ehTaxa(b)
+      || Number(campo(a, "NumeroParcela")) - Number(campo(b, "NumeroParcela")));
+
+  const primeira = emAberto[0];
+  if (!primeira) return null;
+
+  return {
+    contaReceberId: Number(campo(primeira, "ContaReceberID")),
+    numeroParcela: campo(primeira, "NumeroParcela") || "1",
+  };
+}
+
 async function localizarParcela(
   cred: CredenciaisSponte, alunoId: number, opc: OpcoesChamada,
 ): Promise<{ contaReceberId: number; numeroParcela: string } | null> {
@@ -828,24 +969,9 @@ async function localizarParcela(
     [...credenciais(cred), ["sParametrosBusca", `AlunoID=${alunoId}`]],
     opc,
   );
-
-  const blocos = xml.match(/<wsParcela>[\s\S]*?<\/wsParcela>/g) ?? [];
-  const campo = (b: string, n: string) =>
-    (b.match(new RegExp(`<${n}>([\\s\\S]*?)</${n}>`))?.[1] ?? "").trim();
-
-  // Em aberto e na ordem: a cobrança do checkout é a primeira parcela.
-  const doAluno = blocos
-    .filter((b) => Number(campo(b, "ContaReceberID")) > 0 && !campo(b, "DataPagamento"))
-    .sort((a, b) => Number(campo(a, "NumeroParcela")) - Number(campo(b, "NumeroParcela")));
-
-  const primeira = doAluno[0];
-  if (!primeira) return null;
-
-  return {
-    contaReceberId: Number(campo(primeira, "ContaReceberID")),
-    numeroParcela: campo(primeira, "NumeroParcela") || "1",
-  };
+  return escolherParcelaDoLink(xml);
 }
+
 
 async function gerarLink(
   cred: CredenciaisSponte, contaReceberId: number, numeroParcela: string, opc: OpcoesChamada,
@@ -989,7 +1115,29 @@ export async function executarMatricula(
       p.ultimoPasso = "criar_matricula";
     }
 
-    // 5. Plano financeiro
+    // 5a. Taxa de matrícula, quando o plano do curso tiver uma
+    //
+    // Vem antes das mensalidades porque é a cobrança que o aluno paga
+    // agora — e é a que vai receber o link no passo seguinte. O `null`
+    // em `contaTaxaId` é o que distingue "ainda não criei" de "não tem
+    // taxa": sem taxa, o passo nem é tentado (SPEC-002 RN-01).
+    const temTaxa = !simular
+      && Number(dados.valorTaxa ?? 0) > 0
+      && Number(dados.parcelasTaxa ?? 0) > 0;
+
+    if (temTaxa && p.contaTaxaId === null) {
+      try {
+        p.contaTaxaId = await criarPlanoTaxa(
+          cred, dados, p.contratoId, p.sponteAlunoId!, opc);
+      } catch (erro) {
+        // 76 = já existe plano neste contrato. Numa retomada é o
+        // resultado desejado: a taxa já foi lançada antes.
+        if (!(erro instanceof SponteError && erro.codigo === 76)) throw erro;
+      }
+      p.ultimoPasso = "criar_taxa";
+    }
+
+    // 5b. Plano financeiro das mensalidades
     if (!p.planoCriado) {
       if (!simular) {
         try {
@@ -1129,6 +1277,7 @@ export const ROTULO_PASSO: Record<PassoMatricula, string> = {
   criar_aluno: "Criando o cadastro do aluno",
   criar_responsavel: "Definindo o responsável financeiro",
   criar_matricula: "Registrando a pré-matrícula na turma",
+  criar_taxa: "Lançando a taxa de matrícula",
   criar_plano: "Gerando o plano de pagamento",
   localizar_parcela: "Localizando a cobrança",
   gerar_link: "Preparando o pagamento",
