@@ -241,7 +241,25 @@ export async function getBolsas(
 export interface ValorCalculado {
   valorParcela: number;
   parcelas: number;
+  /**
+   * O contrato inteiro: as quatro rubricas, menos a bolsa.
+   *
+   * Serve para **mostrar** — é o "Total do contrato" da tela de gerar
+   * link. Não serve para calcular mensalidade; para isso existe
+   * `totalMensalidades`.
+   */
   total: number;
+  /**
+   * Só a rubrica de mensalidade (`valorParcela × parcelas`).
+   *
+   * É este o valor que vira plano de mensalidades no Sponte. A distinção
+   * existe porque usar `total` ali dilui as outras rubricas dentro das
+   * parcelas: uma taxa de matrícula de R$ 300 viraria R$ 25 a mais em
+   * cada uma das 12 mensalidades, sem erro e sem aviso.
+   *
+   * SPEC-002 RN-06.
+   */
+  totalMensalidades: number;
   /** Quanto foi abatido pela bolsa. `0` quando não há bolsa. */
   descontoAplicado: number;
   /** Valor de parcela antes da bolsa. */
@@ -270,6 +288,7 @@ export function aplicarBolsa(plano: PlanoCurso, bolsa: Bolsa | null): ValorCalcu
       valorParcela: cheia,
       parcelas,
       total: plano.total,
+      totalMensalidades: arredondar(cheia * parcelas),
       descontoAplicado: 0,
       valorParcelaCheia: cheia,
     };
@@ -285,6 +304,9 @@ export function aplicarBolsa(plano: PlanoCurso, bolsa: Bolsa | null): ValorCalcu
     valorParcela: comDesconto,
     parcelas,
     total: arredondar(plano.total - abatido),
+    // A bolsa já está dentro de `comDesconto`; multiplicar de novo pelo
+    // número de parcelas é o total das mensalidades com desconto.
+    totalMensalidades: arredondar(comDesconto * parcelas),
     descontoAplicado: abatido,
     valorParcelaCheia: cheia,
   };

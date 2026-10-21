@@ -193,6 +193,11 @@ export class RepoSupabase {
         parcelas: e.condicao.parcelas ?? null,
         valor_total: e.condicao.valorTotal ?? null,
         valor_parcela_cheia: e.condicao.valorParcelaCheia ?? null,
+        // A taxa entra no mesmo retrato pelo mesmo motivo que o resto: o
+        // plano pode mudar no Sponte depois de o link ter ido ao aluno,
+        // e o que foi prometido é o que vale (SPEC-002 RN-02).
+        valor_taxa: e.condicao.valorTaxa ?? null,
+        parcelas_taxa: e.condicao.parcelasTaxa ?? null,
       }),
     });
     return paraLink(link);
@@ -817,6 +822,7 @@ function paraLink(l: any) {
     bolsaId: l.bolsa_id, bolsaDescricao: l.bolsa_descricao,
     valorParcela: num(l.valor_parcela), parcelas: l.parcelas,
     valorTotal: num(l.valor_total), valorParcelaCheia: num(l.valor_parcela_cheia),
+    valorTaxa: num(l.valor_taxa), parcelasTaxa: l.parcelas_taxa ?? null,
   };
 }
 
