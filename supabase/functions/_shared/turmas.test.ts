@@ -276,3 +276,52 @@ test("turma encerrada sai dos matriculáveis", () => {
   ] as never);
   assert.deepEqual(r.map((t) => t.turmaId), [1]);
 });
+
+/* ------------------------------------------------------------------ *
+ * Turma que já terminou não é matriculável
+ *
+ * A situação no Sponte é preenchida à mão: a turma só vira "Encerrada"
+ * quando alguém lembra. A data de término é fato. Entre as duas, a data
+ * decide — vender matrícula para um curso que acabou cria contrato morto.
+ * ------------------------------------------------------------------ */
+
+const TURMA_BASE = {
+  turmaId: 1, nome: "x", situacao: "Aberta", turno: "", moduloAtual: 1,
+  cursoId: 1, curso: "", anoLetivo: 2026, dataInicio: null,
+  maxAlunos: 0, vagasOcupadas: 0, vagasLivres: 0, matrizCurricular: "",
+  observacao: "", horario: "", professorRegente: null, professorRegenteId: null,
+};
+
+const emDias = (n: number) =>
+  new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+
+test("turma Aberta que já terminou sai da lista", () => {
+  const r = filtrarMatriculaveis([
+    { ...TURMA_BASE, turmaId: 1, dataTermino: emDias(-30) },
+    { ...TURMA_BASE, turmaId: 2, dataTermino: emDias(30) },
+  ] as never);
+  assert.deepEqual(r.map((t) => t.turmaId), [2]);
+});
+
+test("turma que termina hoje ainda vale", () => {
+  // O último dia é dia de aula; cortar ao nascer do sol seria um dia a menos.
+  const r = filtrarMatriculaveis(
+    [{ ...TURMA_BASE, dataTermino: emDias(0) }] as never);
+  assert.equal(r.length, 1);
+});
+
+test("turma sem data de término continua valendo", () => {
+  // As de 2027 ainda não têm término preenchido. Sumir com elas seria pior
+  // que o problema: é justamente o que a escola está vendendo.
+  const r = filtrarMatriculaveis(
+    [{ ...TURMA_BASE, dataTermino: null }] as never);
+  assert.equal(r.length, 1);
+});
+
+test("turma que começa no futuro é matriculável", () => {
+  // O caso do ano que vem: começa em 2027, matrícula vendida agora.
+  const r = filtrarMatriculaveis([
+    { ...TURMA_BASE, dataInicio: emDias(90), dataTermino: emDias(400) },
+  ] as never);
+  assert.equal(r.length, 1);
+});
