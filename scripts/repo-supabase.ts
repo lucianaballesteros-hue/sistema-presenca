@@ -853,6 +853,12 @@ function paraCadastro(c: any) {
     bolsaId: c.bolsa_id, bolsaDescricao: c.bolsa_descricao,
     valorParcela: num(c.valor_parcela), parcelas: c.parcelas,
     valorTotal: num(c.valor_total), valorParcelaCheia: num(c.valor_parcela_cheia),
+    // A taxa prometida ao aluno e a data em que as mensalidades começam.
+    // Nulas em ficha anterior a esta entrega e em plano sem taxa — a ficha
+    // simplesmente não mostra as linhas.
+    valorTaxa: num(c.valor_taxa), parcelasTaxa: c.parcelas_taxa ?? null,
+    mensalidadesIniciamEm: c.mensalidades_iniciam_em ?? null,
+    sponteContaTaxaId: c.sponte_conta_taxa_id ?? null,
 
     meioPagamento: c.meio_pagamento, formaCobrancaId: c.forma_cobranca_id,
     formaCobrancaNome: c.forma_cobranca_nome, parcelasCartao: c.parcelas_cartao,

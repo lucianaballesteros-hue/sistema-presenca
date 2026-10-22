@@ -65,6 +65,13 @@ export interface FichaParaCheckout {
   /** Taxa de matrícula congelada no link. `null` quando o plano não tem. */
   valorTaxa: number | null;
   parcelasTaxa: number | null;
+  /**
+   * Quando a primeira mensalidade vence, se o checkout já rodou.
+   *
+   * Só serve ao caminho de retomada: a ficha que já tem link não recalcula
+   * nada, mas a tela do aluno ainda precisa dizer a data.
+   */
+  mensalidadesIniciamEm: string | null;
   pagamentoLink: string | null;
   linkId: number | null;
   progresso: ProgressoMatricula | null;
@@ -115,6 +122,16 @@ export interface ResultadoCheckout {
   simulado?: boolean;
   jaExistia?: boolean;
   progresso?: ProgressoMatricula;
+  /**
+   * O que a tela do aluno precisa dizer, e que só o servidor sabe.
+   *
+   * A data vem daqui em vez de ser recalculada no navegador: a regra do
+   * vencimento é uma (`primeiroVencimentoMensalidade`) e vale a que foi
+   * efetivamente gravada no Sponte, não uma segunda cópia que divirja dela
+   * na primeira mudança.
+   */
+  valorTaxa?: number | null;
+  mensalidadesIniciamEm?: string | null;
 }
 
 /**
@@ -190,7 +207,11 @@ export async function executarCheckout(
 
   // Já tem link: devolve o mesmo. Gerar outro criaria uma segunda cobrança.
   if (c.pagamentoLink) {
-    return { ok: true, link: c.pagamentoLink, simulado: !d.escritaLiberada, jaExistia: true };
+    return {
+      ok: true, link: c.pagamentoLink, simulado: !d.escritaLiberada, jaExistia: true,
+      valorTaxa: c.valorTaxa ?? null,
+      mensalidadesIniciamEm: c.mensalidadesIniciamEm ?? null,
+    };
   }
 
   // A cobrança no Sponte vai SEMPRE em "Link de Pagamento Sponte Pay": é a
@@ -363,5 +384,7 @@ export async function executarCheckout(
     simulado: !d.escritaLiberada,
     jaExistia: false,
     progresso: p,
+    valorTaxa: c.valorTaxa ?? null,
+    mensalidadesIniciamEm: primeiroVencimento,
   };
 }

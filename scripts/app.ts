@@ -1634,6 +1634,10 @@ export async function tratar(
             bolsa_id: cond.bolsaId, bolsa_descricao: cond.bolsaDescricao,
             valor_parcela: cond.valorParcela, parcelas: cond.parcelas,
             valor_total: cond.valorTotal, valor_parcela_cheia: cond.valorParcelaCheia,
+            // Trocar o plano troca a taxa junto. Sem esta linha a ficha
+            // ficaria com a taxa do plano antigo e o checkout cobraria um
+            // valor que não existe em nenhum dos dois.
+            valor_taxa: cond.valorTaxa, parcelas_taxa: cond.parcelasTaxa,
           });
         }
 

@@ -114,6 +114,7 @@ function paraFicha(c: Record<string, any>): FichaParaCheckout {
     valorTotal: num(c.valor_total), parcelasCartao: c.parcelas_cartao,
     formaCobrancaNome: c.forma_cobranca_nome,
     valorTaxa: num(c.valor_taxa), parcelasTaxa: c.parcelas_taxa ?? null,
+    mensalidadesIniciamEm: c.mensalidades_iniciam_em ?? null,
     pagamentoLink: c.pagamento_link, linkId: c.link_id,
     progresso: c.sponte_aluno_id || c.sponte_contrato_id
       ? {

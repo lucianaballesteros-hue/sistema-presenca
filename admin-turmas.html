@@ -1055,6 +1055,35 @@ async function carregarCondicoes(cursoId) {
  * Prévia do valor. É só informativa — o servidor recalcula a partir dos ids na
  * hora de criar o link, então o que o navegador mostra aqui nunca vira preço.
  */
+/**
+ * Quando cada cobrança cai — a parte que o resumo não dizia.
+ *
+ * O resumo mostra *quanto*. Vendendo turma do ano que vem, *quando* é a
+ * outra metade da decisão comercial, e quem gera o link não tinha como
+ * saber: a primeira mensalidade sempre venceu em 5 dias, fosse a turma
+ * de fevereiro ou de ontem.
+ *
+ * A regra é a mesma do servidor (SPEC-002 RN-05): a mensalidade vence no
+ * início da turma, nunca antes de 5 dias.
+ */
+function quandoCobra(plano) {
+  const t = estado.turmaSelecionada;
+  const piso = new Date();
+  piso.setDate(piso.getDate() + 5);
+  const pisoIso = piso.toISOString().slice(0, 10);
+
+  const inicio = t?.dataInicio && t.dataInicio > pisoIso ? t.dataInicio : null;
+  const temTaxa = plano.matricula.total > 0;
+
+  const quando = inicio
+    ? `em <strong>${dataBr(inicio)}</strong>, quando a turma inicia`
+    : 'em até 5 dias';
+
+  return temTaxa
+    ? `A matrícula é cobrada no ato. As mensalidades começam ${quando}.`
+    : `As mensalidades começam ${quando}.`;
+}
+
 function atualizarResumoValor() {
   const p = estado.planos.find(x => x.planoCursoId === Number($('m-plano').value));
   if (!p) { $('m-resumo-valor').style.display = 'none'; return; }
@@ -1074,6 +1103,7 @@ function atualizarResumoValor() {
     ${p.matricula.total > 0 ? `<div class="valor-linha"><span>Matrícula</span><strong>${brl(p.matricula.valorParcela)} × ${p.matricula.parcelas}</strong></div>` : ''}
     ${p.material.total > 0 ? `<div class="valor-linha"><span>Material</span><strong>${brl(p.material.valorParcela)} × ${p.material.parcelas}</strong></div>` : ''}
     <div class="valor-linha total"><span>Total do contrato</span><strong>${brl(total)}</strong></div>
+    <div class="valor-obs">${quandoCobra(p)}</div>
     ${b ? `<div class="valor-obs">Bolsa aplicada sobre a mensalidade. Confirme o alcance do desconto antes de gerar cobrança.</div>` : ''}`;
   $('m-resumo-valor').style.display = 'block';
 }
