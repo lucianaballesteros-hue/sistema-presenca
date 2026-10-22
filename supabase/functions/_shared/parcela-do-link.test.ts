@@ -70,6 +70,18 @@ test("vencendo no mesmo dia, a taxa ganha", () => {
   assert.equal(r?.contaReceberId, 1800);
 });
 
+test("com a mensalidade adiantada, o link vai para ela", () => {
+  // Turma futura e plano sem taxa: a primeira mensalidade vence em 5 dias
+  // e as demais só começam quando o curso começa. São dois planos de
+  // mensalidade, e o link tem de ir para o que vence agora.
+  const r = escolherParcelaDoLink(xml(
+    parcela({ conta: 1810, numero: 1, vencimento: "08/02/2027", categoria: "Mensalidade" }),
+    parcela({ conta: 1811, numero: 2, vencimento: "08/03/2027", categoria: "Mensalidade" }),
+    parcela({ conta: 1809, numero: 1, vencimento: "27/10/2026", categoria: "Mensalidade" }),
+  ));
+  assert.equal(r?.contaReceberId, 1809, "deveria escolher a adiantada");
+});
+
 /* ------------------------------------------------------------------ *
  * Sem taxa — o comportamento de sempre
  * ------------------------------------------------------------------ */

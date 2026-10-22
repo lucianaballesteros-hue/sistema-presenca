@@ -506,8 +506,7 @@ function caixaValor() {
       <div class="valor-total">a matrícula, que garante sua vaga</div>
       ${total && TURMA.parcelas
         ? `<div class="valor-nota">Depois, <strong>${TURMA.parcelas}×</strong> de
-             <strong>${brl(total / TURMA.parcelas)}</strong> — a primeira quando a turma
-             começa, não agora.</div>`
+             <strong>${brl(total / TURMA.parcelas)}</strong>, uma por mês.</div>`
         : ''}
       <div class="valor-nota">Na próxima página você escolhe entre Pix, boleto ou cartão.</div>
     </div>`;
@@ -1265,33 +1264,28 @@ function animarPassos() {
  * ------------------------------------------------------------------ */
 
 /**
- * A frase só aparece quando informa algo.
+ * A frase só aparece quando há mensalidade adiada.
  *
- * Se as mensalidades começam neste mesmo mês, dizer o mês não acrescenta
- * nada — e mais texto numa tela de pagamento é menos gente pagando.
+ * O servidor manda a data apenas nesse caso — turma já iniciada vem com
+ * `null`, e aí não há o que dizer. Não filtramos por mês aqui: uma turma
+ * que começa no fim deste mesmo mês tem adiamento de verdade, e esconder
+ * isso seria esconder informação boa.
  */
 function mesDasMensalidades() {
-  const iso = estadoCheckout.mensalidadesIniciamEm;
-  if (!iso) return '';
-  const d = new Date(`${iso}T00:00:00`);
-  if (isNaN(d)) return '';
-  const hoje = new Date();
-  const mesmoMes = d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth();
-  return mesmoMes ? '' : mesAno(iso);
+  return mesAno(estadoCheckout.mensalidadesIniciamEm);
 }
 
 /** Linha abaixo do botão. Vazia quando não há o que dizer. */
 function linhaMensalidades() {
   const mes = mesDasMensalidades();
   if (!mes) return '';
-  // Sem taxa, a cobrança de agora É a primeira mensalidade — e numa turma
-  // futura ela vence quando o curso começa. A copy do DESIGN-002 §3 dizia
-  // "as próximas começam em fevereiro", o que não fecha: se a primeira
-  // vence em fevereiro, as próximas começam em março.
+  // Com taxa, é ela que o aluno paga agora e todas as mensalidades vão
+  // para o início do curso. Sem taxa, o que ele paga agora é a primeira
+  // mensalidade, adiantada, e as outras começam com o curso.
   return TURMA.valorTaxa > 0
     ? `<p class="sub">As mensalidades começam em <strong>${escapar(mes)}</strong>.</p>`
-    : `<p class="sub">Esta é a 1ª mensalidade, e ela vence em
-       <strong>${escapar(mes)}</strong> — pode pagar antes, se preferir.</p>`;
+    : `<p class="sub">Esta é a 1ª mensalidade. As próximas começam em
+       <strong>${escapar(mes)}</strong>.</p>`;
 }
 
 const rotuloPagar = () => TURMA.valorTaxa > 0 ? 'Pagar matrícula' : 'Ir para o pagamento';

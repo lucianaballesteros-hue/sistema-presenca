@@ -126,12 +126,14 @@ export interface ResultadoCheckout {
    * O que a tela do aluno precisa dizer, e que só o servidor sabe.
    *
    * A data vem daqui em vez de ser recalculada no navegador: a regra do
-   * vencimento é uma (`primeiroVencimentoMensalidade`) e vale a que foi
+   * vencimento é uma (`inicioDasDemaisMensalidades`) e vale a que foi
    * efetivamente gravada no Sponte, não uma segunda cópia que divirja dela
    * na primeira mudança.
    */
   valorTaxa?: number | null;
   mensalidadesIniciamEm?: string | null;
+  /** Vencimento da parcela que o aluno paga agora. */
+  primeiroVencimento?: string | null;
 }
 
 /**
@@ -153,31 +155,42 @@ export const STATUS_PODE_MATRICULAR = new Set(["pendente", "aprovado"]);
 export const DIAS_ATE_COBRAR = 5;
 
 /**
- * Quando a primeira mensalidade vence.
+ * Quando a parcela que o aluno paga agora vence.
  *
- * A escola vende turma que começa no ano seguinte, e o aluno paga a taxa
- * agora para garantir a vaga. As mensalidades acompanham o curso, não o
- * cadastro: quem se matricula em outubro numa turma de fevereiro não
- * começa a pagar em outubro.
+ * É sempre daqui a `DIAS_ATE_COBRAR` dias, independentemente da turma: é a
+ * cobrança que garante a vaga, e o aluno precisa de tempo para receber o
+ * link, abrir e pagar antes de ela vencer.
+ */
+export function vencimentoDaAdiantada(hoje: Date = new Date()): string {
+  const d = new Date(hoje);
+  d.setDate(d.getDate() + DIAS_ATE_COBRAR);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * A partir de quando as mensalidades seguintes correm — ou `null` quando
+ * não há nada a adiar.
  *
- * **Nunca no passado** (SPEC-002 RN-05). Turma já iniciada, ou sem data,
- * cobra como sempre cobrou. Cobrança que nasce vencida chega ao aluno
- * como atraso que ele não causou — e aciona a régua no mesmo dia.
+ * A escola vende turma que começa no ano seguinte. A regra, decidida em
+ * 22/10/2026, é: **a primeira mensalidade é adiantada para agora** (é ela
+ * que reserva a vaga) **e as demais começam quando o curso começa**. Quem
+ * se matricula em outubro numa turma de fevereiro paga uma parcela agora e
+ * volta a pagar em fevereiro.
+ *
+ * `null` significa "nada a adiar" — turma já iniciada, sem data, ou que
+ * começa dentro do próprio prazo de cobrança. Aí é um plano único de N
+ * parcelas a partir de hoje + 5, que é como o sistema sempre funcionou.
  *
  * A fonte é a turma, não o plano. O plano tem `DataInicialMensalidade`,
  * mas em 21/10/2026 as cinco da escola apontavam para o passado — campo
  * de configuração esquecido. A data da turma é o fato (RN-04).
  */
-export function primeiroVencimentoMensalidade(
+export function inicioDasDemaisMensalidades(
   inicioDaTurma: string | null | undefined,
   hoje: Date = new Date(),
-): string {
-  const piso = new Date(hoje);
-  piso.setDate(piso.getDate() + DIAS_ATE_COBRAR);
-  const pisoIso = piso.toISOString().slice(0, 10);
-
-  if (!inicioDaTurma) return pisoIso;
-  return inicioDaTurma > pisoIso ? inicioDaTurma : pisoIso;
+): string | null {
+  if (!inicioDaTurma) return null;
+  return inicioDaTurma > vencimentoDaAdiantada(hoje) ? inicioDaTurma : null;
 }
 
 export async function executarCheckout(
@@ -231,15 +244,18 @@ export async function executarCheckout(
   const turma = await d.datasDaTurma(c.turmaId);
   const turmaDataTermino = turma.termino;
 
-  // Quando a primeira mensalidade vence.
+  // Como as mensalidades se distribuem no tempo.
   //
-  // A escola vende turma que começa no ano seguinte: quem se matricula
-  // hoje numa turma de fevereiro não deve começar a pagar em outubro.
+  // A primeira é adiantada para agora — é ela que reserva a vaga. As
+  // demais só começam quando o curso começa: quem se matricula hoje numa
+  // turma de fevereiro paga uma parcela agora e volta a pagar em
+  // fevereiro.
   //
-  // Nunca no passado, porém (RN-05). Turma que já começou, ou sem data
-  // de início, cobra como sempre cobrou — cobrança que nasce vencida é
-  // pior que cobrança adiada.
-  const primeiroVencimento = primeiroVencimentoMensalidade(turma.inicio);
+  // `inicioDasDemais` nulo quer dizer que não há nada a adiar (turma já
+  // iniciada, sem data, ou que começa dentro do prazo de cobrança), e aí
+  // é um plano único, como sempre foi.
+  const primeiroVencimento = vencimentoDaAdiantada();
+  const inicioDasDemais = inicioDasDemaisMensalidades(turma.inicio);
 
   const p = await executarMatricula(
     d.cred,
@@ -256,6 +272,7 @@ export async function executarCheckout(
       sponteTurmaId: c.turmaId, sponteCursoId: c.cursoId,
       turmaDataTermino,
       primeiroVencimento,
+      inicioDasDemais,
       valorTaxa: c.valorTaxa,
       parcelasTaxa: c.parcelasTaxa,
       planoCursoId: c.planoCursoId, bolsaId: c.bolsaId,
@@ -283,7 +300,10 @@ export async function executarCheckout(
     forma_cobranca_nome: forma?.descricao ?? c.formaCobrancaNome ?? null,
     // Fica na ficha para a conferência saber o que foi prometido ao aluno
     // — e para o aluno poder ser lembrado disso se ligar perguntando.
-    mensalidades_iniciam_em: primeiroVencimento,
+    // Quando as mensalidades passam a correr mês a mês. Com a primeira
+    // adiantada, esta é a data das **demais** — nulo quando são todas
+    // seguidas, a partir do primeiro vencimento.
+    mensalidades_iniciam_em: inicioDasDemais,
     // Gravada mesmo em caso de erro adiante: é ela que impede a retomada
     // de lançar uma segunda taxa num ERP que não tem exclusão.
     sponte_conta_taxa_id: p.contaTaxaId,
@@ -385,6 +405,7 @@ export async function executarCheckout(
     jaExistia: false,
     progresso: p,
     valorTaxa: c.valorTaxa ?? null,
-    mensalidadesIniciamEm: primeiroVencimento,
+    mensalidadesIniciamEm: inicioDasDemais,
+    primeiroVencimento,
   };
 }

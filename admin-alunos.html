@@ -880,6 +880,9 @@ function resumoValor() {
   // troca as duas. Já a data em que as mensalidades começam vem da ficha —
   // é fato gravado no Sponte no momento da matrícula, não algo que se
   // recalcule ao mexer no select.
+  //
+  // Sem taxa, a primeira mensalidade foi adiantada para reservar a vaga, e
+  // esta data é a das **demais** — daí o rótulo mudar.
   const taxa = p.matricula?.total || 0;
   const inicio = original.mensalidadesIniciamEm;
 
@@ -889,7 +892,7 @@ function resumoValor() {
     ${taxa > 0 ? `<div class="valor-linha"><span>Matrícula</span>
       <strong>${brl(taxa)}${p.matricula.parcelas > 1 ? ` × ${p.matricula.parcelas}` : ''}</strong></div>` : ''}
     <div class="valor-linha total"><span>Total do contrato</span><strong>${brl(total)}</strong></div>
-    ${inicio ? `<div class="valor-linha"><span>Mensalidades</span>
+    ${inicio ? `<div class="valor-linha"><span>${taxa > 0 ? 'Mensalidades' : 'Demais mensalidades'}</span>
       <strong>a partir de ${fmtNasc(inicio)}</strong></div>` : ''}
     ${mudou && original.valorParcela ? `<div class="valor-obs">Diferente do que o aluno viu ao se cadastrar (${brl(original.valorParcela)} × ${original.parcelas}). Confirme a alteração com ele.</div>` : ''}
     ${mudou && original.valorTaxa && taxa !== original.valorTaxa ? `<div class="valor-obs">A matrícula também muda: o aluno viu ${brl(original.valorTaxa)}.</div>` : ''}`;

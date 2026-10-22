@@ -1063,8 +1063,11 @@ async function carregarCondicoes(cursoId) {
  * saber: a primeira mensalidade sempre venceu em 5 dias, fosse a turma
  * de fevereiro ou de ontem.
  *
- * A regra é a mesma do servidor (SPEC-002 RN-05): a mensalidade vence no
- * início da turma, nunca antes de 5 dias.
+ * A regra é a do servidor (`inicioDasDemaisMensalidades`), e cobre três
+ * casos: com taxa, é ela que reserva a vaga e todas as mensalidades vão
+ * para o início do curso; sem taxa, a primeira mensalidade é adiantada e
+ * as demais acompanham o curso; turma já iniciada cobra tudo seguido, como
+ * sempre.
  */
 function quandoCobra(plano) {
   const t = estado.turmaSelecionada;
@@ -1075,13 +1078,12 @@ function quandoCobra(plano) {
   const inicio = t?.dataInicio && t.dataInicio > pisoIso ? t.dataInicio : null;
   const temTaxa = plano.matricula.total > 0;
 
-  const quando = inicio
-    ? `em <strong>${dataBr(inicio)}</strong>, quando a turma inicia`
-    : 'em até 5 dias';
+  if (!inicio) return 'As mensalidades começam em até 5 dias.';
 
+  const quando = `em <strong>${dataBr(inicio)}</strong>, quando a turma inicia`;
   return temTaxa
     ? `A matrícula é cobrada no ato. As mensalidades começam ${quando}.`
-    : `As mensalidades começam ${quando}.`;
+    : `A 1ª mensalidade é cobrada no ato. As demais começam ${quando}.`;
 }
 
 function atualizarResumoValor() {

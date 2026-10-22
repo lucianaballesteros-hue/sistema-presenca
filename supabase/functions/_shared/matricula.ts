@@ -145,12 +145,14 @@ export type PassoMatricula =
   | "criar_matricula"
   | "criar_taxa"
   | "criar_plano"
+  | "criar_plano_demais"
   | "localizar_parcela"
   | "gerar_link";
 
 export const PASSOS: PassoMatricula[] = [
   "verificar_cpf", "criar_aluno", "criar_responsavel", "criar_matricula",
-  "criar_taxa", "criar_plano", "localizar_parcela", "gerar_link",
+  "criar_taxa", "criar_plano", "criar_plano_demais", "localizar_parcela",
+  "gerar_link",
 ];
 
 /**
@@ -221,6 +223,22 @@ export interface ProgressoMatricula {
    * Sponte recusa com "76 - Já existe um plano financeiro cadastrado".
    */
   planoCriado: boolean;
+  /**
+   * O plano das mensalidades que começam com o curso já foi gravado.
+   *
+   * Quando a turma é futura, as mensalidades saem em **dois** planos: um
+   * com a parcela adiantada, que reserva a vaga, e outro com as demais a
+   * partir do início do curso — o `InsertPlano` aceita uma data inicial só
+   * e espaça as parcelas mês a mês a partir dela.
+   *
+   * Marcador próprio pelo mesmo motivo de `planoCriado`: o Sponte não
+   * exclui por API, e uma retomada que recriasse este plano daria ao aluno
+   * um segundo conjunto de mensalidades.
+   *
+   * `false` sem ser um erro quando não há nada a adiar — turma já iniciada
+   * ou plano de parcela única.
+   */
+  planoDemaisCriado: boolean;
   contaReceberId: number | null;
   numeroParcela: string | null;
   linkPagamento: string | null;
@@ -243,7 +261,8 @@ export function progressoVazio(): ProgressoMatricula {
     sponteAlunoId: null, alunoJaExistia: false, dadosAtualizados: false,
     responsavelReusado: false,
     responsavelId: null, contaTaxaId: null, contratoId: null,
-    planoCriado: false, contaReceberId: null, numeroParcela: null,
+    planoCriado: false, planoDemaisCriado: false,
+    contaReceberId: null, numeroParcela: null,
     linkPagamento: null, aguardandoFatura: false,
     ultimoPasso: null, erro: null, erroPasso: null,
   };
@@ -291,12 +310,22 @@ export interface DadosMatricula {
    */
   turmaDataTermino?: string | null;
   /**
-   * Vencimento da primeira mensalidade, ISO `aaaa-mm-dd`.
+   * Vencimento da parcela que o aluno paga agora, ISO `aaaa-mm-dd`.
    *
-   * Resolvido pelo checkout a partir do início da turma, nunca no
-   * passado. Ausente, cai no comportamento antigo: hoje + 5 dias.
+   * Ausente, cai no comportamento antigo: hoje + 5 dias.
    */
   primeiroVencimento?: string | null;
+  /**
+   * A partir de quando correm as **demais** mensalidades, ISO.
+   *
+   * Preenchido só para turma que ainda não começou. Então as mensalidades
+   * saem em dois planos: a primeira em `primeiroVencimento`, as outras
+   * `parcelas - 1` a partir desta data.
+   *
+   * `null` ou ausente é o caso comum e o antigo: um plano único de
+   * `parcelas` parcelas a partir de `primeiroVencimento`.
+   */
+  inicioDasDemais?: string | null;
   /** Taxa de matrícula por parcela, do plano do Sponte. `null` = sem taxa. */
   valorTaxa?: number | null;
   /** Em quantas vezes a taxa é cobrada. Quase sempre 1. */
@@ -850,18 +879,61 @@ async function criarPlanoTaxa(
   return id && Number(id) > 0 ? Number(id) : null;
 }
 
+/**
+ * Como as mensalidades se dividem entre os dois planos.
+ *
+ * `agora` é quanto vai no plano que vence já — a parcela adiantada, que
+ * reserva a vaga — e `depois`, quanto vai no plano que começa com o curso.
+ * Zero de um lado significa que aquele plano não é criado.
+ *
+ * Três casos:
+ *
+ * 1. **Turma já iniciada, sem data, ou parcela única** — tudo em `agora`.
+ *    Um plano só, como o sistema sempre fez.
+ * 2. **Turma futura, plano sem taxa** — uma parcela em `agora` e o resto
+ *    em `depois`. É a regra decidida em 22/10/2026: a primeira mensalidade
+ *    reserva a vaga, as demais acompanham o curso.
+ * 3. **Turma futura, plano com taxa** — nada em `agora`, tudo em `depois`.
+ *    Quem reserva a vaga é a taxa, e adiantar uma mensalidade junto daria
+ *    ao aluno duas cobranças vencendo no mesmo dia, com o link de
+ *    pagamento indo para uma só delas.
+ */
+export function dividirMensalidades(
+  parcelas: number,
+  inicioDasDemais: string | null | undefined,
+  temTaxa = false,
+): { agora: number; depois: number } {
+  const total = Math.max(Number(parcelas) || 1, 1);
+  if (!inicioDasDemais) return { agora: total, depois: 0 };
+  if (temTaxa) return { agora: 0, depois: total };
+  if (total < 2) return { agora: total, depois: 0 };
+  return { agora: 1, depois: total - 1 };
+}
+
+/**
+ * Lança um plano de mensalidades e devolve a conta a receber criada.
+ *
+ * Recebe **quantas** parcelas e **a partir de quando** porque uma turma
+ * futura precisa de dois planos: um com a parcela adiantada, que reserva a
+ * vaga, e outro com as demais a partir do início do curso. O `InsertPlano`
+ * aceita uma data inicial só e espaça as parcelas mês a mês a partir dela,
+ * então "uma agora e as outras em fevereiro" não cabe numa chamada.
+ *
+ * Turma já iniciada continua sendo uma chamada só, com todas as parcelas.
+ */
 async function criarPlano(
   cred: CredenciaisSponte, d: DadosMatricula, contratoId: number | null,
   alunoId: number, opc: OpcoesChamada,
-): Promise<void> {
+  plano: { parcelas: number; apartirDe: string | null; demaisDoCurso?: boolean },
+): Promise<number | null> {
   // A data vem de fora: quem sabe quando a turma começa é o checkout.
   // Antes era sempre "hoje + 5", e quem se matriculava em outubro numa
   // turma de fevereiro começava a pagar em outubro (SPEC-002 RN-03).
-  const venc = d.primeiroVencimento
-    ? new Date(`${d.primeiroVencimento}T00:00:00`)
+  const venc = plano.apartirDe
+    ? new Date(`${plano.apartirDe}T00:00:00`)
     : (() => { const x = new Date(); x.setDate(x.getDate() + 5); return x; })();
 
-  await chamarSoap(
+  const xml = await chamarSoap(
     "InsertPlano",
     [
       ...credenciais(cred),
@@ -882,16 +954,23 @@ async function criarPlano(
       //
       // `parcelas` é a escolha do aluno (1 a N, onde N é o máximo do plano);
       // o valor de cada uma é o total dividido por ela.
-      ["nNumeroParcelas", d.parcelas],
+      ["nNumeroParcelas", plano.parcelas],
+      // O valor é sempre o da parcela do plano do curso, nos dois casos: o
+      // que muda entre eles é quantas e quando, não quanto.
       ["nValorParcelas", valorDaParcela(d)],
       ["nFormaCobrancaID", d.formaCobrancaId],
       ["nCategoriaID", CATEGORIA.MENSALIDADE],
-      ["sObservacao", "Gerado pelo cadastro online"],
+      ["sObservacao", plano.demaisDoCurso
+        ? "Mensalidades do curso — cadastro online"
+        : "Gerado pelo cadastro online"],
       ["nClienteID", ""],
       ["nContaID", CONTA_CREDITO_PADRAO],
     ],
     opc,
   );
+
+  const id = xml.match(/<ContaReceberID>(\d+)<\/ContaReceberID>/)?.[1];
+  return id && Number(id) > 0 ? Number(id) : null;
 }
 
 /**
@@ -1121,9 +1200,13 @@ export async function executarMatricula(
     // agora — e é a que vai receber o link no passo seguinte. O `null`
     // em `contaTaxaId` é o que distingue "ainda não criei" de "não tem
     // taxa": sem taxa, o passo nem é tentado (SPEC-002 RN-01).
-    const temTaxa = !simular
-      && Number(dados.valorTaxa ?? 0) > 0
+    // Duas condições diferentes, de propósito: o **plano** ter taxa decide
+    // como as mensalidades se distribuem (e vale também em simulação, para
+    // o progresso simulado não divergir do real); gravar a taxa no ERP
+    // depende, além disso, de não estarmos simulando.
+    const planoTemTaxa = Number(dados.valorTaxa ?? 0) > 0
       && Number(dados.parcelasTaxa ?? 0) > 0;
+    const temTaxa = !simular && planoTemTaxa;
 
     if (temTaxa && p.contaTaxaId === null) {
       try {
@@ -1137,11 +1220,28 @@ export async function executarMatricula(
       p.ultimoPasso = "criar_taxa";
     }
 
-    // 5b. Plano financeiro das mensalidades
-    if (!p.planoCriado) {
+    /* --- 5b e 5c. As mensalidades --- *
+     *
+     * Turma que ainda não começou sai em DOIS planos: a primeira parcela
+     * vence agora, reservando a vaga, e as demais só começam quando o
+     * curso começa. Um `InsertPlano` aceita uma data inicial só e espaça
+     * as parcelas mês a mês a partir dela, então "uma agora e as outras em
+     * fevereiro" não cabe numa chamada.
+     *
+     * Turma já iniciada é um plano só, com todas as parcelas — como o
+     * sistema sempre fez.
+     */
+    const divisao = dividirMensalidades(
+      dados.parcelas, dados.inicioDasDemais, planoTemTaxa);
+
+    // 5b. A parcela que o aluno paga agora (ou o plano inteiro)
+    if (divisao.agora > 0 && !p.planoCriado) {
       if (!simular) {
         try {
-          await criarPlano(cred, dados, p.contratoId, p.sponteAlunoId!, opc);
+          await criarPlano(cred, dados, p.contratoId, p.sponteAlunoId!, opc, {
+            parcelas: divisao.agora,
+            apartirDe: dados.primeiroVencimento ?? null,
+          });
         } catch (erro) {
           // Código 76 = o plano já existe neste contrato. Numa retomada isso é
           // exatamente o resultado desejado, não uma falha.
@@ -1150,6 +1250,28 @@ export async function executarMatricula(
       }
       p.planoCriado = true;
       p.ultimoPasso = "criar_plano";
+    }
+
+    // 5c. As mensalidades que começam com o curso
+    //
+    // Falhar aqui é pior que falhar no 5b: o aluno fica matriculado, com a
+    // parcela de agora para pagar, e sem as mensalidades do curso. Por isso
+    // o erro sobe — a ficha vai para "erro" e alguém lança as restantes na
+    // tela do Sponte, que é a única forma de corrigir num ERP sem exclusão.
+    if (divisao.depois > 0 && !p.planoDemaisCriado) {
+      if (!simular) {
+        try {
+          await criarPlano(cred, dados, p.contratoId, p.sponteAlunoId!, opc, {
+            parcelas: divisao.depois,
+            apartirDe: dados.inicioDasDemais!,
+            demaisDoCurso: true,
+          });
+        } catch (erro) {
+          if (!(erro instanceof SponteError && erro.codigo === 76)) throw erro;
+        }
+      }
+      p.planoDemaisCriado = true;
+      p.ultimoPasso = "criar_plano_demais";
     }
 
     // 6. Localizar a parcela
@@ -1279,6 +1401,7 @@ export const ROTULO_PASSO: Record<PassoMatricula, string> = {
   criar_matricula: "Registrando a pré-matrícula na turma",
   criar_taxa: "Lançando a taxa de matrícula",
   criar_plano: "Gerando o plano de pagamento",
+  criar_plano_demais: "Agendando as mensalidades do curso",
   localizar_parcela: "Localizando a cobrança",
   gerar_link: "Preparando o pagamento",
 };
