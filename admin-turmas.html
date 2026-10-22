@@ -196,6 +196,17 @@
 
       <div class="resumo-valor" id="m-resumo-valor" style="display:none;"></div>
 
+      <!-- Só aparece para turma que ainda não começou: é a única em que
+           existe escolha a fazer. Ver `pintarCobranca()`. -->
+      <div class="field" id="m-cobranca-campo" style="display:none;">
+        <label for="m-cobranca">Como cobrar as mensalidades</label>
+        <select id="m-cobranca">
+          <option value="adiantada" selected>1ª agora, as demais quando a turma começa</option>
+          <option value="sequencial">Todas seguidas, a partir de 5 dias</option>
+        </select>
+        <div class="valor-obs" id="m-cobranca-ajuda"></div>
+      </div>
+
       <div class="field">
         <label for="m-validade">Validade do link</label>
         <select id="m-validade">
@@ -963,7 +974,9 @@ function linhaLink(l) {
   return `
     <tr${morto ? ' class="row-inativo"' : ''}>
       <td><div style="font-weight:600;">${escapar(encurtar(l.turmaNome, 34))}</div>
-          <div style="font-size:11px;color:var(--text-muted);">${escapar(l.cursoNome || '—')}</div></td>
+          <div style="font-size:11px;color:var(--text-muted);">${escapar(l.cursoNome || '—')}
+          ${l.cobrancaModo === 'adiantada' ? ' · 1ª adiantada'
+            : l.cobrancaModo === 'sequencial' ? ' · cobrança seguida' : ''}</div></td>
       <td><span class="badge ${cor}">${rotulo}</span></td>
       <td>${l.usos}/${l.limiteUsos}</td>
       <td>${l.cadastros || 0}</td>
@@ -1080,14 +1093,72 @@ function quandoCobra(plano) {
 
   if (!inicio) return 'As mensalidades começam em até 5 dias.';
 
+  // Sem taxa, quem manda é a escolha de cobrança — e ela pode ser
+  // sequencial, que é o comportamento de turma já iniciada.
+  if (!temTaxa && modoEscolhido() === 'sequencial') {
+    return 'As mensalidades começam em até 5 dias, todas mês a mês.';
+  }
+
   const quando = `em <strong>${dataBr(inicio)}</strong>, quando a turma inicia`;
   return temTaxa
     ? `A matrícula é cobrada no ato. As mensalidades começam ${quando}.`
     : `A 1ª mensalidade é cobrada no ato. As demais começam ${quando}.`;
 }
 
+/**
+ * A data de início da turma, quando ela ainda está à frente.
+ *
+ * `null` quer dizer que não há adiamento possível: turma sem data, já
+ * começada, que começa dentro dos 5 dias, ou que começa neste mesmo mês —
+ * as mesmas condições de `inicioDasDemaisMensalidades` no servidor. Chegado
+ * o mês do curso, o link para de adiantar sozinho.
+ */
+function inicioAdiavel() {
+  const t = estado.turmaSelecionada;
+  if (!t?.dataInicio) return null;
+
+  const piso = new Date();
+  piso.setDate(piso.getDate() + 5);
+  const pisoIso = piso.toISOString().slice(0, 10);
+  const mesAtual = new Date().toISOString().slice(0, 7);
+
+  if (t.dataInicio.slice(0, 7) === mesAtual) return null;
+  return t.dataInicio > pisoIso ? t.dataInicio : null;
+}
+
+/**
+ * Mostra a escolha de cobrança só quando ela existe.
+ *
+ * Turma já iniciada não tem o que adiar. Plano com taxa também não: é a
+ * taxa que reserva a vaga, e adiantar uma mensalidade junto daria ao aluno
+ * duas cobranças no mesmo dia (SPEC-002 RN-03).
+ */
+function pintarCobranca(plano) {
+  const campo = $('m-cobranca-campo');
+  if (!campo) return;
+
+  const inicio = inicioAdiavel();
+  const temTaxa = (plano?.matricula.total ?? 0) > 0;
+  const escolhe = !!inicio && !temTaxa;
+
+  campo.style.display = escolhe ? '' : 'none';
+  if (escolhe) {
+    $('m-cobranca-ajuda').textContent =
+      `Adiantada: uma parcela em até 5 dias e as outras ${plano.mensalidade.parcelas - 1} `
+      + `a partir de ${dataBr(inicio)}. Sequencial: todas mês a mês, começando em até 5 dias.`;
+  }
+}
+
+/** O modo a gravar no link. `null` deixa o servidor decidir pela turma. */
+function modoEscolhido() {
+  const campo = $('m-cobranca-campo');
+  if (!campo || campo.style.display === 'none') return null;
+  return $('m-cobranca').value || null;
+}
+
 function atualizarResumoValor() {
   const p = estado.planos.find(x => x.planoCursoId === Number($('m-plano').value));
+  pintarCobranca(p ?? null);
   if (!p) { $('m-resumo-valor').style.display = 'none'; return; }
 
   const b = estado.bolsas.find(x => x.bolsaId === Number($('m-bolsa').value));
@@ -1112,6 +1183,7 @@ function atualizarResumoValor() {
 
 $('m-plano').addEventListener('change', atualizarResumoValor);
 $('m-bolsa').addEventListener('change', atualizarResumoValor);
+$('m-cobranca').addEventListener('change', atualizarResumoValor);
 const fechar = () => $('modal-link').classList.remove('open');
 $('btn-fechar').addEventListener('click', fechar);
 $('btn-cancelar').addEventListener('click', fechar);
@@ -1137,6 +1209,7 @@ $('btn-gerar').addEventListener('click', async () => {
         limiteUsos: usos, diasValidade: Number($('m-validade').value),
         planoCursoId: Number($('m-plano').value) || null,
         bolsaId: Number($('m-bolsa').value) || null,
+        cobrancaModo: modoEscolhido(),
       }),
     });
     const d = await r.json();

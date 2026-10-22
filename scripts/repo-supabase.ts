@@ -174,6 +174,8 @@ export class RepoSupabase {
     turmaId: number; cursoId: number; turmaNome: string; cursoNome: string;
     turmaTurno: string; limiteUsos: number; diasValidade: number;
     condicao: Record<string, unknown>;
+    /** `null` deixa a turma decidir: adiantada se futura, sequencial se não. */
+    cobrancaModo?: "sequencial" | "adiantada" | null;
   }) {
     const [link] = await this.#rest<any[]>("links_cadastro", {
       method: "POST",
@@ -198,6 +200,7 @@ export class RepoSupabase {
         // e o que foi prometido é o que vale (SPEC-002 RN-02).
         valor_taxa: e.condicao.valorTaxa ?? null,
         parcelas_taxa: e.condicao.parcelasTaxa ?? null,
+        cobranca_modo: e.cobrancaModo ?? null,
       }),
     });
     return paraLink(link);
@@ -823,6 +826,7 @@ function paraLink(l: any) {
     valorParcela: num(l.valor_parcela), parcelas: l.parcelas,
     valorTotal: num(l.valor_total), valorParcelaCheia: num(l.valor_parcela_cheia),
     valorTaxa: num(l.valor_taxa), parcelasTaxa: l.parcelas_taxa ?? null,
+    cobrancaModo: l.cobranca_modo ?? null,
   };
 }
 
@@ -859,6 +863,7 @@ function paraCadastro(c: any) {
     valorTaxa: num(c.valor_taxa), parcelasTaxa: c.parcelas_taxa ?? null,
     mensalidadesIniciamEm: c.mensalidades_iniciam_em ?? null,
     sponteContaTaxaId: c.sponte_conta_taxa_id ?? null,
+    cobrancaModo: c.cobranca_modo ?? null,
 
     meioPagamento: c.meio_pagamento, formaCobrancaId: c.forma_cobranca_id,
     formaCobrancaNome: c.forma_cobranca_nome, parcelasCartao: c.parcelas_cartao,

@@ -62,6 +62,13 @@ export interface FichaParaCheckout {
   valorTotal: number | null;
   parcelasCartao: number | null;
   formaCobrancaNome: string | null;
+  /**
+   * Como as mensalidades se distribuem, congelado do link.
+   *
+   * `null` em ficha anterior a esta entrega e em link que não escolheu —
+   * aí decide a turma.
+   */
+  cobrancaModo: ModoCobranca | null;
   /** Taxa de matrícula congelada no link. `null` quando o plano não tem. */
   valorTaxa: number | null;
   parcelasTaxa: number | null;
@@ -161,11 +168,22 @@ export const DIAS_ATE_COBRAR = 5;
  * cobrança que garante a vaga, e o aluno precisa de tempo para receber o
  * link, abrir e pagar antes de ela vencer.
  */
+/** A data em ISO, sem a hora. */
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+
 export function vencimentoDaAdiantada(hoje: Date = new Date()): string {
   const d = new Date(hoje);
   d.setDate(d.getDate() + DIAS_ATE_COBRAR);
   return d.toISOString().slice(0, 10);
 }
+
+/**
+ * Como as mensalidades se distribuem, escolhido por quem gerou o link.
+ *
+ * `null` quer dizer "decide pela turma", que é o default: adiantada para
+ * turma futura, sequencial para o resto.
+ */
+export type ModoCobranca = "sequencial" | "adiantada";
 
 /**
  * A partir de quando as mensalidades seguintes correm — ou `null` quando
@@ -188,10 +206,20 @@ export function vencimentoDaAdiantada(hoje: Date = new Date()): string {
 export function inicioDasDemaisMensalidades(
   inicioDaTurma: string | null | undefined,
   hoje: Date = new Date(),
+  modo: ModoCobranca | null | undefined = null,
 ): string | null {
+  if (modo === "sequencial") return null;
   if (!inicioDaTurma) return null;
+
+  // Chegado o mês em que o curso começa, não há mais o que adiar: o link
+  // criado meses antes passa a cobrar tudo seguido, sozinho. Sem isto, uma
+  // matrícula feita em fevereiro numa turma que começa em 28/02 partiria o
+  // plano em dois para ganhar duas semanas.
+  if (inicioDaTurma.slice(0, 7) === iso(hoje).slice(0, 7)) return null;
+
   return inicioDaTurma > vencimentoDaAdiantada(hoje) ? inicioDaTurma : null;
 }
+
 
 export async function executarCheckout(
   c: FichaParaCheckout,
@@ -255,7 +283,8 @@ export async function executarCheckout(
   // iniciada, sem data, ou que começa dentro do prazo de cobrança), e aí
   // é um plano único, como sempre foi.
   const primeiroVencimento = vencimentoDaAdiantada();
-  const inicioDasDemais = inicioDasDemaisMensalidades(turma.inicio);
+  const inicioDasDemais = inicioDasDemaisMensalidades(
+    turma.inicio, new Date(), c.cobrancaModo);
 
   const p = await executarMatricula(
     d.cred,

@@ -1459,6 +1459,11 @@ export async function tratar(
         limiteUsos: Math.max(1, Number(c.limiteUsos) || 1),
         diasValidade: Number(c.diasValidade) || 0,
         condicao: montarCondicao(plano, bolsa),
+        // Só os dois valores que o banco aceita. Qualquer outra coisa vira
+        // `null`, que deixa a turma decidir — e não um modo inventado.
+        cobrancaModo: c.cobrancaModo === "sequencial" || c.cobrancaModo === "adiantada"
+          ? c.cobrancaModo
+          : null,
       });
       return json({ link });
     }

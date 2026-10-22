@@ -90,8 +90,21 @@ test("exatamente no dia do vencimento de agora, não adia", () => {
   assert.equal(inicioDasDemaisMensalidades("2026-10-26", HOJE), null);
 });
 
-test("um dia depois, adia", () => {
-  assert.equal(inicioDasDemaisMensalidades("2026-10-27", HOJE), "2026-10-27");
+test("um dia depois do vencimento, mas no mesmo mês, não adia", () => {
+  // A regra do mês do curso é mais forte que o piso de 5 dias: turma que
+  // começa em 27/10 para quem se cadastra em 21/10 cobra tudo seguido.
+  assert.equal(inicioDasDemaisMensalidades("2026-10-27", HOJE), null);
+});
+
+test("no mês seguinte, adia", () => {
+  assert.equal(inicioDasDemaisMensalidades("2026-11-03", HOJE), "2026-11-03");
+});
+
+test("fim do mês corrente não adia, por longe que esteja", () => {
+  // 21/10 para 31/10: dez dias, e ainda assim mesmo mês. É a regra pedida
+  // em 22/10/2026 — dentro do próprio mês, partir o plano em dois não paga
+  // o custo de um segundo plano no contrato.
+  assert.equal(inicioDasDemaisMensalidades("2026-10-31", HOJE), null);
 });
 
 test("a data das demais nunca sai no passado", () => {
@@ -100,6 +113,81 @@ test("a data das demais nunca sai no passado", () => {
     const r = inicioDasDemaisMensalidades(entrada, HOJE);
     assert.ok(r === null || r > piso, `${entrada} devolveu ${r}`);
   }
+});
+
+/* ------------------------------------------------------------------ *
+ * A escolha de quem gerou o link
+ * ------------------------------------------------------------------ */
+
+test("sequencial não adia nada, mesmo em turma de 2027", () => {
+  assert.equal(
+    inicioDasDemaisMensalidades("2027-02-08", HOJE, "sequencial"),
+    null,
+  );
+});
+
+test("adiantada adia, como o default", () => {
+  assert.equal(
+    inicioDasDemaisMensalidades("2027-02-08", HOJE, "adiantada"),
+    "2027-02-08",
+  );
+});
+
+test("sem escolha, decide a turma", () => {
+  for (const vazio of [null, undefined]) {
+    assert.equal(
+      inicioDasDemaisMensalidades("2027-02-08", HOJE, vazio),
+      "2027-02-08",
+      `modo ${JSON.stringify(vazio)}`,
+    );
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * Chegado o mês do curso, o link passa a cobrar seguido
+ *
+ * Um link gerado em outubro para uma turma de fevereiro continua válido em
+ * fevereiro. Lá, adiantar não quer mais dizer nada: o curso é agora.
+ * ------------------------------------------------------------------ */
+
+test("no mês em que o curso começa, vira sequencial sozinho", () => {
+  // Link criado em outubro pedindo "adiantada"; o aluno se cadastra em
+  // fevereiro, no mês do início.
+  const fevereiro = new Date("2027-02-01T09:00:00");
+  assert.equal(
+    inicioDasDemaisMensalidades("2027-02-08", fevereiro, "adiantada"),
+    null,
+  );
+});
+
+test("vira sequencial mesmo com o curso ainda longe dentro do mês", () => {
+  // 1º de fevereiro, curso em 28: quatro semanas de diferença, e ainda
+  // assim é o mesmo mês. Foi a regra pedida — partir o plano em dois para
+  // ganhar semanas dentro do próprio mês não paga o custo.
+  const fevereiro = new Date("2027-02-01T09:00:00");
+  assert.equal(
+    inicioDasDemaisMensalidades("2027-02-28", fevereiro, "adiantada"),
+    null,
+  );
+});
+
+test("no mês anterior ao do curso, ainda adia", () => {
+  const janeiro = new Date("2027-01-20T09:00:00");
+  assert.equal(
+    inicioDasDemaisMensalidades("2027-02-08", janeiro, "adiantada"),
+    "2027-02-08",
+  );
+});
+
+test("mesmo mês de outro ano não conta como o mês do curso", () => {
+  // Fevereiro de 2026 e fevereiro de 2027 são meses iguais em anos
+  // diferentes: comparar só o mês faria o link parar de adiantar um ano
+  // antes da hora.
+  const fev2026 = new Date("2026-02-10T09:00:00");
+  assert.equal(
+    inicioDasDemaisMensalidades("2027-02-08", fev2026, "adiantada"),
+    "2027-02-08",
+  );
 });
 
 /* ------------------------------------------------------------------ *

@@ -115,6 +115,10 @@ function paraFicha(c: Record<string, any>): FichaParaCheckout {
     formaCobrancaNome: c.forma_cobranca_nome,
     valorTaxa: num(c.valor_taxa), parcelasTaxa: c.parcelas_taxa ?? null,
     mensalidadesIniciamEm: c.mensalidades_iniciam_em ?? null,
+    // Este arquivo está fora do `tsc` (roda em Deno), então esquecer uma
+    // linha aqui não dá erro de compilação — só faz o checkout ignorar a
+    // escolha de quem gerou o link, em silêncio.
+    cobrancaModo: c.cobranca_modo ?? null,
     pagamentoLink: c.pagamento_link, linkId: c.link_id,
     progresso: c.sponte_aluno_id || c.sponte_contrato_id
       ? {
