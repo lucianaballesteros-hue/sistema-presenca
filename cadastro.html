@@ -387,6 +387,15 @@ const estadoCheckout = {
    * e o que vale é a data que foi para o Sponte.
    */
   mensalidadesIniciamEm: null,
+  /**
+   * Quanto o servidor cobrou agora, em reais. `null` antes do checkout.
+   *
+   * É um valor, não uma base de cálculo: a cobrança de agora vai inteira
+   * para o link de pagamento. Dividi-la pelo parcelamento escolhido para as
+   * mensalidades mostrava R$ 288,09 na tela enquanto o Sponte Pay abria com
+   * R$ 1.152,36 — o aluno comparava os dois e desistia.
+   */
+  valorAgora: null,
 };
 
 /** Id do rascunho no servidor. Null até a primeira etapa ser salva. */
@@ -774,8 +783,8 @@ const estados = {
         : `Seu cadastro está reservado em <strong>${escapar(TURMA.nome)}</strong>.`}</p>
 
       <div class="turma-box">
-        <div class="rotulo">${TURMA.valorTaxa > 0 ? 'Matrícula' : 'A pagar'}</div>
-        <div class="nome">${brl(valorPrimeiraCobranca())}</div>
+        <div class="rotulo">${cobrouMatricula() ? 'Matrícula' : 'A pagar'}</div>
+        <div class="nome">${brl(valorAPagar())}</div>
         <div class="detalhe">Pix, boleto ou cartão — você escolhe na próxima página.</div>
       </div>
 
@@ -810,8 +819,8 @@ const estados = {
       <p class="sub">Sua vaga em <strong>${escapar(TURMA.nome)}</strong> está reservada.</p>
 
       <div class="turma-box">
-        <div class="rotulo">${TURMA.valorTaxa > 0 ? 'Matrícula' : 'A pagar'}</div>
-        <div class="nome">${brl(valorPrimeiraCobranca())}</div>
+        <div class="rotulo">${cobrouMatricula() ? 'Matrícula' : 'A pagar'}</div>
+        <div class="nome">${brl(valorAPagar())}</div>
         <div class="detalhe">Pix, boleto ou cartão — você escolhe na página de pagamento.</div>
       </div>
 
@@ -1323,6 +1332,16 @@ function mesDasMensalidades() {
   return mesAno(estadoCheckout.mensalidadesIniciamEm);
 }
 
+/**
+ * O valor que a tela de pagamento mostra.
+ *
+ * Vem do servidor quando ele já cobrou — é o número que vai aparecer no
+ * Sponte Pay, e qualquer divergência entre as duas telas custa a venda.
+ * Antes do checkout, cai na estimativa de sempre.
+ */
+const valorAPagar = () =>
+  estadoCheckout.valorAgora != null ? estadoCheckout.valorAgora : valorPrimeiraCobranca();
+
 /** Linha abaixo do botão. Vazia quando não há o que dizer. */
 function linhaMensalidades() {
   const mes = mesDasMensalidades();
@@ -1335,7 +1354,16 @@ function linhaMensalidades() {
           <strong>${escapar(mes)}</strong>.</p>`;
 }
 
-const rotuloPagar = () => TURMA.valorTaxa > 0 ? 'Pagar matrícula' : 'Ir para o pagamento';
+/**
+ * Houve cobrança de matrícula agora?
+ *
+ * Quem responde é o servidor, não o link: com turma futura e plano sem taxa
+ * configurada, a cobrança de agora é uma parcela lançada na aba de taxa de
+ * matrícula — e o link, gerado antes, não sabia disso.
+ */
+const cobrouMatricula = () => estadoCheckout.valorAgora != null || TURMA.valorTaxa > 0;
+
+const rotuloPagar = () => cobrouMatricula() ? 'Pagar matrícula' : 'Ir para o pagamento';
 
 const urlCheckout = () => `/api/checkout/${estadoCheckout.id}`;
 
@@ -1364,7 +1392,9 @@ async function iniciarCheckout() {
     // Vem do servidor em vez de ser recalculada: é a data que foi gravada
     // no Sponte, e a régua de cobrança vai cobrar por ela.
     estadoCheckout.mensalidadesIniciamEm = d.mensalidadesIniciamEm ?? null;
-    if (d.valorTaxa != null) TURMA.valorTaxa = Number(d.valorTaxa);
+    // Não mexe em `TURMA.valorTaxa`: ele alimenta os cálculos das telas
+    // anteriores, e o que vale aqui é o que foi efetivamente cobrado.
+    estadoCheckout.valorAgora = d.valorTaxa != null ? Number(d.valorTaxa) : null;
     // Sem link, o aluno recebe depois pela régua — não adianta mostrar um
     // botão de pagar que não leva a lugar nenhum.
     mostrar(d.link ? 'pagar' : 'aguardandoLink');
