@@ -242,6 +242,50 @@ Deno.serve(async (req) => {
           headers: { Prefer: "return=minimal" },
           body: JSON.stringify({ ...campos, atualizado_em: new Date().toISOString() }),
         }),
+      /**
+       * A contabilidade do uso do link.
+       *
+       * Nenhuma das duas pode derrubar o checkout: a matrícula no ERP é
+       * irreversível, e perdê-la porque o contador de um link não atualizou
+       * seria trocar um problema pequeno por um que não se desfaz. Falhando,
+       * fica o registro e segue.
+       */
+      devolverUsoDoLink: (cadastroId) =>
+        rest<boolean>("rpc/link_devolver_uso", {
+          method: "POST",
+          body: JSON.stringify({ p_cadastro_id: cadastroId }),
+        }).then((devolveu) => {
+          if (devolveu) {
+            registrar({
+              tipo: "link", operacao: "uso devolvido ao link",
+              cadastroId, ok: true,
+            });
+          }
+        }).catch((e) => {
+          registrar({
+            tipo: "link", operacao: "devolver uso do link (falhou)",
+            cadastroId, ok: false, erro: (e as Error).message,
+          });
+        }),
+
+      reconsumirUsoDoLink: (cadastroId) =>
+        rest<boolean>("rpc/link_reconsumir_uso", {
+          method: "POST",
+          body: JSON.stringify({ p_cadastro_id: cadastroId }),
+        }).then((reconsumiu) => {
+          if (reconsumiu) {
+            registrar({
+              tipo: "link", operacao: "uso reconsumido do link",
+              cadastroId, ok: true,
+            });
+          }
+        }).catch((e) => {
+          registrar({
+            tipo: "link", operacao: "reconsumir uso do link (falhou)",
+            cadastroId, ok: false, erro: (e as Error).message,
+          });
+        }),
+
       // Só a data de término interessa ao contrato; buscar a turma inteira
       // por isso é o preço de uma chamada que o cache do painel não tem aqui.
       async datasDaTurma(turmaId) {

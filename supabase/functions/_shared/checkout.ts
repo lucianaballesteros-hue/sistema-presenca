@@ -91,6 +91,19 @@ export interface DependenciasCheckout {
   web: SponteWeb | null;
   /** Grava campos na ficha. */
   atualizar(id: number, campos: Record<string, unknown>): Promise<unknown>;
+  /**
+   * Devolve ao link o uso que esta ficha consumiu, e o reconsome.
+   *
+   * O envio do formulário consome o uso antes de a matrícula existir. Em
+   * 23/10/2026 isso matou dois links seguidos por uma recusa do ERP que
+   * não era do aluno (SPEC-003 RN-06).
+   *
+   * As duas são idempotentes pela marca na ficha e **não podem lançar**:
+   * perder a matrícula já feita por causa da contabilidade de um link
+   * seria trocar um problema pequeno por um grande.
+   */
+  devolverUsoDoLink(cadastroId: number): Promise<void>;
+  reconsumirUsoDoLink(cadastroId: number): Promise<void>;
   /** Registra na auditoria. Não pode lançar. */
   registrar(e: {
     tipo: "sponte" | "link";
@@ -360,6 +373,12 @@ export async function executarCheckout(
     campos.sponte_erro =
       `${p.erroPasso ? ROTULO_PASSO[p.erroPasso] + ": " : ""}${p.erro}`;
     await d.atualizar(id, campos);
+
+    // O link volta a servir. Sem isto, um link de um uso morre por um erro
+    // que o aluno não causou e não pode corrigir — e a escola gera outro,
+    // que morre igual.
+    await d.devolverUsoDoLink(id);
+
     return {
       ok: false, motivo: "falha_sponte", passo: p.erroPasso,
       erro: String(campos.sponte_erro), progresso: p,
@@ -413,6 +432,11 @@ export async function executarCheckout(
       });
     }
   }
+
+  // Deu certo: se esta ficha tinha devolvido o uso numa tentativa
+  // anterior, ele volta a contar. Senão o link passaria a valer um
+  // cadastro a mais do que diz.
+  await d.reconsumirUsoDoLink(id);
 
   campos.sponte_erro = null;
   campos.status = "enviado";
