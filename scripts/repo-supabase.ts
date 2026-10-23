@@ -174,6 +174,8 @@ export class RepoSupabase {
     turmaId: number; cursoId: number; turmaNome: string; cursoNome: string;
     turmaTurno: string; limiteUsos: number; diasValidade: number;
     condicao: Record<string, unknown>;
+    /** `null` deixa a turma decidir: adiantada se futura, sequencial se não. */
+    cobrancaModo?: "sequencial" | "adiantada" | null;
   }) {
     const [link] = await this.#rest<any[]>("links_cadastro", {
       method: "POST",
@@ -193,6 +195,12 @@ export class RepoSupabase {
         parcelas: e.condicao.parcelas ?? null,
         valor_total: e.condicao.valorTotal ?? null,
         valor_parcela_cheia: e.condicao.valorParcelaCheia ?? null,
+        // A taxa entra no mesmo retrato pelo mesmo motivo que o resto: o
+        // plano pode mudar no Sponte depois de o link ter ido ao aluno,
+        // e o que foi prometido é o que vale (SPEC-002 RN-02).
+        valor_taxa: e.condicao.valorTaxa ?? null,
+        parcelas_taxa: e.condicao.parcelasTaxa ?? null,
+        cobranca_modo: e.cobrancaModo ?? null,
       }),
     });
     return paraLink(link);
@@ -817,6 +825,8 @@ function paraLink(l: any) {
     bolsaId: l.bolsa_id, bolsaDescricao: l.bolsa_descricao,
     valorParcela: num(l.valor_parcela), parcelas: l.parcelas,
     valorTotal: num(l.valor_total), valorParcelaCheia: num(l.valor_parcela_cheia),
+    valorTaxa: num(l.valor_taxa), parcelasTaxa: l.parcelas_taxa ?? null,
+    cobrancaModo: l.cobranca_modo ?? null,
   };
 }
 
@@ -847,6 +857,13 @@ function paraCadastro(c: any) {
     bolsaId: c.bolsa_id, bolsaDescricao: c.bolsa_descricao,
     valorParcela: num(c.valor_parcela), parcelas: c.parcelas,
     valorTotal: num(c.valor_total), valorParcelaCheia: num(c.valor_parcela_cheia),
+    // A taxa prometida ao aluno e a data em que as mensalidades começam.
+    // Nulas em ficha anterior a esta entrega e em plano sem taxa — a ficha
+    // simplesmente não mostra as linhas.
+    valorTaxa: num(c.valor_taxa), parcelasTaxa: c.parcelas_taxa ?? null,
+    mensalidadesIniciamEm: c.mensalidades_iniciam_em ?? null,
+    sponteContaTaxaId: c.sponte_conta_taxa_id ?? null,
+    cobrancaModo: c.cobranca_modo ?? null,
 
     meioPagamento: c.meio_pagamento, formaCobrancaId: c.forma_cobranca_id,
     formaCobrancaNome: c.forma_cobranca_nome, parcelasCartao: c.parcelas_cartao,

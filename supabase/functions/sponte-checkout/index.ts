@@ -113,12 +113,19 @@ function paraFicha(c: Record<string, any>): FichaParaCheckout {
     valorParcela: num(c.valor_parcela), parcelas: c.parcelas,
     valorTotal: num(c.valor_total), parcelasCartao: c.parcelas_cartao,
     formaCobrancaNome: c.forma_cobranca_nome,
+    valorTaxa: num(c.valor_taxa), parcelasTaxa: c.parcelas_taxa ?? null,
+    mensalidadesIniciamEm: c.mensalidades_iniciam_em ?? null,
+    // Este arquivo está fora do `tsc` (roda em Deno), então esquecer uma
+    // linha aqui não dá erro de compilação — só faz o checkout ignorar a
+    // escolha de quem gerou o link, em silêncio.
+    cobrancaModo: c.cobranca_modo ?? null,
     pagamentoLink: c.pagamento_link, linkId: c.link_id,
     progresso: c.sponte_aluno_id || c.sponte_contrato_id
       ? {
           sponteAlunoId: c.sponte_aluno_id, responsavelId: c.sponte_responsavel_id,
           contratoId: c.sponte_contrato_id, contaReceberId: c.sponte_conta_receber_id,
-          numeroParcela: c.sponte_numero_parcela, planoCriado: !!c.sponte_contrato_id,
+          numeroParcela: c.sponte_numero_parcela,
+          contaTaxaId: c.sponte_conta_taxa_id ?? null, planoCriado: !!c.sponte_contrato_id,
           matriculaCriada: !!c.sponte_contrato_id, alunoJaExistia: false,
           linkPagamento: c.pagamento_link, ultimoPasso: null, erro: null, erroPasso: null,
         } as never
@@ -237,15 +244,22 @@ Deno.serve(async (req) => {
         }),
       // Só a data de término interessa ao contrato; buscar a turma inteira
       // por isso é o preço de uma chamada que o cache do painel não tem aqui.
-      async dataTerminoDaTurma(turmaId) {
-        if (!turmaId) return null;
+      async datasDaTurma(turmaId) {
+        if (!turmaId) return { inicio: null, termino: null };
         try {
           const todas = await getTurmas(cred, { timeoutMs: 60_000 });
-          return todas.find((t) => t.turmaId === turmaId)?.dataTermino ?? null;
+          const t = todas.find((x) => x.turmaId === turmaId);
+          return { inicio: t?.dataInicio ?? null, termino: t?.dataTermino ?? null };
         } catch {
-          // Sem a data o contrato usa o padrão. Não vale abortar a
-          // matrícula inteira por causa dela.
-          return null;
+          // Sem as datas, o contrato usa o padrão e a mensalidade
+          // vence em 5 dias. Não vale abortar a matrícula por causa
+          // disso — mas o aluno de turma futura cobra antes da hora,
+          // então a falha fica registrada.
+          registrar({
+            tipo: "sponte", operacao: "datasDaTurma (falhou)",
+            cadastroId, ok: false, detalhe: { turmaId },
+          });
+          return { inicio: null, termino: null };
         }
       },
     });

@@ -228,15 +228,31 @@ async function formasComCache(): Promise<FormaCobranca[]> {
   return dados;
 }
 
-/** Retrato comercial a partir de um plano e uma bolsa escolhidos. */
+/**
+ * Retrato comercial a partir de um plano e uma bolsa escolhidos.
+ *
+ * ⚠️ `valorTotal` é **só a mensalidade**, não o contrato inteiro.
+ *
+ * Quem consome esse campo o divide pelo número de parcelas para chegar ao
+ * valor de cada mensalidade — a função SQL do envio, o repositório e o
+ * formulário, todos. Enquanto ele carregava `plano.total`, as outras três
+ * rubricas entravam nessa divisão: uma taxa de matrícula de R$ 300 virava
+ * R$ 25 a mais em cada uma das 12 mensalidades, sem erro e sem aviso.
+ *
+ * Nunca mordeu porque os cinco planos da escola estão com matrícula,
+ * material e "outros" zerados. SPEC-002 RN-06.
+ */
 function montarCondicao(plano: PlanoCurso | null, bolsa: Bolsa | null) {
   if (!plano) {
     return {
       planoCursoId: null, planoDescricao: null, bolsaId: null, bolsaDescricao: null,
       valorParcela: null, parcelas: null, valorTotal: null, valorParcelaCheia: null,
+      valorTaxa: null, parcelasTaxa: null,
     };
   }
   const c = aplicarBolsa(plano, bolsa);
+  const temTaxa = plano.matricula.valorParcela > 0 && plano.matricula.parcelas > 0;
+
   return {
     planoCursoId: plano.planoCursoId,
     planoDescricao: plano.descricao,
@@ -244,8 +260,14 @@ function montarCondicao(plano: PlanoCurso | null, bolsa: Bolsa | null) {
     bolsaDescricao: bolsa?.descricao ?? null,
     valorParcela: c.valorParcela,
     parcelas: c.parcelas,
-    valorTotal: c.total,
+    valorTotal: c.totalMensalidades,
     valorParcelaCheia: c.descontoAplicado > 0 ? c.valorParcelaCheia : null,
+
+    // A taxa vem do plano do Sponte, nunca da tela (SPEC-002 RN-02). A
+    // bolsa não a toca: incide sobre a mensalidade, e mesmo isso é
+    // suposição não confirmada — ver a nota em `aplicarBolsa`.
+    valorTaxa: temTaxa ? plano.matricula.valorParcela : null,
+    parcelasTaxa: temTaxa ? plano.matricula.parcelas : null,
   };
 }
 
@@ -1437,6 +1459,11 @@ export async function tratar(
         limiteUsos: Math.max(1, Number(c.limiteUsos) || 1),
         diasValidade: Number(c.diasValidade) || 0,
         condicao: montarCondicao(plano, bolsa),
+        // Só os dois valores que o banco aceita. Qualquer outra coisa vira
+        // `null`, que deixa a turma decidir — e não um modo inventado.
+        cobrancaModo: c.cobrancaModo === "sequencial" || c.cobrancaModo === "adiantada"
+          ? c.cobrancaModo
+          : null,
       });
       return json({ link });
     }
@@ -1612,6 +1639,10 @@ export async function tratar(
             bolsa_id: cond.bolsaId, bolsa_descricao: cond.bolsaDescricao,
             valor_parcela: cond.valorParcela, parcelas: cond.parcelas,
             valor_total: cond.valorTotal, valor_parcela_cheia: cond.valorParcelaCheia,
+            // Trocar o plano troca a taxa junto. Sem esta linha a ficha
+            // ficaria com a taxa do plano antigo e o checkout cobraria um
+            // valor que não existe em nenhum dos dois.
+            valor_taxa: cond.valorTaxa, parcelas_taxa: cond.parcelasTaxa,
           });
         }
 

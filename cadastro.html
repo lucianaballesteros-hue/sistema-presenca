@@ -294,6 +294,18 @@ const tela = $('tela');
 const escapar = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+/**
+ * "fevereiro de 2027".
+ *
+ * Mês por extenso, e não dd/mm: é texto para o aluno ler, não data para
+ * conferir. O dia exato do vencimento ele vê no boleto.
+ */
+const mesAno = (iso) => {
+  if (!iso) return '';
+  const d = new Date(`${iso}T00:00:00`);
+  return isNaN(d) ? '' : d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+};
 const digitos = (v) => String(v ?? '').replace(/\D/g, '');
 
 /* ================================================================== *
@@ -309,6 +321,15 @@ const TURMA = {
   parcelas: 6,
   valorTotal: 3519.36,
   valorParcelaCheia: 637.56,
+  /**
+   * Taxa de matrícula. `0` quando o plano não tem — que é o caso de todos
+   * os planos da escola hoje, então este é o caminho exercitado.
+   *
+   * Quando existe, ela é o que o aluno paga **agora**; as mensalidades
+   * ficam para quando o curso começar.
+   */
+  valorTaxa: 0,
+  parcelasTaxa: 1,
 };
 
 /** Tudo que o aluno preencheu. Só sai do navegador na última etapa. */
@@ -351,6 +372,13 @@ const estadoCheckout = {
    * a ela nem ser lido por outra página do mesmo domínio.
    */
   token: null,
+  /**
+   * Quando a primeira mensalidade vence, em ISO, como o servidor gravou.
+   *
+   * Não é recalculado aqui: a regra mora em `primeiroVencimentoMensalidade`
+   * e o que vale é a data que foi para o Sponte.
+   */
+  mensalidadesIniciamEm: null,
 };
 
 /** Id do rascunho no servidor. Null até a primeira etapa ser salva. */
@@ -461,7 +489,28 @@ function caixaTurma(comValor = true) {
 function caixaValor() {
   const total = TURMA.valorTotal
     || (TURMA.valorParcela && TURMA.parcelas ? TURMA.valorParcela * TURMA.parcelas : 0);
-  if (!total) return '';
+  const taxa = TURMA.valorTaxa || 0;
+  if (!total && !taxa) return '';
+
+  // Com taxa de matrícula, o destaque é a taxa: é a única coisa que sai do
+  // bolso do aluno agora. Mostrar o total do curso em destaque aqui faria
+  // quem vai pagar R$ 300 achar que vai pagar R$ 7.000 — e o contrário
+  // também é ruim: sem a linha das mensalidades, ele acha que o curso
+  // custa a taxa.
+  if (taxa > 0) {
+    return `
+    <div class="valor-box">
+      <div class="valor-destaque">
+        <span class="valor-parcela">${brl(taxa)}</span>
+      </div>
+      <div class="valor-total">a matrícula, que garante sua vaga</div>
+      ${total && TURMA.parcelas
+        ? `<div class="valor-nota">Depois, <strong>${TURMA.parcelas}×</strong> de
+             <strong>${brl(total / TURMA.parcelas)}</strong>, uma por mês.</div>`
+        : ''}
+      <div class="valor-nota">Na próxima página você escolhe entre Pix, boleto ou cartão.</div>
+    </div>`;
+  }
 
   // O destaque é o total, porque é o que será cobrado: uma cobrança só. A
   // mensalidade vira referência — ela diz quanto fica por mês se o aluno
@@ -584,8 +633,8 @@ const estados = {
   /* ---------------- 4. Pagamento ---------------- */
   /* ---------------- 4. Em quantas vezes ---------------- */
   parcelamento: () => {
-    const max = TURMA.parcelas || 1;
-    const total = TURMA.valorTotal || (TURMA.valorParcela || 0) * max;
+    const max = maxVezes();
+    const total = totalDaCobranca();
     const escolhido = form.parcelas || max;
 
     const opcao = (n) => {
@@ -600,7 +649,9 @@ const estados = {
       ${stepper()}
       <div class="icon-badge icon-badge-blue">💳</div>
       <h1>Em quantas vezes?</h1>
-      <p class="sub">Você paga a primeira agora; as próximas chegam mês a mês.</p>
+      <p class="sub">${TURMA.valorTaxa > 0
+        ? 'Isto é o parcelamento da matrícula. As mensalidades vêm depois, uma por mês.'
+        : 'Você paga a primeira agora; as próximas chegam mês a mês.'}</p>
       ${caixaTurma(false)}
       <form id="form" novalidate>
         <div class="campo">
@@ -667,12 +718,12 @@ const estados = {
         <div class="rev-grupo">
           <div class="rev-titulo">Pagamento<button class="rev-editar" data-ir="pagamento">editar</button></div>
           ${l('Indicação', form.origemVenda)}
+          ${TURMA.valorTaxa > 0 ? l('Matrícula', brl(TURMA.valorTaxa)) : ''}
           ${l('Mensalidade', brl(TURMA.valorParcela))}
           ${l('Mensalidades', TURMA.parcelas ? String(TURMA.parcelas) : '')}
           ${l('Parcelamento', form.parcelas === 1 ? 'À vista'
               : `${form.parcelas}× de ${brl(valorPrimeiraCobranca())}`)}
           ${l('A pagar agora', brl(valorPrimeiraCobranca()))}
-          ${l('Total do curso', brl(TURMA.valorTotal))}
           ${l('Total do curso', brl(TURMA.valorTotal))}
         </div>
       </div>
@@ -709,10 +760,13 @@ const estados = {
     <div class="card fade-in">
       <div class="icon-badge icon-badge-blue">💳</div>
       <h1>Falta o pagamento</h1>
-      <p class="sub">Seu cadastro está reservado em <strong>${escapar(TURMA.nome)}</strong>.</p>
+      <p class="sub">${TURMA.valorTaxa > 0
+        ? `Falta o pagamento da matrícula para garantir sua vaga em
+           <strong>${escapar(TURMA.nome)}</strong>.`
+        : `Seu cadastro está reservado em <strong>${escapar(TURMA.nome)}</strong>.`}</p>
 
       <div class="turma-box">
-        <div class="rotulo">A pagar</div>
+        <div class="rotulo">${TURMA.valorTaxa > 0 ? 'Matrícula' : 'A pagar'}</div>
         <div class="nome">${brl(valorPrimeiraCobranca())}</div>
         <div class="detalhe">Pix, boleto ou cartão — você escolhe na próxima página.</div>
       </div>
@@ -724,8 +778,10 @@ const estados = {
         </div>` : ''}
 
       <a class="btn-pagar" href="${escapar(estadoCheckout.link || '#')}" target="_blank" rel="noopener noreferrer">
-        Ir para o pagamento
+        ${rotuloPagar()}
       </a>
+
+      ${linhaMensalidades()}
 
       <p class="sub footer-msg">Sua vaga fica reservada até o pagamento ser
       confirmado. Assim que entrar, você é matriculado na turma.</p>
@@ -746,10 +802,12 @@ const estados = {
       <p class="sub">Sua vaga em <strong>${escapar(TURMA.nome)}</strong> está reservada.</p>
 
       <div class="turma-box">
-        <div class="rotulo">A pagar</div>
+        <div class="rotulo">${TURMA.valorTaxa > 0 ? 'Matrícula' : 'A pagar'}</div>
         <div class="nome">${brl(valorPrimeiraCobranca())}</div>
         <div class="detalhe">Pix, boleto ou cartão — você escolhe na página de pagamento.</div>
       </div>
+
+      ${linhaMensalidades()}
 
       <p class="sub footer-msg">
         O link de pagamento chega em breve
@@ -1035,17 +1093,37 @@ function ligarCep() {
 */
 
 /**
- * Quanto será cobrado: o total do curso, de uma vez.
+ * Quanto será cobrado agora.
  *
- * Era a primeira mensalidade, de quando o plano tinha N parcelas. Agora a
- * cobrança é única e o parcelamento acontece no cartão, dentro da página do
- * Sponte Pay — então mostrar outra coisa aqui seria prometer um valor que o
- * aluno não vai ver lá.
+ * Era a primeira mensalidade, de quando o plano tinha N parcelas. Depois
+ * passou a ser o total do curso, cobrado de uma vez. Com taxa de matrícula
+ * é a **taxa**: o checkout cria dois planos, e o link de pagamento vai para
+ * a parcela que vence primeiro, que é a dela (SPEC-002 RN-04).
+ *
+ * Mostrar outra coisa aqui seria prometer um valor diferente do que aparece
+ * na página do Sponte Pay — e o aluno confere.
  */
 function valorPrimeiraCobranca() {
+  return totalDaCobranca() / (form.parcelas || maxVezes());
+}
+
+/** O valor que vai para a página de pagamento, antes de dividir no cartão. */
+function totalDaCobranca() {
+  if (TURMA.valorTaxa > 0) return TURMA.valorTaxa;
   const max = TURMA.parcelas || 1;
-  const total = TURMA.valorTotal || (TURMA.valorParcela || 0) * max;
-  return total / (form.parcelas || max);
+  return TURMA.valorTotal || (TURMA.valorParcela || 0) * max;
+}
+
+/**
+ * Em quantas vezes a cobrança de agora pode ser dividida.
+ *
+ * Com taxa é o que o plano de matrícula diz — normalmente uma. Oferecer as
+ * doze vezes da mensalidade dividiria R$ 300 por 12 e mostraria R$ 25 como
+ * "a pagar agora", valor que não existe em lugar nenhum.
+ */
+function maxVezes() {
+  if (TURMA.valorTaxa > 0) return TURMA.parcelasTaxa || 1;
+  return TURMA.parcelas || 1;
 }
 
 /**
@@ -1059,8 +1137,8 @@ function ligarParcelamento() {
   const sel = $('parcelas');
   if (!sel) return;
 
-  const max = TURMA.parcelas || 1;
-  const total = TURMA.valorTotal || (TURMA.valorParcela || 0) * max;
+  const max = maxVezes();
+  const total = totalDaCobranca();
   if (!form.parcelas) form.parcelas = max;
 
   const pintar = () => {
@@ -1177,6 +1255,41 @@ function animarPassos() {
   return setInterval(() => { if (i < PASSOS_CK.length - 1) { i++; pinta(); } }, 850);
 }
 
+/* ------------------------------------------------------------------ *
+ * O que a tela de pagamento diz
+ *
+ * Com taxa de matrícula, o que o aluno paga agora não é mensalidade — e se
+ * a tela não disser isso, ele liga em novembro perguntando pelo boleto que
+ * não veio. É a ligação que a secretaria não precisa atender.
+ * ------------------------------------------------------------------ */
+
+/**
+ * A frase só aparece quando há mensalidade adiada.
+ *
+ * O servidor manda a data apenas nesse caso — turma já iniciada vem com
+ * `null`, e aí não há o que dizer. Não filtramos por mês aqui: uma turma
+ * que começa no fim deste mesmo mês tem adiamento de verdade, e esconder
+ * isso seria esconder informação boa.
+ */
+function mesDasMensalidades() {
+  return mesAno(estadoCheckout.mensalidadesIniciamEm);
+}
+
+/** Linha abaixo do botão. Vazia quando não há o que dizer. */
+function linhaMensalidades() {
+  const mes = mesDasMensalidades();
+  if (!mes) return '';
+  // Com taxa, é ela que o aluno paga agora e todas as mensalidades vão
+  // para o início do curso. Sem taxa, o que ele paga agora é a primeira
+  // mensalidade, adiantada, e as outras começam com o curso.
+  return TURMA.valorTaxa > 0
+    ? `<p class="sub">As mensalidades começam em <strong>${escapar(mes)}</strong>.</p>`
+    : `<p class="sub">Esta é a 1ª mensalidade. As próximas começam em
+       <strong>${escapar(mes)}</strong>.</p>`;
+}
+
+const rotuloPagar = () => TURMA.valorTaxa > 0 ? 'Pagar matrícula' : 'Ir para o pagamento';
+
 const urlCheckout = () => `/api/checkout/${estadoCheckout.id}`;
 
 /**
@@ -1198,6 +1311,10 @@ async function iniciarCheckout() {
     if (!d.ok) { mostrar('erro'); return; }
     estadoCheckout.link = d.link;
     estadoCheckout.simulado = !!d.simulado;
+    // Vem do servidor em vez de ser recalculada: é a data que foi gravada
+    // no Sponte, e a régua de cobrança vai cobrar por ela.
+    estadoCheckout.mensalidadesIniciamEm = d.mensalidadesIniciamEm ?? null;
+    if (d.valorTaxa != null) TURMA.valorTaxa = Number(d.valorTaxa);
     // Sem link, o aluno recebe depois pela régua — não adianta mostrar um
     // botão de pagar que não leva a lugar nenhum.
     mostrar(d.link ? 'pagar' : 'aguardandoLink');
@@ -1390,6 +1507,10 @@ async function iniciar() {
       TURMA.parcelas = d.parcelas ?? null;
       TURMA.valorTotal = d.valorTotal ?? null;
       TURMA.valorParcelaCheia = d.valorParcelaCheia ?? null;
+      // Link antigo e plano sem taxa chegam nulos: zero, e a tela volta a
+      // ser a de antes desta entrega.
+      TURMA.valorTaxa = Number(d.valorTaxa || 0);
+      TURMA.parcelasTaxa = Number(d.parcelasTaxa || 1);
     }
     mostrar(POR_SITUACAO[d.situacao] ?? 'invalido');
   } catch { mostrar('erro'); }

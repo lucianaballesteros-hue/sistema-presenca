@@ -224,3 +224,68 @@ test("formatarBRL usa o padrão brasileiro", () => {
   //   é o espaço não separável que o Intl insere depois de "R$".
   assert.equal(formatarBRL(1290).replace(/ /g, " "), "R$ 1.290,00");
 });
+
+/* ------------------------------------------------------------------ *
+ * O total das mensalidades é separado do total do contrato
+ *
+ * SPEC-002 RN-06. Enquanto os dois eram o mesmo número, as rubricas de
+ * matrícula, material e "outros" entravam na divisão que vira mensalidade:
+ * uma taxa de R$ 300 virava R$ 25 a mais em cada uma das 12 parcelas, sem
+ * erro e sem aviso. Nunca mordeu porque os planos desta escola estão
+ * zerados nessas três — o que torna o teste a única rede.
+ * ------------------------------------------------------------------ */
+
+/** Plano com as quatro rubricas preenchidas — o que a escola ainda não tem. */
+const PLANO_COM_TAXA = `<wsPlanoCurso>
+<RetornoOperacao>01 - Operação Realizada com Sucesso.</RetornoOperacao>
+<PlanoCursoID>9</PlanoCursoID>
+<CursoID>14</CursoID>
+<DescricaoPlano>2027</DescricaoPlano>
+<Situacao>1</Situacao>
+<Padrao>1</Padrao>
+<ValorParcelaMensalidade>602.02</ValorParcelaMensalidade>
+<NumeroParcelasMensalidade>12</NumeroParcelasMensalidade>
+<DataInicialMensalidade>21/09/2026</DataInicialMensalidade>
+<ValorParcelaMatricula>300.00</ValorParcelaMatricula>
+<NumeroParcelasMatricula>1</NumeroParcelasMatricula>
+<DataInicialMatricula>08/02/2026</DataInicialMatricula>
+<ValorParcelaMaterial>0</ValorParcelaMaterial>
+<NumeroParcelasMaterial>0</NumeroParcelasMaterial>
+<ValorParcelaOutros>0</ValorParcelaOutros>
+<NumeroParcelasOutros>0</NumeroParcelasOutros>
+</wsPlanoCurso>`;
+
+test("a taxa de matrícula NÃO entra no total das mensalidades", () => {
+  const p = parsearPlanos(PLANO_COM_TAXA)[0];
+  const r = aplicarBolsa(p, null);
+
+  assert.equal(r.totalMensalidades, 7224.24, "12 × 602,02, sem a taxa");
+  assert.equal(r.total, 7524.24, "o contrato inteiro inclui a taxa");
+  assert.notEqual(r.totalMensalidades, r.total,
+    "se forem iguais, a taxa volta a ser diluída nas mensalidades");
+});
+
+test("sem taxa, os dois totais coincidem", () => {
+  // É o caso dos cinco planos da escola hoje — e por isso o defeito
+  // passava despercebido.
+  const r = aplicarBolsa(parsearPlanos(PLANO_CLUBE)[0], null);
+  assert.equal(r.totalMensalidades, r.total);
+  assert.equal(r.totalMensalidades, 1290);
+});
+
+test("a bolsa desconta do total das mensalidades, não da taxa", () => {
+  const p = parsearPlanos(PLANO_COM_TAXA)[0];
+  const r = aplicarBolsa(p, bolsa({ desconto: 10 }));
+
+  assert.equal(r.valorParcela, 541.82, "602,02 menos 10%");
+  assert.equal(r.totalMensalidades, 6501.84, "12 × 541,82");
+  // O contrato cai só o que a mensalidade caiu: a taxa segue inteira.
+  assert.equal(r.total, 7524.24 - r.descontoAplicado);
+});
+
+test("o plano expõe a rubrica de matrícula para quem for cobrá-la", () => {
+  const p = parsearPlanos(PLANO_COM_TAXA)[0];
+  assert.equal(p.matricula.valorParcela, 300);
+  assert.equal(p.matricula.parcelas, 1);
+  assert.equal(p.matricula.total, 300);
+});

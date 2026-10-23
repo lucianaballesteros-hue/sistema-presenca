@@ -62,6 +62,23 @@ export interface FichaParaCheckout {
   valorTotal: number | null;
   parcelasCartao: number | null;
   formaCobrancaNome: string | null;
+  /**
+   * Como as mensalidades se distribuem, congelado do link.
+   *
+   * `null` em ficha anterior a esta entrega e em link que não escolheu —
+   * aí decide a turma.
+   */
+  cobrancaModo: ModoCobranca | null;
+  /** Taxa de matrícula congelada no link. `null` quando o plano não tem. */
+  valorTaxa: number | null;
+  parcelasTaxa: number | null;
+  /**
+   * Quando a primeira mensalidade vence, se o checkout já rodou.
+   *
+   * Só serve ao caminho de retomada: a ficha que já tem link não recalcula
+   * nada, mas a tela do aluno ainda precisa dizer a data.
+   */
+  mensalidadesIniciamEm: string | null;
   pagamentoLink: string | null;
   linkId: number | null;
   progresso: ProgressoMatricula | null;
@@ -84,8 +101,17 @@ export interface DependenciasCheckout {
     detalhe?: Record<string, unknown>;
     erro?: string | null;
   }): void;
-  /** A data de término da turma, para o contrato. `null` se desconhecida. */
-  dataTerminoDaTurma(turmaId: number | null): Promise<string | null>;
+  /**
+   * As datas da turma, em ISO. Campo ausente vem `null`.
+   *
+   * O término alimenta o contrato; o **início** decide quando a primeira
+   * mensalidade vence. Vêm juntos porque sair duas vezes ao Sponte pela
+   * mesma turma seria desperdício.
+   */
+  datasDaTurma(turmaId: number | null): Promise<{
+    inicio: string | null;
+    termino: string | null;
+  }>;
   /** Com `false`, nada é escrito no ERP — a sequência roda em simulação. */
   escritaLiberada: boolean;
   /** Prefixa os nomes criados com "TESTE-SISTEMA". */
@@ -103,6 +129,18 @@ export interface ResultadoCheckout {
   simulado?: boolean;
   jaExistia?: boolean;
   progresso?: ProgressoMatricula;
+  /**
+   * O que a tela do aluno precisa dizer, e que só o servidor sabe.
+   *
+   * A data vem daqui em vez de ser recalculada no navegador: a regra do
+   * vencimento é uma (`inicioDasDemaisMensalidades`) e vale a que foi
+   * efetivamente gravada no Sponte, não uma segunda cópia que divirja dela
+   * na primeira mudança.
+   */
+  valorTaxa?: number | null;
+  mensalidadesIniciamEm?: string | null;
+  /** Vencimento da parcela que o aluno paga agora. */
+  primeiroVencimento?: string | null;
 }
 
 /**
@@ -114,6 +152,74 @@ export interface ResultadoCheckout {
  * `enviado`/`erro` já passaram por aqui.
  */
 export const STATUS_PODE_MATRICULAR = new Set(["pendente", "aprovado"]);
+
+/**
+ * Dias até a primeira cobrança, quando ela é imediata.
+ *
+ * Cinco é o prazo que o sistema sempre usou, e continua valendo para a
+ * taxa de matrícula: tempo de o aluno receber o link, abrir e pagar.
+ */
+export const DIAS_ATE_COBRAR = 5;
+
+/**
+ * Quando a parcela que o aluno paga agora vence.
+ *
+ * É sempre daqui a `DIAS_ATE_COBRAR` dias, independentemente da turma: é a
+ * cobrança que garante a vaga, e o aluno precisa de tempo para receber o
+ * link, abrir e pagar antes de ela vencer.
+ */
+/** A data em ISO, sem a hora. */
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+export function vencimentoDaAdiantada(hoje: Date = new Date()): string {
+  const d = new Date(hoje);
+  d.setDate(d.getDate() + DIAS_ATE_COBRAR);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Como as mensalidades se distribuem, escolhido por quem gerou o link.
+ *
+ * `null` quer dizer "decide pela turma", que é o default: adiantada para
+ * turma futura, sequencial para o resto.
+ */
+export type ModoCobranca = "sequencial" | "adiantada";
+
+/**
+ * A partir de quando as mensalidades seguintes correm — ou `null` quando
+ * não há nada a adiar.
+ *
+ * A escola vende turma que começa no ano seguinte. A regra, decidida em
+ * 22/10/2026, é: **a primeira mensalidade é adiantada para agora** (é ela
+ * que reserva a vaga) **e as demais começam quando o curso começa**. Quem
+ * se matricula em outubro numa turma de fevereiro paga uma parcela agora e
+ * volta a pagar em fevereiro.
+ *
+ * `null` significa "nada a adiar" — turma já iniciada, sem data, ou que
+ * começa dentro do próprio prazo de cobrança. Aí é um plano único de N
+ * parcelas a partir de hoje + 5, que é como o sistema sempre funcionou.
+ *
+ * A fonte é a turma, não o plano. O plano tem `DataInicialMensalidade`,
+ * mas em 21/10/2026 as cinco da escola apontavam para o passado — campo
+ * de configuração esquecido. A data da turma é o fato (RN-04).
+ */
+export function inicioDasDemaisMensalidades(
+  inicioDaTurma: string | null | undefined,
+  hoje: Date = new Date(),
+  modo: ModoCobranca | null | undefined = null,
+): string | null {
+  if (modo === "sequencial") return null;
+  if (!inicioDaTurma) return null;
+
+  // Chegado o mês em que o curso começa, não há mais o que adiar: o link
+  // criado meses antes passa a cobrar tudo seguido, sozinho. Sem isto, uma
+  // matrícula feita em fevereiro numa turma que começa em 28/02 partiria o
+  // plano em dois para ganhar duas semanas.
+  if (inicioDaTurma.slice(0, 7) === iso(hoje).slice(0, 7)) return null;
+
+  return inicioDaTurma > vencimentoDaAdiantada(hoje) ? inicioDaTurma : null;
+}
+
 
 export async function executarCheckout(
   c: FichaParaCheckout,
@@ -142,7 +248,11 @@ export async function executarCheckout(
 
   // Já tem link: devolve o mesmo. Gerar outro criaria uma segunda cobrança.
   if (c.pagamentoLink) {
-    return { ok: true, link: c.pagamentoLink, simulado: !d.escritaLiberada, jaExistia: true };
+    return {
+      ok: true, link: c.pagamentoLink, simulado: !d.escritaLiberada, jaExistia: true,
+      valorTaxa: c.valorTaxa ?? null,
+      mensalidadesIniciamEm: c.mensalidadesIniciamEm ?? null,
+    };
   }
 
   // A cobrança no Sponte vai SEMPRE em "Link de Pagamento Sponte Pay": é a
@@ -159,7 +269,22 @@ export async function executarCheckout(
   const formaCobrancaId = forma.formaCobrancaId;
 
   const iniciouEm = Date.now();
-  const turmaDataTermino = await d.dataTerminoDaTurma(c.turmaId);
+  const turma = await d.datasDaTurma(c.turmaId);
+  const turmaDataTermino = turma.termino;
+
+  // Como as mensalidades se distribuem no tempo.
+  //
+  // A primeira é adiantada para agora — é ela que reserva a vaga. As
+  // demais só começam quando o curso começa: quem se matricula hoje numa
+  // turma de fevereiro paga uma parcela agora e volta a pagar em
+  // fevereiro.
+  //
+  // `inicioDasDemais` nulo quer dizer que não há nada a adiar (turma já
+  // iniciada, sem data, ou que começa dentro do prazo de cobrança), e aí
+  // é um plano único, como sempre foi.
+  const primeiroVencimento = vencimentoDaAdiantada();
+  const inicioDasDemais = inicioDasDemaisMensalidades(
+    turma.inicio, new Date(), c.cobrancaModo);
 
   const p = await executarMatricula(
     d.cred,
@@ -175,6 +300,10 @@ export async function executarCheckout(
       responsavelEmail: c.responsavelEmail, responsavelCelular: c.responsavelCelular,
       sponteTurmaId: c.turmaId, sponteCursoId: c.cursoId,
       turmaDataTermino,
+      primeiroVencimento,
+      inicioDasDemais,
+      valorTaxa: c.valorTaxa,
+      parcelasTaxa: c.parcelasTaxa,
       planoCursoId: c.planoCursoId, bolsaId: c.bolsaId,
       valorParcela: c.valorParcela ?? 0, parcelas: c.parcelas ?? 1,
       // O que será cobrado de fato: o total do contrato, numa cobrança só.
@@ -198,6 +327,16 @@ export async function executarCheckout(
     sponte_responsavel_reusado: !!p.responsavelReusado,
     forma_cobranca_id: formaCobrancaId || null,
     forma_cobranca_nome: forma?.descricao ?? c.formaCobrancaNome ?? null,
+    // Fica na ficha para a conferência saber o que foi prometido ao aluno
+    // — e para o aluno poder ser lembrado disso se ligar perguntando.
+    // Quando as mensalidades passam a correr mês a mês. Com a primeira
+    // adiantada, esta é a data das **demais** — nulo quando são todas
+    // seguidas, a partir do primeiro vencimento.
+    mensalidades_iniciam_em: inicioDasDemais,
+    // Gravada mesmo em caso de erro adiante: é ela que impede a retomada
+    // de lançar uma segunda taxa num ERP que não tem exclusão.
+    sponte_conta_taxa_id: p.contaTaxaId,
+    valor_taxa: c.valorTaxa ?? null,
   };
 
   d.registrar({
@@ -294,5 +433,8 @@ export async function executarCheckout(
     simulado: !d.escritaLiberada,
     jaExistia: false,
     progresso: p,
+    valorTaxa: c.valorTaxa ?? null,
+    mensalidadesIniciamEm: inicioDasDemais,
+    primeiroVencimento,
   };
 }
