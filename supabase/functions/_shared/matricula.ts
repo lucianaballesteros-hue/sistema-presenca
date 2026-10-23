@@ -114,7 +114,37 @@ export const CATEGORIA = {
  * `GetFinanceiro3`, que devolve "Mensalidades" ou "Material Didático".
  * O domínio completo segue sem documentação (§10).
  */
-export const TIPO_PLANO_MENSALIDADE = 0;
+/**
+ * `nTipoPlano` decide em que **aba do contrato** a cobrança aparece. A
+ * categoria decide o que ela é (o rótulo da linha). São eixos diferentes, e
+ * confundi-los custou caro.
+ *
+ * Mapeado contra produção em 23/10/2026, criando um plano de cada tipo no
+ * contrato 1160 e olhando a tela:
+ *
+ * | tipo | aba |
+ * |---|---|
+ * | 0 | Mensalidades |
+ * | 1 | Material Didático |
+ * | 2 | Taxa de matrícula |
+ * | 3 | Outros Planos |
+ *
+ * **O tipo também é a chave de unicidade do plano no contrato.** O Sponte
+ * recusa o segundo com "76 - Já existe um plano financeiro cadastrado neste
+ * contrato para o tipo de plano informado". Duas cobranças no mesmo contrato
+ * só coexistem em tipos diferentes — e era por isso que a taxa, que usava o
+ * tipo 0 como as mensalidades, teria derrubado uma das duas na primeira
+ * matrícula de um plano com taxa configurada.
+ */
+export const TIPO_PLANO = {
+  MENSALIDADE: 0,
+  MATERIAL: 1,
+  TAXA_MATRICULA: 2,
+  OUTROS: 3,
+} as const;
+
+/** @deprecated Use `TIPO_PLANO.MENSALIDADE`. */
+export const TIPO_PLANO_MENSALIDADE = TIPO_PLANO.MENSALIDADE;
 
 /**
  * Conta bancária que recebe a cobrança (`GetContas`).
@@ -204,6 +234,14 @@ export interface ProgressoMatricula {
    */
   contaTaxaId: number | null;
   /**
+   * Quanto foi cobrado agora, na aba de taxa de matrícula.
+   *
+   * Nem sempre é o `valorTaxa` do plano: quando o plano não tem taxa e a
+   * turma é futura, o que vai para lá é uma parcela da mensalidade. A ficha
+   * precisa do valor real para a conferência bater com o extrato do ERP.
+   */
+  valorCobradoAgora: number | null;
+  /**
    * O responsável já existia no ERP e foi reusado pelo CPF.
    *
    * Importa porque a API **não liga** responsável existente a aluno novo
@@ -260,7 +298,8 @@ export function progressoVazio(): ProgressoMatricula {
   return {
     sponteAlunoId: null, alunoJaExistia: false, dadosAtualizados: false,
     responsavelReusado: false,
-    responsavelId: null, contaTaxaId: null, contratoId: null,
+    responsavelId: null, contaTaxaId: null, valorCobradoAgora: null,
+    contratoId: null,
     planoCriado: false, planoDemaisCriado: false,
     contaReceberId: null, numeroParcela: null,
     linkPagamento: null, aguardandoFatura: false,
@@ -830,11 +869,11 @@ function valorDaParcela(d: DadosMatricula): number {
  * quando o curso começar. São duas cobranças com vencimentos diferentes,
  * logo dois planos — `InsertPlano` cria um de cada vez.
  *
- * **O que distingue a taxa é `nCategoriaID = 6`**, não o `nTipoPlano`.
- * Conferido contra produção em 21/10/2026: com categoria 6 as parcelas
- * saem rotuladas "Taxa de matricula"; os tipos 2 e 3 foram aceitos e
- * deram o mesmo rótulo. O tipo decide a aba do contrato; a categoria
- * decide o que a cobrança é.
+ * **A categoria 6 dá o rótulo; o tipo 2 dá a aba.** Conferido contra
+ * produção em 23/10/2026: com tipo 2 a cobrança aparece na aba "Taxa de
+ * matrícula" do contrato, que é onde a escola a procura. Com tipo 0 — como
+ * estava até hoje — ela disputaria o contrato com as mensalidades e uma das
+ * duas seria recusada com erro 76.
  *
  * A forma é a mesma das mensalidades (−21, Link de Pagamento Sponte Pay)
  * porque é esta a cobrança que o aluno paga no checkout — e só essa forma
@@ -846,6 +885,7 @@ function valorDaParcela(d: DadosMatricula): number {
 async function criarPlanoTaxa(
   cred: CredenciaisSponte, d: DadosMatricula, contratoId: number | null,
   alunoId: number, opc: OpcoesChamada,
+  cobranca: { valor: number; parcelas: number },
 ): Promise<number | null> {
   // A taxa vence já: é ela que garante a vaga.
   const venc = new Date();
@@ -858,14 +898,14 @@ async function criarPlanoTaxa(
       ["nContratoID", contratoId ? String(contratoId) : ""],
       ["nContratoAulaLivreID", ""],
       ["nAlunoID", String(alunoId)],
-      ["nTipoPlano", String(TIPO_PLANO_MENSALIDADE)],
+      ["nTipoPlano", String(TIPO_PLANO.TAXA_MATRICULA)],
       // Sem bolsa: o desconto incide sobre a mensalidade, e mesmo isso é
       // suposição não confirmada com a Sponte (ver `aplicarBolsa`).
       // Aplicá-lo à taxa seria dar desconto que ninguém autorizou.
       ["nBolsaID", ""],
       ["dDataPrimeiroVencimento", venc],
-      ["nNumeroParcelas", d.parcelasTaxa ?? 1],
-      ["nValorParcelas", d.valorTaxa ?? 0],
+      ["nNumeroParcelas", cobranca.parcelas],
+      ["nValorParcelas", cobranca.valor],
       ["nFormaCobrancaID", d.formaCobrancaId],
       ["nCategoriaID", CATEGORIA.TAXA_MATRICULA],
       ["sObservacao", "Taxa de matrícula — cadastro online"],
@@ -880,34 +920,71 @@ async function criarPlanoTaxa(
 }
 
 /**
- * Como as mensalidades se dividem entre os dois planos.
+ * O que é cobrado agora e o que fica para quando o curso começa.
  *
- * `agora` é quanto vai no plano que vence já — a parcela adiantada, que
- * reserva a vaga — e `depois`, quanto vai no plano que começa com o curso.
- * Zero de um lado significa que aquele plano não é criado.
+ * A estrutura do ERP decide o formato: duas cobranças no mesmo contrato só
+ * coexistem em **tipos de plano diferentes** (erro 76). Então o que vence
+ * agora vai para a aba **Taxa de matrícula** (tipo 2) e as mensalidades
+ * ficam na aba **Mensalidades** (tipo 0), com a data de início do curso.
  *
- * Três casos:
+ * Três casos, decididos em 23/10/2026 com o dono do produto:
  *
- * 1. **Turma já iniciada, sem data, ou parcela única** — tudo em `agora`.
- *    Um plano só, como o sistema sempre fez.
- * 2. **Turma futura, plano sem taxa** — uma parcela em `agora` e o resto
- *    em `depois`. É a regra decidida em 22/10/2026: a primeira mensalidade
- *    reserva a vaga, as demais acompanham o curso.
- * 3. **Turma futura, plano com taxa** — nada em `agora`, tudo em `depois`.
- *    Quem reserva a vaga é a taxa, e adiantar uma mensalidade junto daria
- *    ao aluno duas cobranças vencendo no mesmo dia, com o link de
- *    pagamento indo para uma só delas.
+ * 1. **Cobrança sequencial, ou turma já iniciada** — nada agora; as N
+ *    mensalidades correm a partir de hoje + 5, como sempre foi.
+ * 2. **Turma futura, plano com taxa no Sponte** — a taxa é a cobrança de
+ *    agora, com o valor que o plano define, e as N mensalidades esperam o
+ *    curso.
+ * 3. **Turma futura, plano sem taxa** — a cobrança de agora é uma parcela,
+ *    lançada **como taxa de matrícula** porque é a única aba em que ela
+ *    pode conviver com as mensalidades. As outras N-1 esperam o curso.
+ *
+ * O caso 3 troca o rótulo de uma parcela: o aluno paga o mesmo total, mas
+ * a primeira cobrança aparece no ERP como "Taxa de matricula" e não como
+ * mensalidade. Foi a forma de atender "paga a primeira agora e as demais
+ * quando a turma começa" com o que o Sponte permite.
  */
-export function dividirMensalidades(
-  parcelas: number,
-  inicioDasDemais: string | null | undefined,
-  temTaxa = false,
-): { agora: number; depois: number } {
-  const total = Math.max(Number(parcelas) || 1, 1);
-  if (!inicioDasDemais) return { agora: total, depois: 0 };
-  if (temTaxa) return { agora: 0, depois: total };
-  if (total < 2) return { agora: total, depois: 0 };
-  return { agora: 1, depois: total - 1 };
+export interface PlanoDeCobranca {
+  /** O que vence agora, na aba Taxa de matrícula. `null` = nada agora. */
+  agora: { valor: number; parcelas: number } | null;
+  /** As mensalidades. `parcelas` em zero significa que não há plano a criar. */
+  mensalidades: { parcelas: number; apartirDe: string | null };
+}
+
+export function planejarCobranca(d: {
+  parcelas: number;
+  /** Quanto vale cada mensalidade. */
+  valorParcela: number;
+  valorTaxa?: number | null;
+  parcelasTaxa?: number | null;
+  /** De quando correm as mensalidades. `null` = nada a adiar. */
+  inicioDasDemais?: string | null;
+}): PlanoDeCobranca {
+  const total = Math.max(Number(d.parcelas) || 1, 1);
+  const inicio = d.inicioDasDemais || null;
+  const taxa = Number(d.valorTaxa ?? 0);
+  const parcelasTaxa = Math.max(Number(d.parcelasTaxa ?? 1) || 1, 1);
+
+  // 2. O plano tem taxa própria: ela é a cobrança de agora, e as
+  //    mensalidades ficam inteiras para o curso. Vale mesmo sem adiar —
+  //    taxa é cobrança de matrícula, não de mês.
+  if (taxa > 0) {
+    return {
+      agora: { valor: taxa, parcelas: parcelasTaxa },
+      mensalidades: { parcelas: total, apartirDe: inicio },
+    };
+  }
+
+  // 1. Nada a adiar: um plano de mensalidades, como sempre.
+  if (!inicio) {
+    return { agora: null, mensalidades: { parcelas: total, apartirDe: null } };
+  }
+
+  // 3. Turma futura sem taxa: a primeira parcela vence agora, lançada na
+  //    aba de taxa para poder conviver com as demais.
+  return {
+    agora: { valor: d.valorParcela, parcelas: 1 },
+    mensalidades: { parcelas: total - 1, apartirDe: inicio },
+  };
 }
 
 /**
@@ -942,7 +1019,7 @@ async function criarPlano(
       // O sacado é obrigatório: sem ele o Sponte recusa com
       // "74 - Informe o sacado (AlunoID ou ClienteID)".
       ["nAlunoID", String(alunoId)],
-      ["nTipoPlano", String(TIPO_PLANO_MENSALIDADE)],
+      ["nTipoPlano", String(TIPO_PLANO.MENSALIDADE)],
       ["nBolsaID", d.bolsaId ? String(d.bolsaId) : ""],
       ["dDataPrimeiroVencimento", venc],
       // O parcelamento acontece **aqui**, não no cartão.
@@ -1194,84 +1271,82 @@ export async function executarMatricula(
       p.ultimoPasso = "criar_matricula";
     }
 
-    // 5a. Taxa de matrícula, quando o plano do curso tiver uma
-    //
-    // Vem antes das mensalidades porque é a cobrança que o aluno paga
-    // agora — e é a que vai receber o link no passo seguinte. O `null`
-    // em `contaTaxaId` é o que distingue "ainda não criei" de "não tem
-    // taxa": sem taxa, o passo nem é tentado (SPEC-002 RN-01).
-    // Duas condições diferentes, de propósito: o **plano** ter taxa decide
-    // como as mensalidades se distribuem (e vale também em simulação, para
-    // o progresso simulado não divergir do real); gravar a taxa no ERP
-    // depende, além disso, de não estarmos simulando.
-    const planoTemTaxa = Number(dados.valorTaxa ?? 0) > 0
-      && Number(dados.parcelasTaxa ?? 0) > 0;
-    const temTaxa = !simular && planoTemTaxa;
+    /* --- 5. O financeiro --- *
+     *
+     * Duas cobranças no mesmo contrato só coexistem em tipos de plano
+     * diferentes: o Sponte recusa a segunda do mesmo tipo com "76 - Já
+     * existe um plano financeiro cadastrado neste contrato para o tipo de
+     * plano informado".
+     *
+     * Então o que vence agora vai para a aba **Taxa de matrícula** (tipo 2)
+     * e as mensalidades para a aba **Mensalidades** (tipo 0), cada uma com
+     * a sua data. `planejarCobranca` decide o que cai em cada lado.
+     */
+    const plano = planejarCobranca({
+      parcelas: dados.parcelas,
+      valorParcela: valorDaParcela(dados),
+      valorTaxa: dados.valorTaxa,
+      parcelasTaxa: dados.parcelasTaxa,
+      inicioDasDemais: dados.inicioDasDemais,
+    });
 
-    if (temTaxa && p.contaTaxaId === null) {
-      try {
-        p.contaTaxaId = await criarPlanoTaxa(
-          cred, dados, p.contratoId, p.sponteAlunoId!, opc);
-      } catch (erro) {
-        // 76 = já existe plano neste contrato. Numa retomada é o
-        // resultado desejado: a taxa já foi lançada antes.
-        if (!(erro instanceof SponteError && erro.codigo === 76)) throw erro;
+    // 5a. O que o aluno paga agora — e que vai receber o link
+    //
+    // `contaTaxaId` em `null` distingue "ainda não criei" de "não há o que
+    // cobrar agora": sem cobrança imediata, o passo nem é tentado.
+    if (plano.agora && p.contaTaxaId === null) {
+      p.valorCobradoAgora = plano.agora.valor;
+      if (!simular) {
+        try {
+          p.contaTaxaId = await criarPlanoTaxa(
+            cred, dados, p.contratoId, p.sponteAlunoId!, opc, plano.agora);
+        } catch (erro) {
+          // 76 numa retomada é o resultado desejado: já foi lançada antes.
+          if (!(erro instanceof SponteError && erro.codigo === 76)) throw erro;
+        }
       }
       p.ultimoPasso = "criar_taxa";
     }
 
-    /* --- 5b e 5c. As mensalidades --- *
-     *
-     * Turma que ainda não começou sai em DOIS planos: a primeira parcela
-     * vence agora, reservando a vaga, e as demais só começam quando o
-     * curso começa. Um `InsertPlano` aceita uma data inicial só e espaça
-     * as parcelas mês a mês a partir dela, então "uma agora e as outras em
-     * fevereiro" não cabe numa chamada.
-     *
-     * Turma já iniciada é um plano só, com todas as parcelas — como o
-     * sistema sempre fez.
-     */
-    const divisao = dividirMensalidades(
-      dados.parcelas, dados.inicioDasDemais, planoTemTaxa);
-
-    // 5b. A parcela que o aluno paga agora (ou o plano inteiro)
-    if (divisao.agora > 0 && !p.planoCriado) {
+    // 5b. As mensalidades
+    //
+    // `parcelas` em zero acontece quando o plano tem uma parcela só e ela
+    // já foi cobrada agora: não há plano de mensalidades a criar, e pedir
+    // um de zero parcelas seria recusado.
+    if (plano.mensalidades.parcelas > 0 && !p.planoCriado) {
       if (!simular) {
         try {
           await criarPlano(cred, dados, p.contratoId, p.sponteAlunoId!, opc, {
-            parcelas: divisao.agora,
-            apartirDe: dados.primeiroVencimento ?? null,
+            parcelas: plano.mensalidades.parcelas,
+            apartirDe: plano.mensalidades.apartirDe
+              ?? dados.primeiroVencimento ?? null,
+            demaisDoCurso: !!plano.mensalidades.apartirDe,
           });
         } catch (erro) {
-          // Código 76 = o plano já existe neste contrato. Numa retomada isso é
-          // exatamente o resultado desejado, não uma falha.
+          // Aqui o 76 **não** é benigno quando há cobrança agora: significa
+          // que as duas disputaram o mesmo tipo de plano, e o aluno fica com
+          // uma e sem a outra. Engolir esse código custou uma rodada inteira
+          // de teste em 23/10/2026 — a ficha saiu "enviado", sem erro, com
+          // uma mensalidade de quatro, e nada na auditoria.
+          if (erro instanceof SponteError && erro.codigo === 76 && plano.agora) {
+            throw new SponteError(
+              "retorno_operacao",
+              "InsertPlano",
+              "o Sponte recusou o plano de mensalidades neste contrato (76) "
+              + "— a cobrança de agora foi criada, as mensalidades não.",
+              undefined,
+              76,
+            );
+          }
+          // Sem cobrança agora, 76 é a retomada de sempre: já existe.
           if (!(erro instanceof SponteError && erro.codigo === 76)) throw erro;
         }
       }
       p.planoCriado = true;
-      p.ultimoPasso = "criar_plano";
-    }
-
-    // 5c. As mensalidades que começam com o curso
-    //
-    // Falhar aqui é pior que falhar no 5b: o aluno fica matriculado, com a
-    // parcela de agora para pagar, e sem as mensalidades do curso. Por isso
-    // o erro sobe — a ficha vai para "erro" e alguém lança as restantes na
-    // tela do Sponte, que é a única forma de corrigir num ERP sem exclusão.
-    if (divisao.depois > 0 && !p.planoDemaisCriado) {
-      if (!simular) {
-        try {
-          await criarPlano(cred, dados, p.contratoId, p.sponteAlunoId!, opc, {
-            parcelas: divisao.depois,
-            apartirDe: dados.inicioDasDemais!,
-            demaisDoCurso: true,
-          });
-        } catch (erro) {
-          if (!(erro instanceof SponteError && erro.codigo === 76)) throw erro;
-        }
-      }
       p.planoDemaisCriado = true;
-      p.ultimoPasso = "criar_plano_demais";
+      p.ultimoPasso = plano.mensalidades.apartirDe
+        ? "criar_plano_demais"
+        : "criar_plano";
     }
 
     // 6. Localizar a parcela

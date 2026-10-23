@@ -1100,9 +1100,15 @@ function quandoCobra(plano) {
   }
 
   const quando = `em <strong>${dataBr(inicio)}</strong>, quando a turma inicia`;
+
+  // Sem taxa no plano, a cobrança de agora é uma parcela — mas ela entra no
+  // Sponte como taxa de matrícula, única aba em que pode conviver com as
+  // mensalidades no mesmo contrato. Quem gera o link precisa saber disso:
+  // é assim que a cobrança vai aparecer no extrato e no link do aluno.
   return temTaxa
     ? `A matrícula é cobrada no ato. As mensalidades começam ${quando}.`
-    : `A 1ª mensalidade é cobrada no ato. As demais começam ${quando}.`;
+    : `Uma parcela é cobrada no ato, lançada como taxa de matrícula.
+       As demais começam ${quando}.`;
 }
 
 /**

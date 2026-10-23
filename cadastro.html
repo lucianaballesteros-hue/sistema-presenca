@@ -1327,13 +1327,12 @@ function mesDasMensalidades() {
 function linhaMensalidades() {
   const mes = mesDasMensalidades();
   if (!mes) return '';
-  // Com taxa, é ela que o aluno paga agora e todas as mensalidades vão
-  // para o início do curso. Sem taxa, o que ele paga agora é a primeira
-  // mensalidade, adiantada, e as outras começam com o curso.
-  return TURMA.valorTaxa > 0
-    ? `<p class="sub">As mensalidades começam em <strong>${escapar(mes)}</strong>.</p>`
-    : `<p class="sub">Esta é a 1ª mensalidade. As próximas começam em
-       <strong>${escapar(mes)}</strong>.</p>`;
+  // A cobrança de agora chega ao aluno rotulada "Taxa de matrícula" — é a
+  // aba do Sponte em que ela pode conviver com as mensalidades. A tela usa
+  // a mesma palavra para não haver surpresa entre o que ele leu aqui e o
+  // que vê no link de pagamento.
+  return `<p class="sub">Esta é a matrícula. As mensalidades começam em
+          <strong>${escapar(mes)}</strong>.</p>`;
 }
 
 const rotuloPagar = () => TURMA.valorTaxa > 0 ? 'Pagar matrícula' : 'Ir para o pagamento';

@@ -26,7 +26,7 @@ import {
   inicioDasDemaisMensalidades,
   vencimentoDaAdiantada,
 } from "./checkout.ts";
-import { dividirMensalidades } from "./matricula.ts";
+import { planejarCobranca } from "./matricula.ts";
 
 const HOJE = new Date("2026-10-21T09:00:00");
 
@@ -191,68 +191,115 @@ test("mesmo mês de outro ano não conta como o mês do curso", () => {
 });
 
 /* ------------------------------------------------------------------ *
- * Como as parcelas se dividem entre os dois planos
+ * O que é cobrado agora e o que espera o curso
+ *
+ * Duas cobranças no mesmo contrato só coexistem em tipos de plano
+ * diferentes — o Sponte recusa a segunda do mesmo tipo com erro 76,
+ * confirmado contra produção em 23/10/2026. Daí o que vence agora ir para
+ * a aba de taxa de matrícula e as mensalidades ficarem na sua.
  * ------------------------------------------------------------------ */
 
-test("turma futura: uma parcela agora, as demais com o curso", () => {
+const MENSAL = 602.02;
+
+test("turma já iniciada: nada agora, mensalidades seguidas", () => {
   assert.deepEqual(
-    dividirMensalidades(12, "2027-02-08"),
-    { agora: 1, depois: 11 },
+    planejarCobranca({ parcelas: 12, valorParcela: MENSAL, inicioDasDemais: null }),
+    { agora: null, mensalidades: { parcelas: 12, apartirDe: null } },
   );
 });
 
-test("turma já iniciada: um plano só, com tudo", () => {
-  assert.deepEqual(dividirMensalidades(12, null), { agora: 12, depois: 0 });
-});
-
-test("plano de parcela única não se divide", () => {
-  // Não há o que adiar: a única parcela já é a de agora. Criar um segundo
-  // plano vazio daria erro no Sponte.
-  assert.deepEqual(dividirMensalidades(1, "2027-02-08"), { agora: 1, depois: 0 });
-});
-
-test("duas parcelas: uma agora, uma com o curso", () => {
-  assert.deepEqual(dividirMensalidades(2, "2027-02-08"), { agora: 1, depois: 1 });
-});
-
-test("turma futura com taxa: nada adiantado, tudo com o curso", () => {
-  // Quem reserva a vaga é a taxa. Adiantar uma mensalidade junto daria ao
-  // aluno duas cobranças vencendo no mesmo dia, e o link de pagamento vai
-  // para uma só delas — a outra ficaria para a régua do Sponte cobrar.
+test("turma futura sem taxa: uma parcela agora, as demais com o curso", () => {
   assert.deepEqual(
-    dividirMensalidades(12, "2027-02-08", true),
-    { agora: 0, depois: 12 },
+    planejarCobranca({
+      parcelas: 12, valorParcela: MENSAL, inicioDasDemais: "2027-02-08",
+    }),
+    {
+      agora: { valor: MENSAL, parcelas: 1 },
+      mensalidades: { parcelas: 11, apartirDe: "2027-02-08" },
+    },
   );
 });
 
-test("com taxa, turma já iniciada segue num plano só", () => {
-  assert.deepEqual(dividirMensalidades(12, null, true), { agora: 12, depois: 0 });
+test("turma futura com taxa: a taxa é a cobrança de agora", () => {
+  // Com taxa configurada, nenhuma mensalidade é adiantada: as doze
+  // esperam o curso, e quem reserva a vaga é a taxa.
+  assert.deepEqual(
+    planejarCobranca({
+      parcelas: 12, valorParcela: MENSAL, valorTaxa: 300, parcelasTaxa: 1,
+      inicioDasDemais: "2027-02-08",
+    }),
+    {
+      agora: { valor: 300, parcelas: 1 },
+      mensalidades: { parcelas: 12, apartirDe: "2027-02-08" },
+    },
+  );
 });
 
-test("com taxa e parcela única, a mensalidade vai para o início do curso", () => {
-  assert.deepEqual(dividirMensalidades(1, "2027-02-08", true), { agora: 0, depois: 1 });
+test("taxa vale mesmo em turma já iniciada", () => {
+  // Taxa é cobrança de matrícula, não de mês: existe havendo ou não o que
+  // adiar.
+  assert.deepEqual(
+    planejarCobranca({
+      parcelas: 8, valorParcela: MENSAL, valorTaxa: 300, parcelasTaxa: 1,
+      inicioDasDemais: null,
+    }),
+    {
+      agora: { valor: 300, parcelas: 1 },
+      mensalidades: { parcelas: 8, apartirDe: null },
+    },
+  );
 });
 
-test("a soma dos dois planos é sempre o plano do curso", () => {
-  // O aluno não pode acabar com mais nem menos mensalidades do que
-  // contratou — e num ERP sem exclusão, a mais é o caro de consertar.
-  for (const n of [1, 2, 3, 6, 7, 8, 10, 12]) {
+test("taxa parcelada mantém as suas parcelas", () => {
+  const r = planejarCobranca({
+    parcelas: 12, valorParcela: MENSAL, valorTaxa: 150, parcelasTaxa: 2,
+    inicioDasDemais: "2027-02-08",
+  });
+  assert.deepEqual(r.agora, { valor: 150, parcelas: 2 });
+});
+
+test("parcela única em turma futura não deixa plano de mensalidade vazio", () => {
+  // A única parcela já é a de agora. Pedir um plano de zero parcelas seria
+  // recusado pelo Sponte.
+  const r = planejarCobranca({
+    parcelas: 1, valorParcela: MENSAL, inicioDasDemais: "2027-02-08",
+  });
+  assert.deepEqual(r.agora, { valor: MENSAL, parcelas: 1 });
+  assert.equal(r.mensalidades.parcelas, 0);
+});
+
+test("o aluno nunca paga mais nem menos do que contratou", () => {
+  // Sem taxa, o total tem de fechar: o que sai de mensalidade entra como
+  // cobrança de agora. Num ERP sem exclusão, uma parcela a mais é cara.
+  for (const n of [1, 2, 3, 6, 8, 12]) {
     for (const inicio of [null, "2027-02-08"]) {
-      for (const taxa of [false, true]) {
-        const d = dividirMensalidades(n, inicio, taxa);
-        assert.equal(
-          d.agora + d.depois, n,
-          `${n} parcelas, início ${inicio}, taxa ${taxa}`,
-        );
-      }
+      const r = planejarCobranca({
+        parcelas: n, valorParcela: MENSAL, inicioDasDemais: inicio,
+      });
+      const cobrado = (r.agora?.parcelas ?? 0) + r.mensalidades.parcelas;
+      assert.equal(cobrado, n, `${n} parcelas, início ${inicio}`);
     }
   }
 });
 
-test("nenhum plano nasce com zero parcelas", () => {
-  for (const n of [0, 1, NaN, -3]) {
-    const d = dividirMensalidades(n as number, "2027-02-08");
-    assert.ok(d.agora >= 1, `${n} deu agora=${d.agora}`);
-    assert.ok(d.depois >= 0, `${n} deu depois=${d.depois}`);
+test("com taxa, as mensalidades ficam todas de pé", () => {
+  // A taxa é cobrança a mais, não no lugar de uma mensalidade.
+  for (const n of [1, 6, 12]) {
+    const r = planejarCobranca({
+      parcelas: n, valorParcela: MENSAL, valorTaxa: 300, parcelasTaxa: 1,
+      inicioDasDemais: "2027-02-08",
+    });
+    assert.equal(r.mensalidades.parcelas, n, `${n} parcelas`);
   }
 });
+
+test("entrada estranha não produz plano inválido", () => {
+  for (const n of [0, NaN, -3]) {
+    const r = planejarCobranca({
+      parcelas: n as number, valorParcela: MENSAL, inicioDasDemais: "2027-02-08",
+    });
+    assert.ok((r.agora?.parcelas ?? 0) >= 0);
+    assert.ok(r.mensalidades.parcelas >= 0);
+  }
+});
+

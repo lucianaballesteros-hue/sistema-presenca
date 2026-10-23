@@ -349,7 +349,10 @@ export async function executarCheckout(
     // Gravada mesmo em caso de erro adiante: é ela que impede a retomada
     // de lançar uma segunda taxa num ERP que não tem exclusão.
     sponte_conta_taxa_id: p.contaTaxaId,
-    valor_taxa: c.valorTaxa ?? null,
+    // O valor que de fato foi cobrado agora, que nem sempre é a taxa do
+    // plano: sem taxa configurada e com turma futura, é uma parcela da
+    // mensalidade lançada na aba de taxa.
+    valor_taxa: p.valorCobradoAgora ?? c.valorTaxa ?? null,
   };
 
   d.registrar({
@@ -457,7 +460,7 @@ export async function executarCheckout(
     simulado: !d.escritaLiberada,
     jaExistia: false,
     progresso: p,
-    valorTaxa: c.valorTaxa ?? null,
+    valorTaxa: p.valorCobradoAgora ?? c.valorTaxa ?? null,
     mensalidadesIniciamEm: inicioDasDemais,
     primeiroVencimento,
   };
