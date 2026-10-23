@@ -403,7 +403,8 @@ td .btn-danger {
 /* ---------- Presença na chamada (Presente / Falta / Gravação) ----------
    Controle segmentado: os três ficam numa trilha cinza e a pílula
    colorida (.pbtn-indicator, que o JS desliza e pinta) marca o
-   escolhido. O texto de cada opção já vem na cor do seu estado. */
+   escolhido. O texto de cada opção já vem na cor do seu estado e
+   fica branco quando a pílula cheia está embaixo dele. */
 .pbtn {
   position: relative;
   z-index: 1;
@@ -413,26 +414,28 @@ td .btn-danger {
   font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
+  transition: color 0.2s ease 0.05s;
 }
 
 .pbtn:active {
   transform: none !important;
 }
 
-.pbtn.on {
-  font-weight: 700;
-}
-
 .pbtn-p {
-  color: var(--sucesso-texto);
+  color: var(--sucesso);
 }
 
 .pbtn-f {
-  color: var(--perigo-texto);
+  color: var(--perigo);
 }
 
 .pbtn-r {
-  color: var(--aviso-texto);
+  color: var(--aviso);
+}
+
+.pbtn.on {
+  color: #FFFFFF;
+  font-weight: 700;
 }
 
 .pbtn:not(.on):hover {
