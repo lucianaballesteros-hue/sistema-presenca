@@ -18,6 +18,7 @@ import {
   parsearTurmas,
   turmaEncerrada,
   type TurmaSponte,
+  CHAVES_FILTRO_TURMA,
 } from "./turmas.ts";
 
 /** Turma real, copiada da resposta de produção. */
@@ -172,6 +173,44 @@ test("montarFiltroTurmas devolve 'Nome=' quando não há filtro", () => {
 
 test("montarFiltroTurmas descarta valores vazios", () => {
   assert.equal(montarFiltroTurmas({ Nome: "  ", AnoLetivo: 2026 }), "AnoLetivo=2026");
+});
+
+/* ------------------------------------------------------------------ *
+ * Chave que o Sponte não conhece
+ *
+ * Em 23/10/2026 a Edge Function chamou `getTurmas(cred, { timeoutMs })` —
+ * com o objeto de opções na posição do filtro. Virou "timeoutMs=60000", o
+ * Sponte recusou com erro 21, e a data de início da turma parou de chegar
+ * ao checkout: toda matrícula de turma futura passou a cobrar como se a
+ * turma já tivesse começado, sem nada parecer quebrado.
+ *
+ * O `tsc` teria pego, mas aquele arquivo roda em Deno e fica fora dele.
+ * Então a defesa é aqui.
+ * ------------------------------------------------------------------ */
+
+test("chave desconhecida é descartada, não repassada", () => {
+  assert.equal(montarFiltroTurmas({ timeoutMs: 60000 } as never), "Nome=");
+});
+
+test("chave desconhecida não contamina filtro válido", () => {
+  assert.equal(
+    montarFiltroTurmas({ TurmaID: 195, timeoutMs: 60000 } as never),
+    "TurmaID=195",
+  );
+});
+
+test("o filtro montado só tem chaves que o Sponte aceita", () => {
+  const r = montarFiltroTurmas({
+    Nome: "Master", TurmaID: 195, CursoID: 16,
+    AnoLetivo: 2027, Turno: "Matutino", Situacao: "Aberta",
+  });
+  for (const parte of r.split(";")) {
+    const chave = parte.split("=")[0];
+    assert.ok(
+      (CHAVES_FILTRO_TURMA as readonly string[]).includes(chave),
+      `"${chave}" não é chave conhecida`,
+    );
+  }
 });
 
 test("montarFiltroTurmas nunca devolve string vazia", () => {

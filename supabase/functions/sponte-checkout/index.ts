@@ -41,7 +41,7 @@ import {
 import { credenciaisDoAmbiente, SponteError } from "../_shared/soap.ts";
 import { promoverMatricula } from "../_shared/matricula.ts";
 import { executarCheckout, type FichaParaCheckout } from "../_shared/checkout.ts";
-import { getTurmas } from "../_shared/turmas.ts";
+import { datasDaTurma as buscarDatasDaTurma } from "../_shared/turmas.ts";
 import { credenciaisWebDoAmbiente, SponteWeb } from "../_shared/sponte-web.ts";
 
 const env = { get: (c: string) => Deno.env.get(c) };
@@ -289,19 +289,21 @@ Deno.serve(async (req) => {
       // Só a data de término interessa ao contrato; buscar a turma inteira
       // por isso é o preço de uma chamada que o cache do painel não tem aqui.
       async datasDaTurma(turmaId) {
-        if (!turmaId) return { inicio: null, termino: null };
         try {
-          const todas = await getTurmas(cred, { timeoutMs: 60_000 });
-          const t = todas.find((x) => x.turmaId === turmaId);
-          return { inicio: t?.dataInicio ?? null, termino: t?.dataTermino ?? null };
-        } catch {
-          // Sem as datas, o contrato usa o padrão e a mensalidade
-          // vence em 5 dias. Não vale abortar a matrícula por causa
-          // disso — mas o aluno de turma futura cobra antes da hora,
-          // então a falha fica registrada.
+          return await buscarDatasDaTurma(cred, turmaId, { timeoutMs: 60_000 });
+        } catch (e) {
+          // Sem as datas, o contrato usa o padrão e a mensalidade vence em
+          // 5 dias. Não vale abortar a matrícula por causa disso — mas o
+          // aluno de turma futura passa a ser cobrado antes da hora, então
+          // a falha fica registrada.
+          //
+          // **Com a mensagem do erro.** Sem ela, esta linha dizia só que
+          // algo falhou: em 23/10/2026 o motivo era um argumento na posição
+          // errada, e descobrir isso exigiu reproduzir a chamada à mão.
           registrar({
             tipo: "sponte", operacao: "datasDaTurma (falhou)",
-            cadastroId, ok: false, detalhe: { turmaId },
+            cadastroId, ok: false, erro: (e as Error).message,
+            detalhe: { turmaId },
           });
           return { inicio: null, termino: null };
         }
