@@ -251,7 +251,8 @@
 }
 
 /* Lista recém-desenhada: as pílulas já nascem no lugar (ver chamadaView.js) */
-.sem-transicao .pbtn-indicator {
+.sem-transicao .pbtn-indicator,
+.sem-transicao .pbtn {
   transition: none !important;
 }
 

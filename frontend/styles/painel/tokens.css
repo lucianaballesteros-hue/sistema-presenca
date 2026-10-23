@@ -77,6 +77,12 @@
   --vermelho-cheio: #FF3B30;
   --laranja-cheio: #FF9500;
 
+  /* Pílula marcada da chamada (Presente / Falta / Gravação): cor cheia
+     com texto branco por cima (4,4:1 ou mais), igual nos dois temas */
+  --presente-cheio: #198A3C;
+  --falta-cheio: #E5161E;
+  --gravacao-cheio: #C25700;
+
   /* Monograma cinza, como no app Contatos */
   --avatar-topo: #8E8E93;
   --avatar-base: #6E6E73;

@@ -57,13 +57,15 @@ function moverIndicadorAula() {
 // colorida desliza até o botão marcado (ou encolhe a zero quando nenhum está
 // marcado), em vez do botão simplesmente ligar seu próprio fundo.
 function corIndicadorPbtn(val) {
-  return val === 'P' ? 'var(--green-soft)' : val === 'F' ? 'var(--red-soft)' : val === 'R' ? 'var(--amber-soft)' : 'transparent';
+  return val === 'P' ? 'var(--presente-cheio)' : val === 'F' ? 'var(--falta-cheio)' : val === 'R' ? 'var(--gravacao-cheio)' : 'transparent';
 }
 
 function moverIndicadorPbtn(pbtnsEl, val) {
   const indicador = pbtnsEl?.querySelector('.pbtn-indicator');
   if (!indicador) return;
   const ativo = val ? pbtnsEl.querySelector(`.pbtn[data-val="${val}"]`) : null;
+  // O texto do marcado fica branco sobre a pílula cheia (ver .pbtn.on)
+  pbtnsEl.querySelectorAll('.pbtn').forEach(btn => btn.classList.toggle('on', btn === ativo));
   indicador.style.background = corIndicadorPbtn(val);
   indicador.style.setProperty('--px', (ativo ? ativo.offsetLeft : 0) + 'px');
   indicador.style.setProperty('--pw', (ativo ? ativo.offsetWidth : 0) + 'px');
@@ -207,7 +209,6 @@ export function renderChamada() {
 }
 
 function atualizarLinha(row, val) {
-  row?.querySelectorAll('.pbtn').forEach(btn => btn.classList.toggle('on', btn.dataset.val === val));
   moverIndicadorPbtn(row?.querySelector('.pbtns'), val);
 }
 
