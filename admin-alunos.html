@@ -67,7 +67,6 @@
 
 <main class="content">
 
-  <div id="painel-alertas"></div>
 
   <div class="stats-row">
     <div class="stat-card"><div class="stat-label">Aguardando conferência</div><div class="stat-val amber" id="kpi-pendente">—</div></div>
@@ -454,35 +453,14 @@ const ROTULOS = {
 };
 
 /* --- Carga ------------------------------------------------------- */
-/**
- * Pendências que exigem alguém do time.
+/*
+ * O painel de pendências saiu da tela de alunos em 23/10/2026, a pedido.
  *
- * Fica no topo e só aparece quando há algo: um painel sempre visível vira
- * paisagem, e o caso real passa despercebido.
+ * Eram doze cartões abertos no topo, cada um com quatro linhas, empurrando
+ * a lista de cadastros para fora da primeira tela. A rota `/api/alertas`
+ * continua de pé e devolve as mesmas pendências — o que saiu é a exibição
+ * aqui, não a informação.
  */
-async function carregarAlertas() {
-  const alvo = $('painel-alertas');
-  if (!alvo) return;
-  try {
-    const r = await fetch('/api/alertas', { headers: Sessao.cabecalho() });
-    const d = await r.json();
-    if (!d.total) { alvo.innerHTML = ''; return; }
-
-    alvo.innerHTML = `
-      <div class="painel-alertas">
-        <div class="pa-titulo">
-          ${d.urgentes ? '🔴' : '🔔'} ${d.total} cadastro${d.total > 1 ? 's' : ''} aguardando ação do time
-        </div>
-        ${d.alertas.map(a => `
-          <div class="pa-item${a.alerta.urgente ? ' urgente' : ''}">
-            <div class="pa-item-titulo">${escapar(a.alerta.titulo)}</div>
-            <div class="pa-item-desc">${escapar(a.alerta.descricao)}</div>
-            <div class="pa-item-acao">→ ${escapar(a.alerta.acao)}</div>
-            ${a.sponteAlunoId ? `<div class="pa-item-ref">AlunoID ${a.sponteAlunoId}${a.contaReceberId ? ` · conta ${a.contaReceberId}` : ''}</div>` : ''}
-          </div>`).join('')}
-      </div>`;
-  } catch { alvo.innerHTML = ''; }
-}
 
 async function verificarAgora() {
   const b = $('btn-verificar');
@@ -493,7 +471,6 @@ async function verificarAgora() {
     toast(`${d.verificados} verificado(s) · ${d.pagos} pago(s)`, d.pagos ? 'green' : 'blue');
   } catch { toast('Não foi possível verificar agora', 'red'); }
   if (b) { b.disabled = false; b.textContent = 'Verificar cobranças'; }
-  carregarAlertas();
   carregar();
 }
 
@@ -1261,7 +1238,6 @@ Sessao.exigirAdmin().then((quem) => {
 
 function iniciar() {
   conferirEstado();
-carregarAlertas();
 carregar();
 const bv = $('btn-verificar');
 if (bv) bv.addEventListener('click', verificarAgora);
@@ -1274,7 +1250,7 @@ const ba = $('btn-atualizar');
 if (ba) ba.addEventListener('click', async () => {
   ba.disabled = true;
   ba.textContent = 'Atualizando…';
-  try { await Promise.all([carregar(), carregarAlertas()]); }
+  try { await carregar(); }
   finally { ba.disabled = false; ba.textContent = 'Atualizar'; }
 });
 }

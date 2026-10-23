@@ -312,9 +312,17 @@ const digitos = (v) => String(v ?? '').replace(/\D/g, '');
  * Estado
  * ================================================================== */
 
+/**
+ * Valores de exemplo, para a tela poder ser aberta sem link.
+ *
+ * O nome é propositalmente impossível. Antes era "Elas Quarta 14:00 PR
+ * 1/26" — uma turma de verdade — e em 23/10/2026 ele vazou para a tela de
+ * link esgotado de um aluno da Imersão Teens, que foi procurar o erro no
+ * link. Vazando de novo, que ao menos se reconheça como exemplo.
+ */
 const TURMA = {
-  nome: 'Elas Quarta 14:00 PR 1/26',
-  curso: 'Elas',
+  nome: 'Turma de demonstração',
+  curso: 'Curso de demonstração',
   turno: 'Vespertino',
   vagasLivres: 12,
   valorParcela: 586.56,
@@ -379,6 +387,15 @@ const estadoCheckout = {
    * e o que vale é a data que foi para o Sponte.
    */
   mensalidadesIniciamEm: null,
+  /**
+   * Quanto o servidor cobrou agora, em reais. `null` antes do checkout.
+   *
+   * É um valor, não uma base de cálculo: a cobrança de agora vai inteira
+   * para o link de pagamento. Dividi-la pelo parcelamento escolhido para as
+   * mensalidades mostrava R$ 288,09 na tela enquanto o Sponte Pay abria com
+   * R$ 1.152,36 — o aluno comparava os dois e desistia.
+   */
+  valorAgora: null,
 };
 
 /** Id do rascunho no servidor. Null até a primeira etapa ser salva. */
@@ -558,7 +575,7 @@ const estados = {
       <p class="sub">Só o essencial — leva menos de um minuto.</p>
       ${caixaTurma()}
       <form id="form" novalidate>
-        ${campo('nome', 'Nome completo', `type="text" autocomplete="name" value="${escapar(form.nome)}"`, '', 'Informe seu nome completo.')}
+        ${campo('nome', 'Nome completo do aluno', `type="text" autocomplete="name" value="${escapar(form.nome)}"`, '', 'Informe o nome completo do aluno.')}
         <div class="linha-dupla">
           ${campo('cpf', 'CPF', `type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" value="${escapar(form.cpf)}"`, '', 'CPF inválido — confira os números.')}
           ${campo('nascimento', 'Nascimento', `type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" value="${escapar(form.nascimento)}"`, '', 'Data inválida — use dd/mm/aaaa.')}
@@ -766,8 +783,8 @@ const estados = {
         : `Seu cadastro está reservado em <strong>${escapar(TURMA.nome)}</strong>.`}</p>
 
       <div class="turma-box">
-        <div class="rotulo">${TURMA.valorTaxa > 0 ? 'Matrícula' : 'A pagar'}</div>
-        <div class="nome">${brl(valorPrimeiraCobranca())}</div>
+        <div class="rotulo">${cobrouMatricula() ? 'Matrícula' : 'A pagar'}</div>
+        <div class="nome">${brl(valorAPagar())}</div>
         <div class="detalhe">Pix, boleto ou cartão — você escolhe na próxima página.</div>
       </div>
 
@@ -802,8 +819,8 @@ const estados = {
       <p class="sub">Sua vaga em <strong>${escapar(TURMA.nome)}</strong> está reservada.</p>
 
       <div class="turma-box">
-        <div class="rotulo">${TURMA.valorTaxa > 0 ? 'Matrícula' : 'A pagar'}</div>
-        <div class="nome">${brl(valorPrimeiraCobranca())}</div>
+        <div class="rotulo">${cobrouMatricula() ? 'Matrícula' : 'A pagar'}</div>
+        <div class="nome">${brl(valorAPagar())}</div>
         <div class="detalhe">Pix, boleto ou cartão — você escolhe na página de pagamento.</div>
       </div>
 
@@ -842,6 +859,23 @@ const estados = {
       fale com a secretaria.</p>
     </div>`,
 
+  /**
+   * O link já foi usado — que não é a turma ter enchido.
+   *
+   * Quem chega aqui quase sempre é alguém que preencheu, viu dar errado e
+   * voltou: o envio consome o uso antes de a matrícula acontecer. Daí a
+   * última frase, que é a informação útil para essa pessoa.
+   */
+  linkUsado: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-amber">🔗</div>
+      <h1>Este link já foi usado</h1>
+      <p class="sub">O cadastro para <strong>${escapar(TURMA.nome)}</strong>
+      já foi preenchido por este link.</p>
+      <p class="sub footer-msg">Se foi você e algo deu errado, fale com a
+      escola: seu cadastro pode já estar lá.</p>
+    </div>`,
+
   lotada: () => `
     <div class="card fade-in">
       <div class="icon-badge icon-badge-amber">🔒</div>
@@ -868,6 +902,29 @@ const estados = {
       link novo para a escola.</p>
     </div>`,
 
+  /**
+   * O cadastro foi gravado; a matrícula no ERP é que não saiu.
+   *
+   * A tela antiga dizia "não foi possível concluir seu cadastro" e mandava
+   * tentar de novo em alguns minutos. As duas coisas eram falsas em
+   * 23/10/2026: a ficha estava gravada, e a recusa vinha de configuração do
+   * curso no Sponte — repetir ia falhar igual. Foi essa frase que gastou o
+   * segundo link da escola.
+   *
+   * O erro do ERP não aparece aqui. Ele fica na ficha e na auditoria, onde
+   * quem pode resolver o vê.
+   */
+  naoConcluiu: () => `
+    <div class="card fade-in">
+      <div class="icon-badge icon-badge-blue">📋</div>
+      <h1>Recebemos seu cadastro</h1>
+      <p class="sub">Seus dados estão com a escola. Não conseguimos concluir a
+      matrícula automaticamente, e a equipe já foi avisada.</p>
+      <p class="sub footer-msg">Alguém entra em contato para finalizar. Não
+      precisa preencher de novo.</p>
+    </div>`,
+
+  /** Falha de comunicação com o nosso servidor: aí repetir pode resolver. */
   erro: () => `
     <div class="card fade-in">
       <div class="icon-badge icon-badge-red">⚠️</div>
@@ -1275,20 +1332,38 @@ function mesDasMensalidades() {
   return mesAno(estadoCheckout.mensalidadesIniciamEm);
 }
 
+/**
+ * O valor que a tela de pagamento mostra.
+ *
+ * Vem do servidor quando ele já cobrou — é o número que vai aparecer no
+ * Sponte Pay, e qualquer divergência entre as duas telas custa a venda.
+ * Antes do checkout, cai na estimativa de sempre.
+ */
+const valorAPagar = () =>
+  estadoCheckout.valorAgora != null ? estadoCheckout.valorAgora : valorPrimeiraCobranca();
+
 /** Linha abaixo do botão. Vazia quando não há o que dizer. */
 function linhaMensalidades() {
   const mes = mesDasMensalidades();
   if (!mes) return '';
-  // Com taxa, é ela que o aluno paga agora e todas as mensalidades vão
-  // para o início do curso. Sem taxa, o que ele paga agora é a primeira
-  // mensalidade, adiantada, e as outras começam com o curso.
-  return TURMA.valorTaxa > 0
-    ? `<p class="sub">As mensalidades começam em <strong>${escapar(mes)}</strong>.</p>`
-    : `<p class="sub">Esta é a 1ª mensalidade. As próximas começam em
-       <strong>${escapar(mes)}</strong>.</p>`;
+  // A cobrança de agora chega ao aluno rotulada "Taxa de matrícula" — é a
+  // aba do Sponte em que ela pode conviver com as mensalidades. A tela usa
+  // a mesma palavra para não haver surpresa entre o que ele leu aqui e o
+  // que vê no link de pagamento.
+  return `<p class="sub">Esta é a matrícula. As mensalidades começam em
+          <strong>${escapar(mes)}</strong>.</p>`;
 }
 
-const rotuloPagar = () => TURMA.valorTaxa > 0 ? 'Pagar matrícula' : 'Ir para o pagamento';
+/**
+ * Houve cobrança de matrícula agora?
+ *
+ * Quem responde é o servidor, não o link: com turma futura e plano sem taxa
+ * configurada, a cobrança de agora é uma parcela lançada na aba de taxa de
+ * matrícula — e o link, gerado antes, não sabia disso.
+ */
+const cobrouMatricula = () => estadoCheckout.valorAgora != null || TURMA.valorTaxa > 0;
+
+const rotuloPagar = () => cobrouMatricula() ? 'Pagar matrícula' : 'Ir para o pagamento';
 
 const urlCheckout = () => `/api/checkout/${estadoCheckout.id}`;
 
@@ -1308,13 +1383,18 @@ async function iniciarCheckout() {
     const r = await fetch(urlCheckout(), { method: 'POST', headers: cabecalhoCheckout() });
     const d = await r.json();
     clearInterval(anim);
-    if (!d.ok) { mostrar('erro'); return; }
+    // Chegamos até aqui: a ficha existe, foi gravada no envio. O que
+    // falhou é a matrícula — e dizer "seu cadastro falhou" faria o aluno
+    // refazer o que já está feito.
+    if (!d.ok) { mostrar('naoConcluiu'); return; }
     estadoCheckout.link = d.link;
     estadoCheckout.simulado = !!d.simulado;
     // Vem do servidor em vez de ser recalculada: é a data que foi gravada
     // no Sponte, e a régua de cobrança vai cobrar por ela.
     estadoCheckout.mensalidadesIniciamEm = d.mensalidadesIniciamEm ?? null;
-    if (d.valorTaxa != null) TURMA.valorTaxa = Number(d.valorTaxa);
+    // Não mexe em `TURMA.valorTaxa`: ele alimenta os cálculos das telas
+    // anteriores, e o que vale aqui é o que foi efetivamente cobrado.
+    estadoCheckout.valorAgora = d.valorTaxa != null ? Number(d.valorTaxa) : null;
     // Sem link, o aluno recebe depois pela régua — não adianta mostrar um
     // botão de pagar que não leva a lugar nenhum.
     mostrar(d.link ? 'pagar' : 'aguardandoLink');
@@ -1421,7 +1501,9 @@ function mostrar(nome) {
 
 const POR_SITUACAO = {
   valido: 'dados', expirado: 'expirado', revogado: 'invalido',
-  esgotado: 'lotada', invalido: 'invalido',
+  // `esgotado` é o limite de cadastros DO LINK, não vaga de turma. A tela
+  // `lotada` continua existindo para quando a turma de fato encher.
+  esgotado: 'linkUsado', invalido: 'invalido',
 };
 
 const ordemPreview = [
@@ -1429,8 +1511,9 @@ const ordemPreview = [
   ['responsavel', '3 Responsável'], ['pagamento', '4 Pagamento'], ['revisao', '5 Revisão'],
   ['preparando', 'Preparando'], ['pagar', 'Pagar'],
   ['aguardandoLink', 'Link a caminho'], ['pago', 'Pago'],
-  ['jaCadastrado', 'Já recebido'], ['lotada', 'Lotada'], ['expirado', 'Expirado'],
-  ['invalido', 'Inválido'], ['erro', 'Erro'],
+  ['jaCadastrado', 'Já recebido'], ['linkUsado', 'Link usado'],
+  ['lotada', 'Lotada'], ['expirado', 'Expirado'],
+  ['invalido', 'Inválido'], ['naoConcluiu', 'Não concluiu'], ['erro', 'Erro'],
 ];
 
 /**
@@ -1498,9 +1581,13 @@ async function iniciar() {
   try {
     const r = await fetch(`/api/cadastro/${encodeURIComponent(token)}`);
     const d = await r.json();
+    // Fora do `if`: as telas de saída também falam da turma, e é delas o
+    // defeito que motivou esta correção. O banco manda o nome em todas as
+    // situações menos `invalido`, que não tem turma a nomear.
+    TURMA.nome = d.turmaNome ?? TURMA.nome;
+    TURMA.curso = d.cursoNome ?? TURMA.curso;
+
     if (d.situacao === 'valido') {
-      TURMA.nome = d.turmaNome ?? TURMA.nome;
-      TURMA.curso = d.cursoNome ?? TURMA.curso;
       TURMA.turno = d.turno ?? TURMA.turno;
       TURMA.vagasLivres = d.restantes ?? TURMA.vagasLivres;
       TURMA.valorParcela = d.valorParcela ?? null;

@@ -148,13 +148,16 @@ export function parsearTurmas(xmlInterno: string): TurmaSponte[] {
  * e `SituacaoTurma` **não** são aceitas e devolvem erro 21 — `SituacaoTurma` é
  * a pegadinha, porque é o nome que a API REST 1.0 usa para a mesma ideia.
  */
-export type ChaveFiltroTurma =
-  | "Nome"
-  | "TurmaID"
-  | "CursoID"
-  | "AnoLetivo"
-  | "Turno"
-  | "Situacao";
+export const CHAVES_FILTRO_TURMA = [
+  "Nome",
+  "TurmaID",
+  "CursoID",
+  "AnoLetivo",
+  "Turno",
+  "Situacao",
+] as const;
+
+export type ChaveFiltroTurma = typeof CHAVES_FILTRO_TURMA[number];
 
 export type FiltroTurmas = Partial<Record<ChaveFiltroTurma, string | number>>;
 
@@ -168,9 +171,17 @@ export type FiltroTurmas = Partial<Record<ChaveFiltroTurma, string | number>>;
  * - **O separador é `;`**. Usar `&` não dá erro: o servidor aceita e ignora
  *   silenciosamente os filtros seguintes, devolvendo mais registros do que o
  *   pedido. Por isso `;` está fixo aqui e não é configurável.
+ *
+ * Chave que o Sponte não conhece é **descartada**, não repassada. O tipo já
+ * diz quais existem, mas nem todo chamador passa pelo compilador: a Edge
+ * Function roda em Deno e fica fora do `tsc`. Em 23/10/2026 um
+ * `{ timeoutMs: 60000 }` na posição do filtro virou "timeoutMs=60000", o
+ * Sponte recusou com erro 21, e a data de início da turma deixou de chegar
+ * ao checkout sem que nada parecesse quebrado.
  */
 export function montarFiltroTurmas(filtro: FiltroTurmas = {}): string {
   const partes = Object.entries(filtro)
+    .filter(([k]) => (CHAVES_FILTRO_TURMA as readonly string[]).includes(k))
     .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== "")
     .map(([k, v]) => `${k}=${String(v).trim()}`);
 
@@ -180,6 +191,30 @@ export function montarFiltroTurmas(filtro: FiltroTurmas = {}): string {
 /* ------------------------------------------------------------------ *
  * Operação
  * ------------------------------------------------------------------ */
+
+/**
+ * As datas de uma turma, em ISO. Campo vazio no Sponte vem `null`.
+ *
+ * Mora aqui, e não na Edge Function, de propósito: o `index.ts` está fora
+ * do `tsc` (roda em Deno), e foi exatamente ali que `{ timeoutMs }` acabou
+ * na posição do **filtro** de `getTurmas` em vez da de opções. O filtro
+ * virou "timeoutMs=60000", o Sponte recusou com "21 - Informe pelo menos
+ * um parâmetro de busca", e a data da turma nunca chegou ao checkout —
+ * calado, porque o `catch` tratava a falha como aceitável.
+ *
+ * Num arquivo que o compilador lê, a mesma troca de argumentos não passa.
+ */
+export async function datasDaTurma(
+  cred: CredenciaisSponte,
+  turmaId: number | null,
+  opcoes: OpcoesChamada = {},
+): Promise<{ inicio: string | null; termino: string | null }> {
+  if (!turmaId) return { inicio: null, termino: null };
+
+  const todas = await getTurmas(cred, {}, opcoes);
+  const t = todas.find((x) => x.turmaId === turmaId);
+  return { inicio: t?.dataInicio ?? null, termino: t?.dataTermino ?? null };
+}
 
 export async function getTurmas(
   cred: CredenciaisSponte,
