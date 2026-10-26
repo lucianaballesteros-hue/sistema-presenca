@@ -136,6 +136,41 @@ export const CATEGORIA = {
  * tipo 0 como as mensalidades, teria derrubado uma das duas na primeira
  * matrícula de um plano com taxa configurada.
  */
+/**
+ * Dias **úteis** entre o preenchimento do formulário e o vencimento da
+ * cobrança que o aluno paga agora.
+ *
+ * É o tempo de receber o link, abrir e pagar antes de vencer. Foi 5 dias
+ * corridos até 26/10/2026, depois 4, e no mesmo dia virou 3 úteis: contar
+ * corrido fazia quem se cadastrava na quinta vencer no domingo, sem banco
+ * aberto no meio.
+ *
+ * Mora aqui porque é aqui que os planos nascem — `checkout.ts` importa
+ * desta constante, e o inverso faria ciclo de importação. O front repete a
+ * regra em `admin-turmas.html`; mudando aqui, mude lá.
+ */
+export const DIAS_UTEIS_ATE_COBRAR = 3;
+
+/**
+ * Soma dias úteis a uma data, pulando sábado e domingo.
+ *
+ * **Não considera feriado.** Levar feriado em conta exigiria um calendário
+ * mantido em algum lugar, e um calendário desatualizado erraria com a
+ * confiança de quem acha que está certo. Cair num feriado adia o pagamento
+ * em um dia; é o erro barato dos dois.
+ */
+export function somarDiasUteis(inicio: Date, dias: number): Date {
+  const d = new Date(inicio);
+  let faltam = Math.max(Math.trunc(dias) || 0, 0);
+
+  while (faltam > 0) {
+    d.setDate(d.getDate() + 1);
+    const semana = d.getDay();
+    if (semana !== 0 && semana !== 6) faltam--;
+  }
+  return d;
+}
+
 export const TIPO_PLANO = {
   MENSALIDADE: 0,
   MATERIAL: 1,
@@ -888,8 +923,7 @@ async function criarPlanoTaxa(
   cobranca: { valor: number; parcelas: number },
 ): Promise<number | null> {
   // A taxa vence já: é ela que garante a vaga.
-  const venc = new Date();
-  venc.setDate(venc.getDate() + 5);
+  const venc = somarDiasUteis(new Date(), DIAS_UTEIS_ATE_COBRAR);
 
   const xml = await chamarSoap(
     "InsertPlano",
@@ -1008,7 +1042,7 @@ async function criarPlano(
   // turma de fevereiro começava a pagar em outubro (SPEC-002 RN-03).
   const venc = plano.apartirDe
     ? new Date(`${plano.apartirDe}T00:00:00`)
-    : (() => { const x = new Date(); x.setDate(x.getDate() + 5); return x; })();
+    : somarDiasUteis(new Date(), DIAS_UTEIS_ATE_COBRAR);
 
   const xml = await chamarSoap(
     "InsertPlano",

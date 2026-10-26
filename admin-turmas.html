@@ -1084,19 +1084,17 @@ async function carregarCondicoes(cursoId) {
  */
 function quandoCobra(plano) {
   const t = estado.turmaSelecionada;
-  const piso = new Date();
-  piso.setDate(piso.getDate() + 5);
-  const pisoIso = piso.toISOString().slice(0, 10);
+  const pisoIso = vencimentoDaAdiantada();
 
   const inicio = t?.dataInicio && t.dataInicio > pisoIso ? t.dataInicio : null;
   const temTaxa = plano.matricula.total > 0;
 
-  if (!inicio) return 'As mensalidades começam em até 5 dias.';
+  if (!inicio) return `As mensalidades começam em ${DIAS_UTEIS_ATE_COBRAR} dias úteis.`;
 
   // Sem taxa, quem manda é a escolha de cobrança — e ela pode ser
   // sequencial, que é o comportamento de turma já iniciada.
   if (!temTaxa && modoEscolhido() === 'sequencial') {
-    return 'As mensalidades começam em até 5 dias, todas mês a mês.';
+    return `As mensalidades começam em ${DIAS_UTEIS_ATE_COBRAR} dias úteis, todas mês a mês.`;
   }
 
   const quando = `em <strong>${dataBr(inicio)}</strong>, quando a turma inicia`;
@@ -1119,13 +1117,39 @@ function quandoCobra(plano) {
  * as mesmas condições de `inicioDasDemaisMensalidades` no servidor. Chegado
  * o mês do curso, o link para de adiantar sozinho.
  */
+/**
+ * Espelha `DIAS_UTEIS_ATE_COBRAR` e `somarDiasUteis` de
+ * `_shared/matricula.ts`.
+ *
+ * A tela não importa do servidor, então a regra existe duas vezes. Estava
+ * repetida em cinco lugares neste arquivo até 26/10/2026 — e repetir uma
+ * regra que muda é como ela diverge. Mudou de 5 dias corridos para 4 e,
+ * no mesmo dia, para 3 úteis.
+ *
+ * Fim de semana é pulado; feriado não, como no servidor.
+ */
+const DIAS_UTEIS_ATE_COBRAR = 3;
+
+function somarDiasUteis(inicio, dias) {
+  const d = new Date(inicio);
+  let faltam = dias;
+  while (faltam > 0) {
+    d.setDate(d.getDate() + 1);
+    const semana = d.getDay();
+    if (semana !== 0 && semana !== 6) faltam--;
+  }
+  return d;
+}
+
+/** O vencimento da cobrança de agora, em ISO. */
+const vencimentoDaAdiantada = () =>
+  somarDiasUteis(new Date(), DIAS_UTEIS_ATE_COBRAR).toISOString().slice(0, 10);
+
 function inicioAdiavel() {
   const t = estado.turmaSelecionada;
   if (!t?.dataInicio) return null;
 
-  const piso = new Date();
-  piso.setDate(piso.getDate() + 5);
-  const pisoIso = piso.toISOString().slice(0, 10);
+  const pisoIso = vencimentoDaAdiantada();
   const mesAtual = new Date().toISOString().slice(0, 7);
 
   if (t.dataInicio.slice(0, 7) === mesAtual) return null;
@@ -1150,8 +1174,10 @@ function pintarCobranca(plano) {
   campo.style.display = escolhe ? '' : 'none';
   if (escolhe) {
     $('m-cobranca-ajuda').textContent =
-      `Adiantada: uma parcela em até 5 dias e as outras ${plano.mensalidade.parcelas - 1} `
-      + `a partir de ${dataBr(inicio)}. Sequencial: todas mês a mês, começando em até 5 dias.`;
+      `Adiantada: uma parcela em ${DIAS_UTEIS_ATE_COBRAR} dias úteis `
+      + `(${dataBr(vencimentoDaAdiantada())}) e as outras `
+      + `${plano.mensalidade.parcelas - 1} a partir de ${dataBr(inicio)}. `
+      + `Sequencial: todas mês a mês, a partir da mesma data.`;
   }
 }
 
