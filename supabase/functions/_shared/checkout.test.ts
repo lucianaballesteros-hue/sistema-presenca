@@ -34,15 +34,15 @@ const HOJE = new Date("2026-10-21T09:00:00");
  * A parcela que o aluno paga agora
  * ------------------------------------------------------------------ */
 
-test("a parcela de agora vence em 5 dias", () => {
-  assert.equal(vencimentoDaAdiantada(HOJE), "2026-10-26");
+test("a parcela de agora vence em 4 dias", () => {
+  assert.equal(vencimentoDaAdiantada(HOJE), "2026-10-25");
 });
 
 test("o vencimento de agora não depende da turma", () => {
   // É o ponto da regra nova: seja a turma de fevereiro ou a de ontem, o
   // aluno paga a primeira parcela no mesmo prazo.
-  assert.equal(vencimentoDaAdiantada(HOJE), "2026-10-26");
-  assert.equal(DIAS_ATE_COBRAR, 5);
+  assert.equal(vencimentoDaAdiantada(HOJE), "2026-10-25");
+  assert.equal(DIAS_ATE_COBRAR, 4);
 });
 
 test("a data sai em ISO, que é o que o plano espera", () => {
@@ -87,7 +87,7 @@ test("turma que começa dentro do prazo de cobrança não adia nada", () => {
 });
 
 test("exatamente no dia do vencimento de agora, não adia", () => {
-  assert.equal(inicioDasDemaisMensalidades("2026-10-26", HOJE), null);
+  assert.equal(inicioDasDemaisMensalidades("2026-10-25", HOJE), null);
 });
 
 test("um dia depois do vencimento, mas no mesmo mês, não adia", () => {
@@ -169,6 +169,17 @@ test("vira sequencial mesmo com o curso ainda longe dentro do mês", () => {
     inicioDasDemaisMensalidades("2027-02-28", fevereiro, "adiantada"),
     null,
   );
+});
+
+test("turma que começa no mês seguinte, mas dentro do prazo, não adia", () => {
+  // O único caso em que o PISO decide sozinho: mês diferente (a regra do
+  // mês do curso não se aplica) e ainda assim perto demais. Em 29/10 a
+  // cobrança de agora vence em 02/11; uma turma que começa em 01/11 não
+  // justifica partir o plano em dois.
+  const fimDeOutubro = new Date("2026-10-29T09:00:00");
+  assert.equal(vencimentoDaAdiantada(fimDeOutubro), "2026-11-02");
+  assert.equal(inicioDasDemaisMensalidades("2026-11-01", fimDeOutubro), null);
+  assert.equal(inicioDasDemaisMensalidades("2026-11-03", fimDeOutubro), "2026-11-03");
 });
 
 test("no mês anterior ao do curso, ainda adia", () => {

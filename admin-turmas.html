@@ -1085,18 +1085,18 @@ async function carregarCondicoes(cursoId) {
 function quandoCobra(plano) {
   const t = estado.turmaSelecionada;
   const piso = new Date();
-  piso.setDate(piso.getDate() + 5);
+  piso.setDate(piso.getDate() + DIAS_ATE_COBRAR);
   const pisoIso = piso.toISOString().slice(0, 10);
 
   const inicio = t?.dataInicio && t.dataInicio > pisoIso ? t.dataInicio : null;
   const temTaxa = plano.matricula.total > 0;
 
-  if (!inicio) return 'As mensalidades começam em até 5 dias.';
+  if (!inicio) return `As mensalidades começam em até ${DIAS_ATE_COBRAR} dias.`;
 
   // Sem taxa, quem manda é a escolha de cobrança — e ela pode ser
   // sequencial, que é o comportamento de turma já iniciada.
   if (!temTaxa && modoEscolhido() === 'sequencial') {
-    return 'As mensalidades começam em até 5 dias, todas mês a mês.';
+    return `As mensalidades começam em até ${DIAS_ATE_COBRAR} dias, todas mês a mês.`;
   }
 
   const quando = `em <strong>${dataBr(inicio)}</strong>, quando a turma inicia`;
@@ -1119,12 +1119,21 @@ function quandoCobra(plano) {
  * as mesmas condições de `inicioDasDemaisMensalidades` no servidor. Chegado
  * o mês do curso, o link para de adiantar sozinho.
  */
+/**
+ * Espelha `DIAS_ATE_COBRAR` de `_shared/matricula.ts`.
+ *
+ * A tela não importa do servidor, então o número existe duas vezes. Estava
+ * repetido em cinco lugares neste arquivo até 26/10/2026, quando mudou de 5
+ * para 4 — e repetir um número que muda é como ele diverge.
+ */
+const DIAS_ATE_COBRAR = 4;
+
 function inicioAdiavel() {
   const t = estado.turmaSelecionada;
   if (!t?.dataInicio) return null;
 
   const piso = new Date();
-  piso.setDate(piso.getDate() + 5);
+  piso.setDate(piso.getDate() + DIAS_ATE_COBRAR);
   const pisoIso = piso.toISOString().slice(0, 10);
   const mesAtual = new Date().toISOString().slice(0, 7);
 
@@ -1150,8 +1159,9 @@ function pintarCobranca(plano) {
   campo.style.display = escolhe ? '' : 'none';
   if (escolhe) {
     $('m-cobranca-ajuda').textContent =
-      `Adiantada: uma parcela em até 5 dias e as outras ${plano.mensalidade.parcelas - 1} `
-      + `a partir de ${dataBr(inicio)}. Sequencial: todas mês a mês, começando em até 5 dias.`;
+      `Adiantada: uma parcela em até ${DIAS_ATE_COBRAR} dias e as outras `
+      + `${plano.mensalidade.parcelas - 1} a partir de ${dataBr(inicio)}. `
+      + `Sequencial: todas mês a mês, começando em até ${DIAS_ATE_COBRAR} dias.`;
   }
 }
 

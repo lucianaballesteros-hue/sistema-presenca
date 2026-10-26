@@ -17,6 +17,7 @@
  */
 
 import {
+  DIAS_ATE_COBRAR,
   executarMatricula, progressoVazio, ROTULO_PASSO,
   type ProgressoMatricula,
 } from "./matricula.ts";
@@ -166,13 +167,8 @@ export interface ResultadoCheckout {
  */
 export const STATUS_PODE_MATRICULAR = new Set(["pendente", "aprovado"]);
 
-/**
- * Dias até a primeira cobrança, quando ela é imediata.
- *
- * Cinco é o prazo que o sistema sempre usou, e continua valendo para a
- * taxa de matrícula: tempo de o aluno receber o link, abrir e pagar.
- */
-export const DIAS_ATE_COBRAR = 5;
+/** Reexportado de `matricula.ts`, onde os planos nascem. */
+export { DIAS_ATE_COBRAR };
 
 /**
  * Quando a parcela que o aluno paga agora vence.

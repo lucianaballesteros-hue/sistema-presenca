@@ -136,6 +136,19 @@ export const CATEGORIA = {
  * tipo 0 como as mensalidades, teria derrubado uma das duas na primeira
  * matrícula de um plano com taxa configurada.
  */
+/**
+ * Dias entre o preenchimento do formulário e o vencimento da cobrança que
+ * o aluno paga agora.
+ *
+ * É o tempo de receber o link, abrir e pagar antes de vencer. Era 5 até
+ * 26/10/2026, quando a escola pediu 4.
+ *
+ * Mora aqui porque é aqui que os planos nascem — `checkout.ts` importa
+ * desta constante, e o inverso faria ciclo de importação. O front repete o
+ * número em `admin-turmas.html`; mudando aqui, mude lá.
+ */
+export const DIAS_ATE_COBRAR = 4;
+
 export const TIPO_PLANO = {
   MENSALIDADE: 0,
   MATERIAL: 1,
@@ -889,7 +902,7 @@ async function criarPlanoTaxa(
 ): Promise<number | null> {
   // A taxa vence já: é ela que garante a vaga.
   const venc = new Date();
-  venc.setDate(venc.getDate() + 5);
+  venc.setDate(venc.getDate() + DIAS_ATE_COBRAR);
 
   const xml = await chamarSoap(
     "InsertPlano",
@@ -1008,7 +1021,11 @@ async function criarPlano(
   // turma de fevereiro começava a pagar em outubro (SPEC-002 RN-03).
   const venc = plano.apartirDe
     ? new Date(`${plano.apartirDe}T00:00:00`)
-    : (() => { const x = new Date(); x.setDate(x.getDate() + 5); return x; })();
+    : (() => {
+        const x = new Date();
+        x.setDate(x.getDate() + DIAS_ATE_COBRAR);
+        return x;
+      })();
 
   const xml = await chamarSoap(
     "InsertPlano",
