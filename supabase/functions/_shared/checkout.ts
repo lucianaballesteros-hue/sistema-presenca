@@ -17,7 +17,7 @@
  */
 
 import {
-  DIAS_ATE_COBRAR,
+  DIAS_UTEIS_ATE_COBRAR, somarDiasUteis,
   executarMatricula, progressoVazio, ROTULO_PASSO,
   type ProgressoMatricula,
 } from "./matricula.ts";
@@ -167,13 +167,13 @@ export interface ResultadoCheckout {
  */
 export const STATUS_PODE_MATRICULAR = new Set(["pendente", "aprovado"]);
 
-/** Reexportado de `matricula.ts`, onde os planos nascem. */
-export { DIAS_ATE_COBRAR };
+/** Reexportados de `matricula.ts`, onde os planos nascem. */
+export { DIAS_UTEIS_ATE_COBRAR, somarDiasUteis };
 
 /**
  * Quando a parcela que o aluno paga agora vence.
  *
- * É sempre daqui a `DIAS_ATE_COBRAR` dias, independentemente da turma: é a
+ * É sempre daqui a `DIAS_UTEIS_ATE_COBRAR` dias úteis, seja qual for a turma: é a
  * cobrança que garante a vaga, e o aluno precisa de tempo para receber o
  * link, abrir e pagar antes de ela vencer.
  */
@@ -181,9 +181,7 @@ export { DIAS_ATE_COBRAR };
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 export function vencimentoDaAdiantada(hoje: Date = new Date()): string {
-  const d = new Date(hoje);
-  d.setDate(d.getDate() + DIAS_ATE_COBRAR);
-  return d.toISOString().slice(0, 10);
+  return iso(somarDiasUteis(hoje, DIAS_UTEIS_ATE_COBRAR));
 }
 
 /**

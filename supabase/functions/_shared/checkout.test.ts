@@ -22,7 +22,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  DIAS_ATE_COBRAR,
+  DIAS_UTEIS_ATE_COBRAR,
+  somarDiasUteis,
   inicioDasDemaisMensalidades,
   vencimentoDaAdiantada,
 } from "./checkout.ts";
@@ -34,19 +35,68 @@ const HOJE = new Date("2026-10-21T09:00:00");
  * A parcela que o aluno paga agora
  * ------------------------------------------------------------------ */
 
-test("a parcela de agora vence em 4 dias", () => {
-  assert.equal(vencimentoDaAdiantada(HOJE), "2026-10-25");
+test("a parcela de agora vence em 3 dias úteis", () => {
+  assert.equal(vencimentoDaAdiantada(HOJE), "2026-10-26");
 });
 
 test("o vencimento de agora não depende da turma", () => {
   // É o ponto da regra nova: seja a turma de fevereiro ou a de ontem, o
   // aluno paga a primeira parcela no mesmo prazo.
-  assert.equal(vencimentoDaAdiantada(HOJE), "2026-10-25");
-  assert.equal(DIAS_ATE_COBRAR, 4);
+  assert.equal(vencimentoDaAdiantada(HOJE), "2026-10-26");
+  assert.equal(DIAS_UTEIS_ATE_COBRAR, 3);
 });
 
 test("a data sai em ISO, que é o que o plano espera", () => {
   assert.match(vencimentoDaAdiantada(HOJE), /^\d{4}-\d{2}-\d{2}$/);
+});
+
+/* ------------------------------------------------------------------ *
+ * A contagem em dias úteis
+ *
+ * Contar corrido fazia quem se cadastrava na quinta vencer no domingo,
+ * sem banco aberto no meio. Estes casos percorrem a semana inteira.
+ * ------------------------------------------------------------------ */
+
+test("a contagem pula sábado e domingo", () => {
+  const casos: Array<[string, string]> = [
+    ["2026-10-26", "2026-10-29"],   // segunda  → quinta
+    ["2026-10-27", "2026-10-30"],   // terça    → sexta
+    ["2026-10-28", "2026-11-02"],   // quarta   → segunda
+    ["2026-10-29", "2026-11-03"],   // quinta   → terça
+    ["2026-10-30", "2026-11-04"],   // sexta    → quarta
+  ];
+  for (const [de, esperado] of casos) {
+    assert.equal(
+      vencimentoDaAdiantada(new Date(`${de}T09:00:00`)), esperado,
+      `partindo de ${de}`,
+    );
+  }
+});
+
+test("cadastro no fim de semana conta a partir da segunda", () => {
+  // Sábado e domingo caem na mesma quarta: os primeiros dias úteis depois
+  // deles são segunda, terça e quarta, nos dois casos.
+  assert.equal(vencimentoDaAdiantada(new Date("2026-10-31T09:00:00")), "2026-11-04");
+  assert.equal(vencimentoDaAdiantada(new Date("2026-11-01T09:00:00")), "2026-11-04");
+});
+
+test("o vencimento nunca cai em sábado ou domingo", () => {
+  // Um ano inteiro de datas de cadastro.
+  const d = new Date("2026-01-01T09:00:00");
+  for (let i = 0; i < 365; i++) {
+    const venc = new Date(`${vencimentoDaAdiantada(d)}T12:00:00`);
+    const semana = venc.getDay();
+    assert.ok(
+      semana !== 0 && semana !== 6,
+      `cadastro em ${d.toISOString().slice(0, 10)} venceria num fim de semana`,
+    );
+    d.setDate(d.getDate() + 1);
+  }
+});
+
+test("somarDiasUteis com zero devolve o próprio dia", () => {
+  const sexta = new Date("2026-10-30T09:00:00");
+  assert.equal(somarDiasUteis(sexta, 0).toISOString().slice(0, 10), "2026-10-30");
 });
 
 /* ------------------------------------------------------------------ *
@@ -87,7 +137,7 @@ test("turma que começa dentro do prazo de cobrança não adia nada", () => {
 });
 
 test("exatamente no dia do vencimento de agora, não adia", () => {
-  assert.equal(inicioDasDemaisMensalidades("2026-10-25", HOJE), null);
+  assert.equal(inicioDasDemaisMensalidades("2026-10-26", HOJE), null);
 });
 
 test("um dia depois do vencimento, mas no mesmo mês, não adia", () => {
@@ -173,13 +223,15 @@ test("vira sequencial mesmo com o curso ainda longe dentro do mês", () => {
 
 test("turma que começa no mês seguinte, mas dentro do prazo, não adia", () => {
   // O único caso em que o PISO decide sozinho: mês diferente (a regra do
-  // mês do curso não se aplica) e ainda assim perto demais. Em 29/10 a
-  // cobrança de agora vence em 02/11; uma turma que começa em 01/11 não
-  // justifica partir o plano em dois.
-  const fimDeOutubro = new Date("2026-10-29T09:00:00");
-  assert.equal(vencimentoDaAdiantada(fimDeOutubro), "2026-11-02");
-  assert.equal(inicioDasDemaisMensalidades("2026-11-01", fimDeOutubro), null);
-  assert.equal(inicioDasDemaisMensalidades("2026-11-03", fimDeOutubro), "2026-11-03");
+  // mês do curso não se aplica) e ainda assim perto demais. Numa quinta,
+  // 29/10, a cobrança de agora vence na terça 03/11 — uma turma que começa
+  // antes disso não justifica partir o plano em dois.
+  const quinta = new Date("2026-10-29T09:00:00");
+  assert.equal(vencimentoDaAdiantada(quinta), "2026-11-03");
+
+  assert.equal(inicioDasDemaisMensalidades("2026-11-01", quinta), null);
+  assert.equal(inicioDasDemaisMensalidades("2026-11-03", quinta), null, "no piso");
+  assert.equal(inicioDasDemaisMensalidades("2026-11-04", quinta), "2026-11-04");
 });
 
 test("no mês anterior ao do curso, ainda adia", () => {
