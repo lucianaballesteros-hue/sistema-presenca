@@ -196,6 +196,7 @@ form{text-align:left;}
 .rev-linha{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:3px 0;}
 .rev-linha .k{color:var(--text-3);flex-shrink:0;}
 .rev-linha .v{color:var(--text);font-weight:600;text-align:right;word-break:break-word;}
+.rev-obs{font-size:11.5px;color:var(--text-3);margin-top:6px;}
 
 .aceite{
   display:flex;align-items:flex-start;gap:10px;text-align:left;
@@ -460,6 +461,25 @@ function idadeDoAluno() {
   return i;
 }
 const ehMenor = () => { const i = idadeDoAluno(); return i !== null && i >= 0 && i < 18; };
+
+/**
+ * Para onde a tela diz que o link de pagamento vai.
+ *
+ * Com responsável, o sacado no Sponte é ele, e é para o contato dele que a
+ * cobrança sai. Prometer o celular do aluno fez uma mãe pedir para "mudar o
+ * destino" de um link que já ia para ela (cadastro 566, 30/10/2026).
+ */
+function destinoDaCobranca() {
+  const doResp = ehMenor() && form.respNome.trim();
+  const celular = doResp ? form.respCelular : form.celular;
+  const email = doResp ? form.respEmail : form.email;
+  const canais = [
+    celular ? `no WhatsApp <strong>${escapar(celular)}</strong>` : '',
+    email ? `no e-mail <strong>${escapar(email)}</strong>` : '',
+  ].filter(Boolean).join(' e ');
+  const quem = doResp ? ` para <strong>${escapar(form.respNome.trim())}</strong> (responsável)` : '';
+  return `O link de pagamento chega em breve${quem}${canais ? `, ${canais}` : ''}.`;
+}
 
 const ETAPAS = [
   { id: 'dados',       rotulo: 'Seus dados' },
@@ -730,6 +750,7 @@ const estados = {
           ${l('CPF', form.respCpf)}
           ${l('Celular', form.respCelular)}
           ${l('E-mail', form.respEmail)}
+          <div class="rev-obs">A cobrança e o link de pagamento vão para o celular e o e-mail do responsável.</div>
         </div>` : ''}
 
         <div class="rev-grupo">
@@ -826,12 +847,7 @@ const estados = {
 
       ${linhaMensalidades()}
 
-      <p class="sub footer-msg">
-        O link de pagamento chega em breve
-        ${form.celular ? `no WhatsApp <strong>${escapar(form.celular)}</strong>` : ''}
-        ${form.celular && form.email ? ' e ' : ''}
-        ${form.email ? `no e-mail <strong>${escapar(form.email)}</strong>` : ''}.
-      </p>
+      <p class="sub footer-msg">${destinoDaCobranca()}</p>
       <p class="muted" id="espera-aviso">Pode deixar esta página aberta: se o
       link sair agora, ele aparece aqui. Sua vaga continua reservada de
       qualquer forma.</p>

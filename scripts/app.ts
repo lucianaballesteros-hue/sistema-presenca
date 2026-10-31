@@ -545,7 +545,10 @@ export async function verificarCobrancas() {
         responsavelId: p.responsavelId ?? null,
         contratoId: p.contratoId,
         contaReceberId: p.contaReceberId,
-        email: c.email, celular: c.celular, cpf: c.cpf,
+        // Canal e CPF são do sacado: com responsável, a cobrança é dele.
+        ...(c.responsavelNome?.trim()
+          ? { email: c.responsavelEmail, celular: c.responsavelCelular, cpf: c.responsavelCpf }
+          : { email: c.email, celular: c.celular, cpf: c.cpf }),
         formaCobrancaId: c.formaCobrancaId,
         valorParcela: c.valorParcela, parcelas: c.parcelas,
       }),
