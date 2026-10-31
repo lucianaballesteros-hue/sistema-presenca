@@ -186,7 +186,7 @@
       <div class="field">
         <label for="m-plano">Plano de pagamento</label>
         <select id="m-plano"><option value="">Carregando…</option></select>
-        <div class="field-error" id="m-erro-plano">Este curso não tem plano cadastrado no Sponte.</div>
+        <div class="field-error" id="m-erro-plano">Este curso não tem plano ativo cadastrado no Sponte.</div>
       </div>
 
       <div class="field">
@@ -1035,13 +1035,22 @@ async function carregarCondicoes(cursoId) {
     const dp = await rp.json();
     const db = await rb.json();
 
-    estado.planos = dp.planos || [];
+    // Falha do Sponte não é "curso sem plano": dizer isso mandaria a pessoa
+    // conferir um cadastro que está certo, e o link sairia sem valor.
+    if (!rp.ok) {
+      $('m-plano').innerHTML = '<option value="">Sponte não respondeu — feche e abra de novo</option>';
+      toast(dp.erro || 'Falha ao consultar os planos no Sponte', 'red');
+      return;
+    }
+
+    // Plano desativado no Sponte não entra em link novo.
+    estado.planos = (dp.planos || []).filter(p => p.ativo);
     estado.bolsas = db.bolsas || [];
 
     if (!estado.planos.length) {
       // Acontece nos 14 cursos inativos da escola. O link ainda pode ser
       // gerado — só não mostra valor ao aluno.
-      $('m-plano').innerHTML = '<option value="">Sem plano cadastrado</option>';
+      $('m-plano').innerHTML = '<option value="">Sem plano ativo cadastrado</option>';
       $('m-erro-plano').style.display = 'block';
       $('btn-gerar').disabled = false;
       return;
@@ -1060,7 +1069,6 @@ async function carregarCondicoes(cursoId) {
     atualizarResumoValor();
   } catch {
     $('m-plano').innerHTML = '<option value="">Falha ao carregar planos</option>';
-    $('btn-gerar').disabled = false;
   }
 }
 

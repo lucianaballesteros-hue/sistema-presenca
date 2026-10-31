@@ -173,6 +173,11 @@
       <label for="m-celular">Celular</label>
       <input type="text" id="m-celular">
     </div>
+    <!-- Menor de idade: quem paga é o responsável, e é para ele que o link vai. -->
+    <div class="dados-grid" id="m-resp" style="display:none;">
+      <div class="dado-item"><div class="dado-label">Responsável financeiro</div><div class="dado-val" id="m-resp-nome">—</div></div>
+      <div class="dado-item"><div class="dado-label">Contato da cobrança</div><div class="dado-val" id="m-resp-contato">—</div></div>
+    </div>
     <div class="field">
       <label for="m-plano">Plano de pagamento</label>
       <select id="m-plano"><option value="">—</option></select>
@@ -664,6 +669,9 @@ function linha(c, duplicado) {
         </div>
         <div class="linha-aluno-cpf">${fmtCpf(c.cpf)}</div>
         <div class="linha-aluno-contato">${escapar(c.email || 'sem e-mail')} · ${escapar(fmtCel(c.celular) || 'sem celular')}</div>
+        ${c.responsavelNome?.trim()
+          ? `<div class="linha-aluno-contato">Cobrança: ${escapar(c.responsavelNome.trim().split(/\s+/)[0])} (resp.) · ${escapar(fmtCel(c.responsavelCelular) || c.responsavelEmail || 'sem contato')}</div>`
+          : ''}
       </td>
       <td>${escapar(encurtar(c.turmaNome, 28))}</td>
       <td>${c.valorParcela
@@ -697,6 +705,15 @@ function abrir(id) {
   $('m-email').value = c.email ?? '';
   $('m-celular').value = fmtCel(c.celular);
   $('m-obs').value = c.observacao ?? '';
+
+  const temResp = !!c.responsavelNome?.trim();
+  $('m-resp').style.display = temResp ? '' : 'none';
+  if (temResp) {
+    $('m-resp-nome').textContent = c.responsavelNome
+      + (c.responsavelParentesco ? ` (${c.responsavelParentesco})` : '');
+    $('m-resp-contato').textContent =
+      [fmtCel(c.responsavelCelular), c.responsavelEmail].filter(Boolean).join(' · ') || 'sem contato';
+  }
 
   const repetidos = c.cpf
     ? estado.cadastros.filter(x => x.cpf === c.cpf && x.id !== c.id)
@@ -821,7 +838,11 @@ async function carregarCondicoes(c) {
       fetch(`/api/sponte/planos?cursoId=${c.cursoId}`, { headers: Sessao.cabecalho() }),
       fetch('/api/sponte/bolsas', { headers: Sessao.cabecalho() }),
     ]);
-    estado.planos = (await rp.json()).planos || [];
+    const dp = await rp.json();
+    if (!rp.ok) throw new Error(dp.erro);
+    // Inativos ficam de fora, exceto o que o cadastro já tem: escondê-lo
+    // trocaria o plano do aluno sem ninguém pedir.
+    estado.planos = (dp.planos || []).filter(p => p.ativo || p.planoCursoId === c.planoCursoId);
     estado.bolsas = (await rb.json()).bolsas || [];
 
     if (!estado.planos.length) {
@@ -983,8 +1004,10 @@ async function carregarPlanos() {
 
   $('n-plano').innerHTML = '<option value="">Carregando…</option>';
   try {
-    const d = await (await fetch(`/api/sponte/planos?cursoId=${t.cursoId}`, { headers: Sessao.cabecalho() })).json();
-    novo.planos = d.planos || [];
+    const r = await fetch(`/api/sponte/planos?cursoId=${t.cursoId}`, { headers: Sessao.cabecalho() });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro);
+    novo.planos = (d.planos || []).filter((p) => p.ativo);
     $('n-plano').innerHTML = novo.planos.map((p) =>
       `<option value="${p.planoCursoId}"${p.planoCursoId === d.preferidoId ? ' selected' : ''}>${
         escapar(p.descricao)} — ${brl(p.total)}</option>`).join('')

@@ -110,6 +110,19 @@ test("parsearPlanos devolve lista vazia no código 43", () => {
   assert.deepEqual(parsearPlanos(SEM_REGISTROS), []);
 });
 
+test("parsearPlanos lê todos os planos aninhados em PlanosCursos", () => {
+  // Formato real de "Finanças Para Elas" (30/10/2026): o primeiro plano é um
+  // inativo de 2026; o vigente, de 2027, vem depois.
+  const xml = `<wsPlanoCurso><RetornoOperacao>01 - Operação Realizada com Sucesso.</RetornoOperacao>
+<PlanosCursos>
+<PlanoCurso><CursoID>15</CursoID><PlanoCursoID>7</PlanoCursoID><DescricaoPlano>2026 Elas 8% - 6x</DescricaoPlano><Situacao>0</Situacao><Padrao>0</Padrao><NumeroParcelasMensalidade>6</NumeroParcelasMensalidade><ValorParcelaMensalidade>637.56</ValorParcelaMensalidade></PlanoCurso>
+<PlanoCurso><CursoID>15</CursoID><PlanoCursoID>18</PlanoCursoID><DescricaoPlano>Elas 2027 - 1ºlote 15%</DescricaoPlano><Situacao>1</Situacao><Padrao>1</Padrao><NumeroParcelasMensalidade>6</NumeroParcelasMensalidade><ValorParcelaMensalidade>636.18</ValorParcelaMensalidade></PlanoCurso>
+</PlanosCursos></wsPlanoCurso>`;
+  const planos = parsearPlanos(xml);
+  assert.deepEqual(planos.map((p) => [p.planoCursoId, p.ativo]), [[7, false], [18, true]]);
+  assert.equal(planoPreferido(planos, 2026)?.planoCursoId, 18);
+});
+
 test("parsearPlanos aceita valor com vírgula decimal", () => {
   const xml = PLANO_CLUBE.replace(
     "<ValorParcelaMensalidade>129.00<",
