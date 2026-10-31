@@ -482,7 +482,7 @@ function destinoDaCobranca() {
 }
 
 const ETAPAS = [
-  { id: 'dados',       rotulo: 'Seus dados' },
+  { id: 'dados',       rotulo: 'Dados do aluno' },
   { id: 'endereco',    rotulo: 'Endereço' },
   { id: 'responsavel', rotulo: 'Responsável', so: ehMenor },
   // A etapa pergunta só em quantas vezes. Forma de pagamento não se escolhe
@@ -591,17 +591,18 @@ const estados = {
     <div class="card fade-in">
       ${stepper()}
       <div class="icon-badge icon-badge-blue">📝</div>
-      <h1>Confirme sua matrícula</h1>
-      <p class="sub">Só o essencial — leva menos de um minuto.</p>
+      <h1>Dados do aluno</h1>
+      <p class="sub">Preencha com os dados de <strong>quem vai fazer o curso</strong>.
+      Se o aluno for menor de idade, os dados do responsável vêm numa etapa seguinte.</p>
       ${caixaTurma()}
       <form id="form" novalidate>
         ${campo('nome', 'Nome completo do aluno', `type="text" autocomplete="name" value="${escapar(form.nome)}"`, '', 'Informe o nome completo do aluno.')}
         <div class="linha-dupla">
-          ${campo('cpf', 'CPF', `type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" value="${escapar(form.cpf)}"`, '', 'CPF inválido — confira os números.')}
-          ${campo('nascimento', 'Nascimento', `type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" value="${escapar(form.nascimento)}"`, '', 'Data inválida — use dd/mm/aaaa.')}
+          ${campo('cpf', 'CPF do aluno', `type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" value="${escapar(form.cpf)}"`, '', 'CPF inválido — confira os números.')}
+          ${campo('nascimento', 'Nascimento do aluno', `type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" value="${escapar(form.nascimento)}"`, '', 'Data inválida — use dd/mm/aaaa.')}
         </div>
-        ${campo('email', 'E-mail', `type="email" autocomplete="email" value="${escapar(form.email)}"`, 'Vira seu acesso à plataforma de conteúdo.', 'E-mail inválido.')}
-        ${campo('celular', 'Celular (com DDD)', `type="tel" inputmode="numeric" maxlength="15" placeholder="(00) 00000-0000" value="${escapar(form.celular)}"`, 'Usamos este número no WhatsApp.', 'Informe um celular válido.')}
+        ${campo('email', 'E-mail do aluno', `type="email" autocomplete="email" value="${escapar(form.email)}"`, 'Vira o acesso do aluno à plataforma de conteúdo.', 'E-mail inválido.')}
+        ${campo('celular', 'Celular do aluno (com DDD)', `type="tel" inputmode="numeric" maxlength="15" placeholder="(00) 00000-0000" value="${escapar(form.celular)}"`, 'Usamos este número no WhatsApp.', 'Informe um celular válido.')}
         <div class="acoes">
           <button type="submit" class="btn-confirmar">Continuar</button>
         </div>
@@ -726,7 +727,7 @@ const estados = {
         </div>
 
         <div class="rev-grupo">
-          <div class="rev-titulo">Seus dados<button class="rev-editar" data-ir="dados">editar</button></div>
+          <div class="rev-titulo">Dados do aluno<button class="rev-editar" data-ir="dados">editar</button></div>
           ${l('Nome', form.nome)}
           ${l('CPF', form.cpf)}
           ${l('Nascimento', dataBr(form.nascimento))}
@@ -1523,7 +1524,7 @@ const POR_SITUACAO = {
 };
 
 const ordemPreview = [
-  ['validando', 'Validando'], ['dados', '1 Dados'], ['endereco', '2 Endereço'],
+  ['validando', 'Validando'], ['dados', '1 Dados do aluno'], ['endereco', '2 Endereço'],
   ['responsavel', '3 Responsável'], ['pagamento', '4 Pagamento'], ['revisao', '5 Revisão'],
   ['preparando', 'Preparando'], ['pagar', 'Pagar'],
   ['aguardandoLink', 'Link a caminho'], ['pago', 'Pago'],
