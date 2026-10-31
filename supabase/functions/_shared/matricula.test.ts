@@ -12,6 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  contatoNoSponte,
   type DadosMatricula,
   executarMatricula,
   pagamentoConfirmado,
@@ -249,4 +250,19 @@ test("promoverMatricula usa a situação Cursando quando liberado", async () => 
   const { fetchImpl, chamadas } = fetchFalso({});
   await promoverMatricula(CRED, 777, { fetchImpl, simular: false });
   assert.deepEqual(chamadas, ["UpdateMatriculaV2"]);
+});
+
+test("contatoNoSponte usa o contato do responsável quando há um", () => {
+  // A régua do Sponte cobra pelo contato do aluno: com o do menor ali, o link
+  // ia para a criança (cadastro 566).
+  const menor: DadosMatricula = {
+    ...DADOS, dataNascimento: "2011-03-10",
+    responsavelNome: "Joana Souza", responsavelEmail: " joana@exemplo.com ",
+    responsavelCelular: "(31) 99999-1015",
+  };
+  assert.deepEqual(contatoNoSponte(menor), { email: "joana@exemplo.com", celular: "31999991015" });
+});
+
+test("contatoNoSponte usa o contato do próprio aluno sem responsável", () => {
+  assert.deepEqual(contatoNoSponte(DADOS), { email: "maria@exemplo.com", celular: "11987654321" });
 });

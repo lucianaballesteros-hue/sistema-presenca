@@ -505,7 +505,32 @@ function montarObservacao(d: DadosMatricula, teste: boolean): string {
   if (d.origemVenda?.trim()) {
     partes.push(`Indicação / como conheceu: ${d.origemVenda.trim()}`);
   }
+
+  // O contato do aluno menor sai dos campos próprios (ver contatoNoSponte),
+  // mas não some: fica aqui para a escola falar com ele sobre as aulas.
+  if (temResponsavel(d)) {
+    const proprio = [d.email?.trim(), d.celular ? soDigitos(d.celular) : ""].filter(Boolean);
+    if (proprio.length) partes.push(`Contato do aluno: ${proprio.join(" · ")}`);
+  }
   return partes.join(" | ");
+}
+
+const temResponsavel = (d: DadosMatricula) => !!d.responsavelNome?.trim();
+
+/**
+ * E-mail e celular gravados no cadastro do **aluno** no Sponte.
+ *
+ * A régua de cobrança do Sponte dispara para o contato do aluno, não para o do
+ * responsável financeiro. Com o contato do menor ali, o link de pagamento ia
+ * para o celular da criança, e não para quem paga (cadastro 566, 30/10/2026).
+ * Por isso, havendo responsável, os campos de contato do aluno levam os dele.
+ */
+export function contatoNoSponte(d: DadosMatricula): { email: string; celular: string } {
+  const r = temResponsavel(d);
+  return {
+    email: ((r ? d.responsavelEmail : d.email) ?? "").trim(),
+    celular: soDigitos((r ? d.responsavelCelular : d.celular) ?? ""),
+  };
 }
 
 /**
@@ -600,9 +625,10 @@ async function atualizarAlunoExistente(
     // Reenviados como estão: zerá-los deixaria a cobrança sem sacado.
     ["nResponsavelFinanceiroID", lido("ResponsavelFinanceiroID")],
     ["nResponsavelDidaticoID", lido("ResponsavelDidaticoID")],
-    ["sEmail", ou(d.email, "Email")],
+    // Com responsável, o contato dele: é para cá que a régua manda a cobrança.
+    ["sEmail", ou(contatoNoSponte(d).email, "Email")],
     ["sTelefone", soDigitos(ou(d.telefone, "Telefone"))],
-    ["sCelular", soDigitos(ou(d.celular, "Celular"))],
+    ["sCelular", soDigitos(ou(contatoNoSponte(d).celular, "Celular"))],
     ["sObservacao", montarObservacao(d, teste)],
     ["sSexo", ou(d.sexo, "Sexo")],
     ["sProfissao", ou(d.profissao, "Profissao")],
@@ -635,11 +661,12 @@ async function criarAluno(
       // dígitos, e 0 quando não houver — o texto original vai no complemento.
       ["nNumeroEndereco", soDigitos(d.numeroEndereco ?? "") || "0"],
       ["sComplementoEndereco", complementoComNumero(d)],
-      ["sEmail", d.email ?? ""],
+      // Com responsável, o contato dele: é para cá que a régua manda a cobrança.
+      ["sEmail", contatoNoSponte(d).email],
       ["sTelefone", d.telefone ? soDigitos(d.telefone) : ""],
       ["sCPF", soDigitos(d.cpf)],
       ["sRG", d.rg ?? ""],
-      ["sCelular", d.celular ? soDigitos(d.celular) : ""],
+      ["sCelular", contatoNoSponte(d).celular],
       ["sObservacao", montarObservacao(d, teste)],
       // ⚠️ O domínio de sSexo não é documentado (§10, pergunta 4). Mandamos o
       // que o formulário coletou; se a Sponte recusar, o erro aparece no retorno.
@@ -779,9 +806,9 @@ async function criarResponsavel(
       ["sRG", d.rg ?? ""],
       ["sCPFCNPJ", soDigitos(cpf)],
       ["sCidade", d.cidade ?? ""], ["sBairro", d.bairro ?? ""],
-      ["sEmail", (temResponsavel ? d.responsavelEmail : d.email) ?? ""],
+      ["sEmail", contatoNoSponte(d).email],
       ["sTelefone", ""],
-      ["sCelular", soDigitos((temResponsavel ? d.responsavelCelular : d.celular) ?? "")],
+      ["sCelular", contatoNoSponte(d).celular],
       ["nAlunoID", alunoId],
       ["lResponsavelFinanceiro", "true"],
       ["lResponsavelDidatico", "true"],
