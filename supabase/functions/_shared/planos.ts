@@ -128,7 +128,12 @@ export function arredondar(v: number): number {
 export function parsearPlanos(xmlInterno: string): PlanoCurso[] {
   if (lerRetornoOperacao(xmlInterno)?.codigo === RETORNO_SEM_REGISTROS) return [];
 
-  const blocos = xmlInterno.match(/<wsPlanoCurso>[\s\S]*?<\/wsPlanoCurso>/g) ?? [];
+  // O Sponte devolve um único <wsPlanoCurso> com todos os planos do curso
+  // dentro de <PlanosCursos><PlanoCurso>…. Ler só o envelope pegava apenas o
+  // primeiro plano — e em "Finanças Para Elas" o primeiro é um inativo de
+  // 2026, o que escondia o plano 2027 em vigor (caso real, 30/10/2026).
+  const aninhados = xmlInterno.match(/<PlanoCurso>[\s\S]*?<\/PlanoCurso>/g);
+  const blocos = aninhados ?? xmlInterno.match(/<wsPlanoCurso>[\s\S]*?<\/wsPlanoCurso>/g) ?? [];
 
   return blocos
     .map((b): PlanoCurso => {

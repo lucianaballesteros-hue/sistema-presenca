@@ -1444,13 +1444,17 @@ export async function tratar(
       const bolsas = await bolsasComCache();
 
       // Preço resolvido aqui, a partir dos ids: aceitar valor do navegador
-      // deixaria o contrato editável pelo DevTools.
+      // deixaria o contrato editável pelo DevTools. Plano desativado no Sponte
+      // não serve para link novo, mesmo que alguém mande o id dele.
       const plano = c.planoCursoId
-        ? planos.find((p) => p.planoCursoId === Number(c.planoCursoId)) ?? null
+        ? planos.find((p) => p.planoCursoId === Number(c.planoCursoId) && p.ativo) ?? null
         : planoPreferido(planos);
       const bolsa = c.bolsaId
         ? bolsas.find((b) => b.bolsaId === Number(c.bolsaId)) ?? null
         : null;
+      if (c.planoCursoId && !plano) {
+        return json({ erro: "Este plano não está ativo no Sponte. Recarregue a tela e escolha outro." }, 400);
+      }
 
       const link = await repo.criarLink({
         turmaId: Number(c.turmaId), cursoId,

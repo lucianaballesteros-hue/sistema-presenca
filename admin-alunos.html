@@ -821,7 +821,11 @@ async function carregarCondicoes(c) {
       fetch(`/api/sponte/planos?cursoId=${c.cursoId}`, { headers: Sessao.cabecalho() }),
       fetch('/api/sponte/bolsas', { headers: Sessao.cabecalho() }),
     ]);
-    estado.planos = (await rp.json()).planos || [];
+    const dp = await rp.json();
+    if (!rp.ok) throw new Error(dp.erro);
+    // Inativos ficam de fora, exceto o que o cadastro já tem: escondê-lo
+    // trocaria o plano do aluno sem ninguém pedir.
+    estado.planos = (dp.planos || []).filter(p => p.ativo || p.planoCursoId === c.planoCursoId);
     estado.bolsas = (await rb.json()).bolsas || [];
 
     if (!estado.planos.length) {
@@ -983,8 +987,10 @@ async function carregarPlanos() {
 
   $('n-plano').innerHTML = '<option value="">Carregando…</option>';
   try {
-    const d = await (await fetch(`/api/sponte/planos?cursoId=${t.cursoId}`, { headers: Sessao.cabecalho() })).json();
-    novo.planos = d.planos || [];
+    const r = await fetch(`/api/sponte/planos?cursoId=${t.cursoId}`, { headers: Sessao.cabecalho() });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro);
+    novo.planos = (d.planos || []).filter((p) => p.ativo);
     $('n-plano').innerHTML = novo.planos.map((p) =>
       `<option value="${p.planoCursoId}"${p.planoCursoId === d.preferidoId ? ' selected' : ''}>${
         escapar(p.descricao)} — ${brl(p.total)}</option>`).join('')
