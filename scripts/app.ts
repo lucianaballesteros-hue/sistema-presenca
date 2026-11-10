@@ -20,7 +20,7 @@ import {
   SponteError,
 } from "../supabase/functions/_shared/soap.ts";
 import {
-  dataBrParaIso, filtrarMatriculaveis, getTurmas, turmaEncerrada,
+  anoDaTurma, dataBrParaIso, filtrarMatriculaveis, getTurmas, turmaEncerrada,
 } from "../supabase/functions/_shared/turmas.ts";
 import {
   aplicarBolsa, type Bolsa, getBolsas, getPlanosCurso,
@@ -1283,14 +1283,20 @@ export async function tratar(
     if (rota === "/api/sponte/turmas") {
       const todas = await turmasComCache();
       const ano = url.searchParams.get("ano");
-      const anoLetivo = ano ? Number(ano) : undefined;
-      const turmas = url.searchParams.get("todas") === "1"
-        ? (anoLetivo ? todas.filter((t) => t.anoLetivo === anoLetivo) : todas)
-        : filtrarMatriculaveis(todas, { anoLetivo });
+      const anoFiltro = ano ? Number(ano) : undefined;
+      // O ano do filtro é o de `anoDaTurma`, não o `AnoLetivo` cru: no
+      // Sponte, turma que começa no ano seguinte costuma vir com o ano em
+      // que foi criada, e assim nunca aparecia no ano em que acontece.
+      const base = url.searchParams.get("todas") === "1"
+        ? todas
+        : filtrarMatriculaveis(todas);
+      const turmas = base
+        .map((t) => ({ ...t, ano: anoDaTurma(t) }))
+        .filter((t) => !anoFiltro || t.ano === anoFiltro);
 
       return json({
         turmas, total: turmas.length, totalGeral: todas.length,
-        anos: [...new Set(todas.map((t) => t.anoLetivo))].sort((a, b) => b - a),
+        anos: [...new Set(todas.map(anoDaTurma))].sort((a, b) => b - a),
         linksPorTurma: await repo.linksPorTurma(),
         // Quais já estão espelhadas nas outras duas. Vem tudo de uma vez: a
         // lista tem 49 turmas e perguntar uma por uma seria 49 idas ao banco.
