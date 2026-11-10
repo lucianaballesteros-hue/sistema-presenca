@@ -308,8 +308,39 @@ export class SponteWeb {
  * Geração do link de pagamento
  * ------------------------------------------------------------------ */
 
-const PAGINA_FATURAS = "SpFin/FaturasSpontePay.aspx";
+/**
+ * A tela de Geração de Link, **no modo embutido**.
+ *
+ * Em 10/11/2026 o Sponte passou a abrir o painel num aplicativo novo
+ * (`app.mf.sponteeducacional.net.br`) que carrega as telas antigas num
+ * iframe. Aberta direto, a página antiga redireciona para esse aplicativo,
+ * que devolve um HTML vazio montado por JavaScript — sem a grade. O iframe
+ * a abre com `embedded=true`, e com isso ela responde como sempre.
+ *
+ * Sem o parâmetro, toda geração falhava com "a parcela não aparece entre as
+ * que vencem em…": a grade não estava ali para ter parcela nenhuma. Foi o
+ * que aconteceu com todos os cadastros de 29/10 a 10/11/2026.
+ *
+ * O postback usa o mesmo caminho, então o parâmetro vale para os dois.
+ */
+const PAGINA_FATURAS = "SpFin/FaturasSpontePay.aspx?embedded=true";
 const ABA = "ctl00$ContentPlaceHolder1$tab$tabGeracao";
+
+/**
+ * Garante que a página que voltou é a tela de faturas.
+ *
+ * Sem isto, uma tela que mudou de lugar vira "parcela não encontrada", que
+ * manda conferir a data — e a data estava certa. Melhor dizer o que é.
+ */
+function exigirTelaDeFaturas(r: { html: string; url: string }): void {
+  if (!r.html.includes("tabGeracao")) {
+    throw new ErroSponteWeb(
+      `a tela de Geração de Link não carregou (veio ${r.url.slice(0, 120)}, ` +
+      `${r.html.length} bytes) — o Sponte pode ter mudado o endereço da página`,
+      "faturas",
+    );
+  }
+}
 
 /**
  * Uma linha da grade de faturas.
@@ -400,7 +431,9 @@ export function gerarLinkPagamento(
   };
 
   const inicial = await web.pagina(PAGINA_FATURAS);
+  exigirTelaDeFaturas(inicial);
   const filtrada = await web.postBack(PAGINA_FATURAS, inicial.html, `${ABA}$lnkFiltrar`, "", filtro);
+  exigirTelaDeFaturas(filtrada);
 
   const conta = String(alvo.contaReceberId);
   const parcela = String(alvo.numeroParcela);
@@ -487,7 +520,9 @@ export function cancelarLinkPagamento(
   };
 
   const inicial = await web.pagina(PAGINA_FATURAS);
+  exigirTelaDeFaturas(inicial);
   const filtrada = await web.postBack(PAGINA_FATURAS, inicial.html, `${ABA}$lnkFiltrar`, "", filtro);
+  exigirTelaDeFaturas(filtrada);
 
   const conta = String(alvo.contaReceberId);
   const parcela = String(alvo.numeroParcela);
