@@ -51,6 +51,12 @@ export interface Criterio {
 export interface DadosParaCobranca {
   sponteAlunoId: number | null;
   responsavelId: number | null;
+  /**
+   * Quem paga é o próprio aluno (maior de idade, sem responsável informado).
+   * Aí não existe responsável no Sponte, e isso é o certo — ver
+   * `precisaDeResponsavel` em `matricula.ts`.
+   */
+  proprioAlunoPaga?: boolean;
   contratoId: number | null;
   contaReceberId: number | null;
   email: string | null;
@@ -80,11 +86,15 @@ export function conferirCriterios(d: DadosParaCobranca): Criterio[] {
     !!d.sponteAlunoId && d.sponteAlunoId > 0,
     d.sponteAlunoId ? `AlunoID ${d.sponteAlunoId}` : "não criado");
 
-  // Sem sacado não há a quem cobrar: ResponsavelFinanceiroID fica 0 e nenhuma
-  // fatura pode ser emitida em nome do aluno.
+  // Menor sem responsável não tem a quem cobrar. Aluno maior paga por si:
+  // as matrículas de adulto feitas à mão têm ResponsavelFinanceiroID 0 e
+  // são cobradas normalmente (conferido em 10/11/2026: alunos 1040, 1047,
+  // 1058) — o sacado do plano é o próprio aluno.
   add("responsavel", "Responsável financeiro definido", "bloqueia",
-    !!d.responsavelId && d.responsavelId > 0,
-    d.responsavelId ? `ResponsavelID ${d.responsavelId}` : "sem sacado — a cobrança não tem destinatário");
+    (!!d.responsavelId && d.responsavelId > 0) || !!d.proprioAlunoPaga,
+    d.responsavelId ? `ResponsavelID ${d.responsavelId}`
+      : d.proprioAlunoPaga ? "o próprio aluno"
+      : "sem sacado — a cobrança não tem destinatário");
 
   add("contrato", "Matrícula com contrato vigente", "bloqueia",
     !!d.contratoId && d.contratoId > 0,

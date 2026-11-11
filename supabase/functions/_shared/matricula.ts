@@ -211,13 +211,14 @@ export type PassoMatricula =
   | "criar_taxa"
   | "criar_plano"
   | "criar_plano_demais"
+  | "ajustar_vencimentos"
   | "localizar_parcela"
   | "gerar_link";
 
 export const PASSOS: PassoMatricula[] = [
   "verificar_cpf", "criar_aluno", "criar_responsavel", "criar_matricula",
-  "criar_taxa", "criar_plano", "criar_plano_demais", "localizar_parcela",
-  "gerar_link",
+  "criar_taxa", "criar_plano", "criar_plano_demais", "ajustar_vencimentos",
+  "localizar_parcela", "gerar_link",
 ];
 
 /**
@@ -312,6 +313,13 @@ export interface ProgressoMatricula {
    * ou plano de parcela única.
    */
   planoDemaisCriado: boolean;
+  /**
+   * As parcelas 2 a N já foram movidas para o início do curso.
+   *
+   * Numa retomada volta como `false` e o passo roda de novo — inofensivo:
+   * ele só mexe no que ainda está fora da data.
+   */
+  vencimentosAjustados?: boolean;
   contaReceberId: number | null;
   numeroParcela: string | null;
   linkPagamento: string | null;
@@ -335,7 +343,7 @@ export function progressoVazio(): ProgressoMatricula {
     responsavelReusado: false,
     responsavelId: null, contaTaxaId: null, valorCobradoAgora: null,
     contratoId: null,
-    planoCriado: false, planoDemaisCriado: false,
+    planoCriado: false, planoDemaisCriado: false, vencimentosAjustados: false,
     contaReceberId: null, numeroParcela: null,
     linkPagamento: null, aguardandoFatura: false,
     ultimoPasso: null, erro: null, erroPasso: null,
@@ -785,6 +793,30 @@ async function buscarResponsavelPorCpf(
   return id && Number(id) > 0 ? Number(id) : null;
 }
 
+/**
+ * A matrícula precisa de um responsável financeiro separado do aluno?
+ *
+ * Só quando o cadastro informa **outra pessoa** — o caso do menor. Sem
+ * responsável informado, quem paga é o próprio aluno, e ele já está no
+ * Sponte: é o que a escola faz à mão com aluno maior de idade.
+ *
+ * Até 10/11/2026 o aluno maior ganhava um segundo cadastro, de
+ * responsável, com o **mesmo CPF** ("O próprio aluno"). Nas matrículas
+ * feitas assim o cartão recorrente do Sponte Pay não salvava: o Sponte
+ * recebia o cartão, respondia sucesso e não gravava — reproduzido duas
+ * vezes, com HAR. As manuais de adulto não têm responsável.
+ *
+ * Responsável informado com o CPF do próprio aluno conta como "sem
+ * responsável": seria a mesma duplicação.
+ */
+export function precisaDeResponsavel(
+  d: { cpf?: string | null; responsavelNome?: string | null; responsavelCpf?: string | null },
+): boolean {
+  if (!d.responsavelNome?.trim()) return false;
+  const doResp = soDigitos(d.responsavelCpf ?? "");
+  return !doResp || doResp !== soDigitos(d.cpf ?? "");
+}
+
 async function criarResponsavel(
   cred: CredenciaisSponte, d: DadosMatricula, alunoId: number, opc: OpcoesChamada, teste = false,
 ): Promise<number | null> {
@@ -995,20 +1027,37 @@ async function criarPlanoTaxa(
  * 2. **Turma futura, plano com taxa no Sponte** — a taxa é a cobrança de
  *    agora, com o valor que o plano define, e as N mensalidades esperam o
  *    curso.
- * 3. **Turma futura, plano sem taxa** — a cobrança de agora é uma parcela,
- *    lançada **como taxa de matrícula** porque é a única aba em que ela
- *    pode conviver com as mensalidades. As outras N-1 esperam o curso.
+ * 3. **Turma futura, plano sem taxa** — **um plano só**, com as N
+ *    mensalidades: a primeira vence agora e as outras N-1 são movidas,
+ *    depois de criadas, para o início do curso (`UpdateParcela`).
  *
- * O caso 3 troca o rótulo de uma parcela: o aluno paga o mesmo total, mas
- * a primeira cobrança aparece no ERP como "Taxa de matricula" e não como
- * mensalidade. Foi a forma de atender "paga a primeira agora e as demais
- * quando a turma começa" com o que o Sponte permite.
+ * O caso 3 já foi dois planos: a primeira parcela ia sozinha para a aba de
+ * taxa de matrícula. Desfeito em 10/11/2026 porque o cartão recorrente do
+ * Sponte Pay vale para a **conta a receber** do link — o aluno cadastrava o
+ * cartão e só a "taxa" virava recorrência, as mensalidades ficavam de fora,
+ * e o contrato enxergava só a aba de mensalidades. As matrículas que a
+ * escola faz à mão são um plano só, e nelas tudo vira recorrência.
  */
 export interface PlanoDeCobranca {
-  /** O que vence agora, na aba Taxa de matrícula. `null` = nada agora. */
+  /**
+   * Taxa de matrícula **do plano do Sponte**, em plano próprio. `null` =
+   * nenhuma — o caso de todos os planos da escola em 10/11/2026.
+   */
   agora: { valor: number; parcelas: number } | null;
-  /** As mensalidades. `parcelas` em zero significa que não há plano a criar. */
-  mensalidades: { parcelas: number; apartirDe: string | null };
+  /**
+   * As mensalidades, num plano só. `parcelas` em zero significa que não há
+   * plano a criar.
+   *
+   * `demaisAPartirDe` preenchido: a parcela 1 vence agora e as seguintes
+   * são movidas para esta data em diante, mês a mês.
+   */
+  mensalidades: {
+    parcelas: number;
+    apartirDe: string | null;
+    demaisAPartirDe?: string | null;
+  };
+  /** O que o aluno paga agora, quando é a primeira mensalidade adiantada. */
+  primeiraAgora?: number | null;
 }
 
 export function planejarCobranca(d: {
@@ -1040,12 +1089,48 @@ export function planejarCobranca(d: {
     return { agora: null, mensalidades: { parcelas: total, apartirDe: null } };
   }
 
-  // 3. Turma futura sem taxa: a primeira parcela vence agora, lançada na
-  //    aba de taxa para poder conviver com as demais.
+  // 3. Turma futura sem taxa: um plano só, a primeira vence agora e as
+  //    demais são movidas para o início do curso. Com uma parcela só, não
+  //    há o que mover.
   return {
-    agora: { valor: d.valorParcela, parcelas: 1 },
-    mensalidades: { parcelas: total - 1, apartirDe: inicio },
+    agora: null,
+    mensalidades: {
+      parcelas: total, apartirDe: null,
+      demaisAPartirDe: total > 1 ? inicio : null,
+    },
+    primeiraAgora: d.valorParcela,
   };
+}
+
+/**
+ * Os vencimentos das parcelas 2 a N quando a primeira é adiantada.
+ *
+ * A parcela 2 vence no início do curso e cada seguinte um mês depois, no
+ * mesmo dia — ou no último dia do mês, quando ele não existe (31/01 → 28/02).
+ * Sábado e domingo vão para a segunda, como o próprio `InsertPlano` faz.
+ * Feriado não é considerado (ver `somarDiasUteis`).
+ *
+ * Devolve `[numeroParcela, "aaaa-mm-dd"]`, a partir da parcela 2.
+ */
+export function vencimentosDasDemais(
+  inicio: string, parcelas: number,
+): Array<[number, string]> {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(inicio);
+  if (!m) return [];
+  const [ano, mes, dia] = [Number(m[1]), Number(m[2]) - 1, Number(m[3])];
+  const p = (n: number) => String(n).padStart(2, "0");
+
+  const saida: Array<[number, string]> = [];
+  for (let k = 2; k <= Math.trunc(parcelas); k++) {
+    const alvoMes = mes + (k - 2);
+    const ultimo = new Date(Date.UTC(ano, alvoMes + 1, 0)).getUTCDate();
+    const d = new Date(Date.UTC(ano, alvoMes, Math.min(dia, ultimo)));
+    const semana = d.getUTCDay();
+    if (semana === 6) d.setUTCDate(d.getUTCDate() + 2);
+    if (semana === 0) d.setUTCDate(d.getUTCDate() + 1);
+    saida.push([k, `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`]);
+  }
+  return saida;
 }
 
 /**
@@ -1190,6 +1275,120 @@ async function localizarParcela(
 }
 
 
+/** Uma parcela que precisa mudar de vencimento. */
+export interface AjusteVencimento {
+  contaReceberId: number;
+  numeroParcela: number;
+  /** `aaaa-mm-dd` */
+  vencimento: string;
+  /** O valor como o Sponte o devolveu (`636,18`), para regravar igual. */
+  valor: string;
+}
+
+/**
+ * Quais parcelas do plano de mensalidades ainda estão fora da data.
+ *
+ * O plano é a conta de mensalidade mais nova do aluno: num aluno que já
+ * existia, as contas antigas são de outras matrículas e não se tocam.
+ *
+ * Só devolve o que **difere** do esperado — é isso que deixa o passo ser
+ * repetido numa retomada sem efeito: o que já foi movido não é regravado.
+ * Parcela paga também fica de fora.
+ */
+export function ajustesDeVencimento(
+  xml: string, esperado: Array<[number, string]>,
+): AjusteVencimento[] {
+  const blocos = xml.match(/<wsParcela>[\s\S]*?<\/wsParcela>/g) ?? [];
+  const campo = (b: string, n: string) =>
+    (b.match(new RegExp(`<${n}>([\\s\\S]*?)</${n}>`))?.[1] ?? "").trim();
+
+  const mensalidades = blocos.filter((b) =>
+    Number(campo(b, "ContaReceberID")) > 0 &&
+    Number(campo(b, "CategoriaID")) === CATEGORIA.MENSALIDADE);
+  if (!mensalidades.length) return [];
+
+  const conta = Math.max(...mensalidades.map((b) => Number(campo(b, "ContaReceberID"))));
+  const doPlano = mensalidades.filter((b) => Number(campo(b, "ContaReceberID")) === conta);
+
+  const ajustes: AjusteVencimento[] = [];
+  for (const [numero, data] of esperado) {
+    const b = doPlano.find((x) => Number(campo(x, "NumeroParcela")) === numero);
+    if (!b || campo(b, "DataPagamento")) continue;
+    const [d, m, a] = campo(b, "Vencimento").split("/");
+    if (`${a}-${m}-${d}` === data) continue;
+    ajustes.push({
+      contaReceberId: conta, numeroParcela: numero, vencimento: data,
+      valor: campo(b, "ValorParcela"),
+    });
+  }
+  return ajustes;
+}
+
+/**
+ * Move as parcelas 2 a N para o início do curso, e confere.
+ *
+ * Regrava valor, forma e categoria **iguais** aos que o Sponte devolveu —
+ * o `UpdateParcela` pede todos, e mandar vazio poderia zerar algum. Depois
+ * relê: se alguma parcela não ficou com a data ou mudou de valor, para com
+ * erro em vez de seguir gerando link de um plano torto.
+ */
+async function ajustarVencimentos(
+  cred: CredenciaisSponte, alunoId: number,
+  d: { formaCobrancaId: number; bolsaId?: number | null },
+  esperado: Array<[number, string]>, opc: OpcoesChamada,
+): Promise<void> {
+  const ler = () => chamarSoap(
+    "GetParcelas",
+    [...credenciais(cred), ["sParametrosBusca", `AlunoID=${alunoId}`]],
+    opc,
+  );
+
+  const ajustes = ajustesDeVencimento(await ler(), esperado);
+  for (const a of ajustes) {
+    await chamarSoap(
+      "UpdateParcela",
+      [
+        ...credenciais(cred),
+        ["nContaReceberID", a.contaReceberId],
+        ["nNumeroParcela", a.numeroParcela],
+        // A mesma bolsa do `InsertPlano`: vazia poderia tirar o desconto.
+        ["nBolsaID", d.bolsaId ? String(d.bolsaId) : ""],
+        ["dDataVencimento", new Date(`${a.vencimento}T00:00:00`)],
+        ["nValor", a.valor],
+        ["nFormaCobrancaID", String(d.formaCobrancaId)],
+        ["nCategoriaID", String(CATEGORIA.MENSALIDADE)],
+        ["sObservacao", "Mensalidades do curso — cadastro online"],
+      ],
+      opc,
+    );
+  }
+  if (!ajustes.length) return;
+
+  const depois = await ler();
+  const faltam = ajustesDeVencimento(depois, esperado);
+  if (faltam.length) {
+    throw new SponteError(
+      "resposta_invalida", "UpdateParcela",
+      `o Sponte aceitou mover os vencimentos, mas ${faltam.length} parcela(s) ` +
+      `continuam fora da data (parcela ${faltam[0].numeroParcela}) — confira o plano no Sponte.`,
+    );
+  }
+  const valor = (xml: string, n: number) => {
+    const b = (xml.match(/<wsParcela>[\s\S]*?<\/wsParcela>/g) ?? []).find((x) =>
+      x.includes(`<ContaReceberID>${ajustes[0].contaReceberId}<`) &&
+      x.includes(`<NumeroParcela>${n}<`));
+    return b?.match(/<ValorParcela>([^<]*)</)?.[1]?.trim() ?? "";
+  };
+  const mudou = ajustes.find((a) => valor(depois, a.numeroParcela) !== a.valor);
+  if (mudou) {
+    throw new SponteError(
+      "resposta_invalida", "UpdateParcela",
+      `a parcela ${mudou.numeroParcela} mudou de valor ao mover o vencimento ` +
+      `(${mudou.valor} → ${valor(depois, mudou.numeroParcela)}) — confira no Sponte.`,
+    );
+  }
+}
+
 async function gerarLink(
   cred: CredenciaisSponte, contaReceberId: number, numeroParcela: string, opc: OpcoesChamada,
 ): Promise<string | null> {
@@ -1264,7 +1463,10 @@ export async function executarMatricula(
     p.ultimoPasso = "criar_aluno";
 
     // 3. Responsável financeiro (o sacado da cobrança)
-    if (p.responsavelId === null) {
+    //
+    // Só para quem informou outra pessoa como responsável. Sem isso, o
+    // sacado é o próprio aluno e nada é criado — ver `precisaDeResponsavel`.
+    if (p.responsavelId === null && precisaDeResponsavel(dados)) {
       p.responsavelId = simular
         ? -Math.floor(Math.random() * 90000 + 10000)
         // Procura antes de criar, pelo mesmo motivo do passo 1: quando o aluno
@@ -1306,6 +1508,10 @@ export async function executarMatricula(
           return await criarResponsavel(
             cred, dados, p.sponteAlunoId!, opc, marcarComoTeste);
         })();
+      p.ultimoPasso = "criar_responsavel";
+    } else if (!precisaDeResponsavel(dados)) {
+      // Nada a criar, mas o passo está concluído: uma falha adiante não pode
+      // ser atribuída a ele.
       p.ultimoPasso = "criar_responsavel";
     }
 
@@ -1350,6 +1556,7 @@ export async function executarMatricula(
       parcelasTaxa: dados.parcelasTaxa,
       inicioDasDemais: dados.inicioDasDemais,
     });
+    if (plano.primeiraAgora != null) p.valorCobradoAgora = plano.primeiraAgora;
 
     // 5a. O que o aluno paga agora — e que vai receber o link
     //
@@ -1408,6 +1615,21 @@ export async function executarMatricula(
       p.ultimoPasso = plano.mensalidades.apartirDe
         ? "criar_plano_demais"
         : "criar_plano";
+    }
+
+    // 5c. A primeira agora, as demais com o curso
+    //
+    // O `InsertPlano` espaça as parcelas mês a mês a partir de uma data só.
+    // Para a primeira vencer agora e as outras no início do curso, o plano
+    // nasce seguido e as parcelas 2 a N são movidas depois.
+    const demaisAPartirDe = plano.mensalidades.demaisAPartirDe;
+    if (demaisAPartirDe && !p.vencimentosAjustados) {
+      if (!simular) {
+        await ajustarVencimentos(cred, p.sponteAlunoId!, dados,
+          vencimentosDasDemais(demaisAPartirDe, plano.mensalidades.parcelas), opc);
+      }
+      p.vencimentosAjustados = true;
+      p.ultimoPasso = "ajustar_vencimentos";
     }
 
     // 6. Localizar a parcela
@@ -1538,6 +1760,7 @@ export const ROTULO_PASSO: Record<PassoMatricula, string> = {
   criar_taxa: "Lançando a taxa de matrícula",
   criar_plano: "Gerando o plano de pagamento",
   criar_plano_demais: "Agendando as mensalidades do curso",
+  ajustar_vencimentos: "Agendando as mensalidades do curso",
   localizar_parcela: "Localizando a cobrança",
   gerar_link: "Preparando o pagamento",
 };

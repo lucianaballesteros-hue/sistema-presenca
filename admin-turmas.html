@@ -470,7 +470,7 @@ function cardTurma(t) {
         </span>
       </div>
       <div class="turma-meta">
-        <span>📅 ${t.anoLetivo}</span>
+        <span>📅 ${t.ano ?? t.anoLetivo}</span>
         ${t.turno ? `<span>🕐 ${escapar(t.turno)}</span>` : ''}
         ${t.professorRegente
           ? `<span>👤 ${escapar(encurtar(t.professorRegente, 22))}</span>`
@@ -585,7 +585,7 @@ function montarDetalhe(d) {
         ${num('Turno', escapar(t?.turno || '—'))}
         ${num('Vagas', `${t?.vagasOcupadas ?? '—'}<small>/${t?.maxAlunos || '∞'}</small>`)}
         ${num('Situação', escapar(t?.situacao || '—'))}
-        ${num('Ano', t?.anoLetivo ?? '—')}
+        ${num('Ano', t?.ano ?? t?.anoLetivo ?? '—')}
       </div>
     </div>`;
 

@@ -260,6 +260,24 @@ export function turmaEncerrada(t: { situacao?: string | null }): boolean {
   return (t.situacao ?? "").trim().toLowerCase() === "encerrada";
 }
 
+/**
+ * O ano em que a turma aparece no filtro do painel.
+ *
+ * É o **maior** entre o ano letivo e o ano de início, e não o ano letivo
+ * sozinho. Em 10/11/2026 as 15 turmas que começam em 2027 (as "1/27")
+ * estavam no Sponte com `AnoLetivo` 2026: o campo é preenchido à mão e
+ * ficou com o ano em que a turma foi criada. Pelo ano letivo, 2027 nem
+ * aparecia na lista de anos.
+ *
+ * Não é o ano de início sozinho porque o caso inverso também existe: 22
+ * turmas com ano letivo 2026 começaram em 2025 e estão em andamento — o
+ * ano de início as tiraria de 2026. O maior dos dois acerta os dois casos.
+ */
+export function anoDaTurma(t: { anoLetivo: number; dataInicio?: string | null }): number {
+  const inicio = Number(t.dataInicio?.slice(0, 4));
+  return Number.isInteger(inicio) && inicio > t.anoLetivo ? inicio : t.anoLetivo;
+}
+
 export function filtrarMatriculaveis(
   turmas: TurmaSponte[],
   opcoes: { anoLetivo?: number; exigirVaga?: boolean } = {},

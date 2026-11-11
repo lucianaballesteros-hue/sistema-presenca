@@ -20,7 +20,7 @@ import {
   SponteError,
 } from "../supabase/functions/_shared/soap.ts";
 import {
-  dataBrParaIso, filtrarMatriculaveis, getTurmas, turmaEncerrada,
+  anoDaTurma, dataBrParaIso, filtrarMatriculaveis, getTurmas, turmaEncerrada,
 } from "../supabase/functions/_shared/turmas.ts";
 import {
   aplicarBolsa, type Bolsa, getBolsas, getPlanosCurso,
@@ -31,7 +31,7 @@ import {
   parcelasPermitidas,
 } from "../supabase/functions/_shared/pagamento.ts";
 import {
-  pagamentoConfirmado, type ProgressoMatricula,
+  pagamentoConfirmado, precisaDeResponsavel, type ProgressoMatricula,
 } from "../supabase/functions/_shared/matricula.ts";
 import {
   avaliarAlerta, type EstadoCobranca, resumirCriterios, verificarCobranca,
@@ -77,9 +77,14 @@ const BASE_URL = "http://interno";
  * mesmo projeto, e duas variáveis que precisam concordar acabam
  * discordando.
  */
-const URL_CHECKOUT = process.env.SUPABASE_URL
-  ? `${process.env.SUPABASE_URL}/functions/v1/sponte-checkout`
-  : null;
+const URL_CHECKOUT = process.env.SPONTE_CHECKOUT_URL?.trim()
+  // Só para desenvolvimento: aponta o servidor local para a função rodando
+  // na máquina (`deno run … supabase/functions/sponte-checkout/index.ts`).
+  // Sem isto, testar localmente exercita a função **publicada**, e não o
+  // código que acabou de mudar.
+  || (process.env.SUPABASE_URL
+    ? `${process.env.SUPABASE_URL}/functions/v1/sponte-checkout`
+    : null);
 
 /**
  * As credenciais do Sponte, resolvidas só quando alguém precisa delas.
@@ -349,7 +354,7 @@ async function barrarCheckout(
  */
 async function chamarCheckout(
   id: number,
-  quem: { autorizacao?: string; tokenFicha?: string; acao?: "promover" },
+  quem: { autorizacao?: string; tokenFicha?: string; acao?: "promover" | "cartao" },
 ): Promise<{ status: number; corpo: any }> {
   if (!URL_CHECKOUT) {
     return {
@@ -543,6 +548,7 @@ export async function verificarCobrancas() {
       criterios: resumirCriterios({
         sponteAlunoId: p.sponteAlunoId,
         responsavelId: p.responsavelId ?? null,
+        proprioAlunoPaga: !precisaDeResponsavel(c),
         contratoId: p.contratoId,
         contaReceberId: p.contaReceberId,
         // Canal e CPF são do sacado: com responsável, a cobrança é dele.
@@ -1283,14 +1289,20 @@ export async function tratar(
     if (rota === "/api/sponte/turmas") {
       const todas = await turmasComCache();
       const ano = url.searchParams.get("ano");
-      const anoLetivo = ano ? Number(ano) : undefined;
-      const turmas = url.searchParams.get("todas") === "1"
-        ? (anoLetivo ? todas.filter((t) => t.anoLetivo === anoLetivo) : todas)
-        : filtrarMatriculaveis(todas, { anoLetivo });
+      const anoFiltro = ano ? Number(ano) : undefined;
+      // O ano do filtro é o de `anoDaTurma`, não o `AnoLetivo` cru: no
+      // Sponte, turma que começa no ano seguinte costuma vir com o ano em
+      // que foi criada, e assim nunca aparecia no ano em que acontece.
+      const base = url.searchParams.get("todas") === "1"
+        ? todas
+        : filtrarMatriculaveis(todas);
+      const turmas = base
+        .map((t) => ({ ...t, ano: anoDaTurma(t) }))
+        .filter((t) => !anoFiltro || t.ano === anoFiltro);
 
       return json({
         turmas, total: turmas.length, totalGeral: todas.length,
-        anos: [...new Set(todas.map((t) => t.anoLetivo))].sort((a, b) => b - a),
+        anos: [...new Set(todas.map(anoDaTurma))].sort((a, b) => b - a),
         linksPorTurma: await repo.linksPorTurma(),
         // Quais já estão espelhadas nas outras duas. Vem tudo de uma vez: a
         // lista tem 49 turmas e perguntar uma por uma seria 49 idas ao banco.
@@ -1507,6 +1519,23 @@ export async function tratar(
      * — é sequencial, e o vizinho está a um número de distância. Quem
      * autoriza é o segredo que o envio devolveu, ou uma sessão de admin.
      */
+    /* --- Checkout: pagar com cartão de crédito (recorrente) --- *
+     *
+     * Antes da rota de baixo, que também casaria com este caminho. Mesma
+     * guarda e mesmo encaminhamento: quem escreve no Sponte é a função.
+     */
+    if (/^\/api\/checkout\/\d+\/cartao$/.test(rota) && req.method === "POST") {
+      const id = Number(rota.split("/")[3]);
+      if (await barrarCheckout(req, id)) return json(RECUSA_CHECKOUT, 404);
+      const r = await chamarCheckout(id, {
+        autorizacao: req.headers.authorization as string | undefined,
+        tokenFicha: ((req.headers["x-cadastro-token"] as string | undefined)
+          ?? url.searchParams.get("t") ?? "").trim(),
+        acao: "cartao",
+      });
+      return json(r.corpo, r.status);
+    }
+
     if (rota.startsWith("/api/checkout/") && req.method === "POST") {
       const id = Number(rota.split("/")[3]);
       if (await barrarCheckout(req, id)) return json(RECUSA_CHECKOUT, 404);

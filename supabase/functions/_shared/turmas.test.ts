@@ -12,6 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  anoDaTurma,
   dataBrParaIso,
   filtrarMatriculaveis,
   montarFiltroTurmas,
@@ -363,4 +364,24 @@ test("turma que começa no futuro é matriculável", () => {
     { ...TURMA_BASE, dataInicio: emDias(90), dataTermino: emDias(400) },
   ] as never);
   assert.equal(r.length, 1);
+});
+
+/* ------------------------------------------------------------------ *
+ * Ano da turma no filtro
+ * ------------------------------------------------------------------ */
+
+test("anoDaTurma: turma que começa no ano seguinte vai para o ano do início", () => {
+  // O caso real de 10/11/2026: as "1/27" com ano letivo 2026 no Sponte.
+  assert.equal(anoDaTurma({ anoLetivo: 2026, dataInicio: "2027-03-01" }), 2027);
+});
+
+test("anoDaTurma: turma em andamento fica no ano letivo", () => {
+  // Começou em 2025 e segue em 2026: o início não pode puxá-la para trás.
+  assert.equal(anoDaTurma({ anoLetivo: 2026, dataInicio: "2025-08-01" }), 2026);
+});
+
+test("anoDaTurma: sem data de início, vale o ano letivo", () => {
+  assert.equal(anoDaTurma({ anoLetivo: 2026, dataInicio: null }), 2026);
+  assert.equal(anoDaTurma({ anoLetivo: 2026 }), 2026);
+  assert.equal(anoDaTurma({ anoLetivo: 2026, dataInicio: "" }), 2026);
 });
