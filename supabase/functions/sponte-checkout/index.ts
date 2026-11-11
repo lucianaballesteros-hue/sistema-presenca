@@ -43,6 +43,7 @@ import { promoverMatricula } from "../_shared/matricula.ts";
 import { executarCheckout, type FichaParaCheckout } from "../_shared/checkout.ts";
 import { datasDaTurma as buscarDatasDaTurma } from "../_shared/turmas.ts";
 import { credenciaisWebDoAmbiente, SponteWeb } from "../_shared/sponte-web.ts";
+import { prepararPagamentoCartao } from "../_shared/cartao.ts";
 
 const env = { get: (c: string) => Deno.env.get(c) };
 
@@ -228,6 +229,22 @@ Deno.serve(async (req) => {
         // se perder porque a promoção falhou. Quem chamou grava o aviso.
         return respostaJson({ ok: false, promovido: false, erro: msg }, 200, cors);
       }
+    }
+
+    /* --- Pagar com cartão de crédito (recorrente) --- *
+     *
+     * Escolhe a recorrência na página da parcela e devolve o link do plano,
+     * que é onde o cartão de fato se cadastra. Tudo em `_shared/cartao.ts`.
+     */
+    if (corpo.acao === "cartao") {
+      const f = quem.ficha;
+      const r = await prepararPagamentoCartao({
+        id: cadastroId,
+        status: f.status ?? null,
+        pagamentoLink: f.pagamento_link ?? null,
+        contaReceberId: f.sponte_conta_receber_id ? Number(f.sponte_conta_receber_id) : null,
+      }, { web, escritaLiberada: ESCRITA_LIBERADA, registrar });
+      return respostaJson(r, r.ok ? 200 : 409, cors);
     }
 
     const r = await executarCheckout(paraFicha(quem.ficha), {

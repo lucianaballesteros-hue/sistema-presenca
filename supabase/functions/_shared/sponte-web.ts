@@ -223,6 +223,14 @@ export class SponteWeb {
     this.#logado = true;
   }
 
+  /**
+   * Abre uma página **pública** — a do Sponte Pay, que o aluno abre sem
+   * login. Guarda os cookies, para o postback seguinte ir na mesma sessão.
+   */
+  async abrirPublica(url: string): Promise<{ html: string; url: string }> {
+    return this.#pedir(url);
+  }
+
   /** Busca uma página já autenticado, entrando antes se preciso. */
   async pagina(caminho: string): Promise<{ html: string; url: string }> {
     if (!this.#logado) await this.entrar();
@@ -546,6 +554,124 @@ export function cancelarLinkPagamento(
     ? { ok: false, motivo: "o Sponte não cancelou o link" }
     : { ok: true };
   });
+}
+
+/* ------------------------------------------------------------------ *
+ * Cartão recorrente
+ *
+ * O cartão recorrente do Sponte Pay vale para o **plano inteiro**, e só se
+ * cadastra pela página do plano (`DetalhePlano.aspx`). Pela página da
+ * parcela (`SpontePay.aspx`, o link que o aluno recebe) o Sponte aceita o
+ * cartão, responde sucesso e não grava — reproduzido em 10/11/2026 em três
+ * fichas, com HAR. Pela página do plano, gravou na primeira tentativa.
+ *
+ * O link do plano só existe depois que o plano vira recorrência **do jeito
+ * do Sponte**: escolhendo "Cartão Recorrente" na página da parcela. Mudar a
+ * forma das parcelas por API não basta — o cabeçalho do plano continua em
+ * "Link de Pagamento", o cliente não é sincronizado com o Sponte Pay e o
+ * "Visualizar link" volta vazio (testado na conta 1855).
+ *
+ * Então são dois passos: escolher a recorrência na página pública, como o
+ * aluno faria, e pedir o link do plano na tela do ERP.
+ * ------------------------------------------------------------------ */
+
+export type EstadoPaginaPagamento =
+  | "escolher"      // Pix, boleto e cartão recorrente ainda disponíveis
+  | "recorrencia"   // já escolheram cartão recorrente
+  | "outra_forma"   // já escolheram Pix ou boleto — não muda sem link novo
+  | "pago"
+  | "indisponivel";
+
+/** Em que pé está a página de pagamento de uma parcela. */
+export function estadoPaginaPagamento(html: string): EstadoPaginaPagamento {
+  if (/Pagamento efetuado com sucesso/i.test(html)) return "pago";
+  if (/id="ER_btnCadastrarCartao"|Cartão atual|Cart&#227;o atual/.test(html)) return "recorrencia";
+  if (/id="E1_rbCartao"/.test(html)) return "escolher";
+  if (/n[ãa]o est[ãa]o dispon[íi]veis|n&#227;o est&#227;o dispon/i.test(html)) return "indisponivel";
+  return "outra_forma";
+}
+
+/** A mensagem de erro que a página mostra num toast, se houver. */
+function erroDaPagina(html: string): string | null {
+  const m = html.match(/ExibeMensagemErro\(\s*['"]([^'"]{3,300})['"]\s*\)/);
+  return m ? desescapar(m[1]) : null;
+}
+
+/**
+ * Escolhe "Cartão Recorrente" na página de pagamento da parcela.
+ *
+ * É o mesmo POST que o botão "Prosseguir" do aluno faz. Idempotente: se a
+ * recorrência já foi escolhida, não faz nada.
+ *
+ * ⚠️ É irreversível do lado do aluno: depois disso a página não oferece mais
+ * Pix nem boleto, a não ser com um link novo. Por isso só roda quando o
+ * aluno clica em "Pagar com cartão".
+ */
+export async function escolherCartaoRecorrente(
+  urlPagamento: string,
+): Promise<{ ok: true; jaEstava: boolean } | { ok: false; estado: EstadoPaginaPagamento; motivo: string }> {
+  // Sessão própria e sem login: é a página pública, e misturá-la com a
+  // sessão do ERP não ganha nada.
+  const pub = new SponteWeb({ login: "", senha: "" });
+  const pagina = await pub.abrirPublica(urlPagamento);
+  const antes = estadoPaginaPagamento(pagina.html);
+
+  if (antes === "recorrencia") return { ok: true, jaEstava: true };
+  if (antes !== "escolher") {
+    return {
+      ok: false, estado: antes,
+      motivo: antes === "pago" ? "a parcela já foi paga"
+        : antes === "outra_forma" ? "já foi escolhido Pix ou boleto neste link"
+        : "a página de pagamento não está disponível",
+    };
+  }
+
+  const r = await pub.postBack(pagina.url, pagina.html, "E1_btnSalvaFormaPagamento", "", {
+    FormaPagamento: "E1_rbCartao",
+  });
+  const depois = estadoPaginaPagamento(r.html);
+  if (depois === "recorrencia") return { ok: true, jaEstava: false };
+
+  return {
+    ok: false, estado: depois,
+    // O caso conhecido: "Para pagamentos por Cartão Recorrente, a data de
+    // vencimento deve ser posterior à data atual" (19h no dia do vencimento).
+    motivo: erroDaPagina(r.html) ?? "o Sponte não aceitou a escolha do cartão recorrente",
+  };
+}
+
+/**
+ * O link do plano, onde o aluno cadastra o cartão recorrente.
+ *
+ * Vem do botão "Visualizar link" da aba Recorrência, em Editar Plano. O
+ * botão só **mostra** o link — os vizinhos (e-mail, SMS, WhatsApp) é que
+ * enviam, e esses não são tocados.
+ *
+ * `null` quando o Sponte não gera: o plano ainda não está em recorrência.
+ */
+export function linkDoPlano(web: SponteWeb, contaReceberId: number): Promise<string | null> {
+  return web.emFila(async () => {
+    const caminho = `SpFin/ContaReceberCadastro.aspx?id=${contaReceberId}&embedded=true`;
+    const inicial = await web.pagina(caminho);
+    if (!inicial.html.includes("btnSolicitarCartaoLinkStone")) {
+      throw new ErroSponteWeb(
+        `a tela do plano ${contaReceberId} não trouxe o botão "Visualizar link" — ` +
+        `o Sponte pode ter mudado a tela`,
+        "plano",
+      );
+    }
+    const r = await web.postBack(caminho, inicial.html, "tab$TabRecorrencia$btnSolicitarCartaoLinkStone");
+    const bruto = r.html.match(
+      /id="tab_TabRecorrencia_txtLinkAtualizaDadosCartao"[^>]*>([^<]*)</)?.[1] ?? "";
+    const link = desescapar(bruto).trim();
+    return linkDoPlanoValido(link, contaReceberId) ? link : null;
+  });
+}
+
+/** O link é do plano pedido? Evita entregar ao aluno o plano de outro. */
+export function linkDoPlanoValido(link: string, contaReceberId: number): boolean {
+  return /^https:\/\/www\.sponteeducacional\.net\.br\/DetalhePlano\.aspx\?hash=[0-9A-Za-z]+-\d+$/.test(link)
+    && link.endsWith(`-${contaReceberId}`);
 }
 
 /* ------------------------------------------------------------------ *
