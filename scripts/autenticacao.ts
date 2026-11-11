@@ -142,9 +142,10 @@ const PUBLICAS: Array<{ metodo: string; padrao: RegExp }> = [
   // envio — está anotado para quando o formulário for ao ar.
   { metodo: "POST", padrao: /^\/api\/checkout\/\d+$/ },
   { metodo: "GET", padrao: /^\/api\/checkout\/\d+$/ },
-  // "Pagar com cartão": a mesma guarda do checkout (`barrarCheckout`, com o
-  // segredo da ficha), e a função confere de novo antes de tocar o Sponte.
-  { metodo: "POST", padrao: /^\/api\/checkout\/\d+\/cartao$/ },
+  // Os botões de pagamento (cartão, Pix, boleto): a mesma guarda do
+  // checkout (`barrarCheckout`, com o segredo da ficha), e a função confere
+  // de novo antes de tocar o Sponte.
+  { metodo: "POST", padrao: /^\/api\/checkout\/\d+\/(cartao|pix|boleto)$/ },
   // O aviso de "ambiente de teste" que o formulário mostra no rodapé.
   { metodo: "GET", padrao: /^\/api\/estado$/ },
   // A tela de login precisa desta antes de existir login. Devolve só a URL

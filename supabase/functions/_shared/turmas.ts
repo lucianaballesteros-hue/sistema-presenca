@@ -211,8 +211,12 @@ export async function datasDaTurma(
 ): Promise<{ inicio: string | null; termino: string | null }> {
   if (!turmaId) return { inicio: null, termino: null };
 
-  const todas = await getTurmas(cred, {}, opcoes);
-  const t = todas.find((x) => x.turmaId === turmaId);
+  // Só a turma pedida: 0,16 s, contra até 0,8 s para baixar as 192 e
+  // procurar (medido em 11/11/2026). Se o filtro não a trouxer, cai na
+  // busca completa — a data errada aqui faz o aluno pagar antes da hora.
+  const porId = await getTurmas(cred, { TurmaID: turmaId }, opcoes).catch(() => []);
+  const t = porId.find((x) => x.turmaId === turmaId)
+    ?? (await getTurmas(cred, {}, opcoes)).find((x) => x.turmaId === turmaId);
   return { inicio: t?.dataInicio ?? null, termino: t?.dataTermino ?? null };
 }
 

@@ -233,6 +233,12 @@ export async function executarCheckout(
   d: DependenciasCheckout,
 ): Promise<ResultadoCheckout> {
   const id = c.id;
+  // Quanto cada fase levou, em ms desde o início. Vai para a auditoria no
+  // fim: o aluno espera ~20 s nesta tela, e sem isto não dá para saber
+  // onde cortar (11/11/2026: ~5 s não apareciam em registro nenhum).
+  const t0 = Date.now();
+  const tempos: Record<string, number> = {};
+  const marca = (fase: string) => { tempos[fase] = Date.now() - t0; };
 
   // Esta ficha deveria mesmo ir para o Sponte? Repetir um checkout já
   // feito é inofensivo (cai no `jaExistia` abaixo), mas uma ficha
@@ -265,7 +271,17 @@ export async function executarCheckout(
   // A cobrança no Sponte vai SEMPRE em "Link de Pagamento Sponte Pay": é a
   // única forma que a tela de geração enxerga. Pix, cartão ou boleto o
   // aluno escolhe na página do Sponte Pay.
-  const todas = await getFormasCobranca(d.cred, { timeoutMs: 60_000 });
+  // O login no ERP (~2,5 s) só é usado no fim, para gerar o link. Começa
+  // agora e corre junto com a matrícula: quando a tela abrir, a sessão já
+  // existe. Não lança — falhando, o login é refeito no uso.
+  if (d.escritaLiberada) void d.web?.aquecer();
+
+  // Independentes entre si: em paralelo.
+  const iniciouEm = Date.now();
+  const [todas, turma] = await Promise.all([
+    getFormasCobranca(d.cred, { timeoutMs: 60_000 }),
+    d.datasDaTurma(c.turmaId),
+  ]);
   const forma = formaParaLink(todas);
   if (!forma) {
     return {
@@ -275,8 +291,6 @@ export async function executarCheckout(
   }
   const formaCobrancaId = forma.formaCobrancaId;
 
-  const iniciouEm = Date.now();
-  const turma = await d.datasDaTurma(c.turmaId);
   const turmaDataTermino = turma.termino;
 
   // Como as mensalidades se distribuem no tempo.
@@ -293,6 +307,7 @@ export async function executarCheckout(
   const inicioDasDemais = inicioDasDemaisMensalidades(
     turma.inicio, new Date(), c.cobrancaModo);
 
+  marca("leituras");
   const p = await executarMatricula(
     d.cred,
     {
@@ -392,12 +407,14 @@ export async function executarCheckout(
   let linkPagamento = p.linkPagamento;
   if (!linkPagamento && p.contaReceberId && d.web) {
     try {
+      marca("matricula");
       const estado = await verificarCobranca(
         d.cred, p.sponteAlunoId!, p.contaReceberId, p.numeroParcela ?? "1",
         { timeoutMs: 90_000 },
       );
       linkPagamento = estado.linkPagamento;
 
+      marca("verificarCobranca");
       if (!linkPagamento && estado.vencimento) {
         const t0 = Date.now();
         const g = await gerarLinkPagamento(d.web, {
@@ -405,6 +422,7 @@ export async function executarCheckout(
           numeroParcela: p.numeroParcela ?? "1",
           vencimento: estado.vencimento,
         });
+        marca("gerarLink");
 
         // Um link é uma cobrança: fica registrado quem nasceu, quando e
         // com que número, mesmo quando o Sponte recusa.
@@ -434,6 +452,7 @@ export async function executarCheckout(
   // anterior, ele volta a contar. Senão o link passaria a valer um
   // cadastro a mais do que diz.
   await d.reconsumirUsoDoLink(id);
+  marca("reconsumirUso");
 
   campos.sponte_erro = null;
   campos.status = "enviado";
@@ -446,6 +465,11 @@ export async function executarCheckout(
   if (linkPagamento) campos.pagamento_link_gerado_em = new Date().toISOString();
 
   await d.atualizar(id, campos);
+  marca("gravarFicha");
+  d.registrar({
+    tipo: "sponte", operacao: "checkout (tempos)", cadastroId: id, ok: true,
+    duracaoMs: Date.now() - t0, detalhe: tempos,
+  });
 
   return {
     ok: true,
