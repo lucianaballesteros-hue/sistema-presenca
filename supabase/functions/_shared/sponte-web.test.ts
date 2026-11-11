@@ -113,3 +113,48 @@ test("link do plano: só aceita o do plano pedido", () => {
   assert.equal(linkDoPlanoValido("", 1856), false);
   assert.equal(linkDoPlanoValido(`https://exemplo.com/DetalhePlano.aspx?hash=abc-1856`, 1856), false);
 });
+
+/* ------------------------------------------------------------------ *
+ * Login compartilhado
+ * ------------------------------------------------------------------ */
+
+/** Sponte falso para o login: conta quantas vezes a senha foi enviada. */
+function loginFalso() {
+  let logins = 0;
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+    await espera(20);
+    if (init?.method === "POST" && String(init.body).includes("txtSenha")) {
+      logins++;
+      return new Response("<html>painel</html>", { status: 200 });
+    }
+    // Página interna, já logado: conteúdo comum.
+    if (!String(_url).includes("default.aspx")) return new Response("<html>tela</html>", { status: 200 });
+    // A página de login, com o que `entrar` exige.
+    return new Response(
+      '<form><input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="ev" />' +
+      '<input name="txtLogin" /><input name="txtSenha" type="password" />' +
+      '<input type="submit" name="btnEntrar" value="Acessar" /></form>', { status: 200 });
+  }) as typeof fetch;
+  return { logins: () => logins, restaurar: () => { globalThis.fetch = original; } };
+}
+
+test("login adiantado e uso ao mesmo tempo viram um login só", async () => {
+  // O checkout chama `aquecer` no começo; se a tela abrir antes de o login
+  // terminar, ela espera o mesmo em vez de fazer outro.
+  const f = loginFalso();
+  try {
+    const web = nova();
+    await Promise.all([web.aquecer(), web.entrar(), web.pagina("SpFin/X.aspx")]);
+    assert.equal(f.logins(), 1);
+    assert.equal(web.autenticado, true);
+  } finally { f.restaurar(); }
+});
+
+test("aquecer não lança quando o login falha", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () => { throw new Error("sem rede"); }) as typeof fetch;
+  try {
+    await nova().aquecer();   // não pode derrubar o checkout
+  } finally { globalThis.fetch = original; }
+});

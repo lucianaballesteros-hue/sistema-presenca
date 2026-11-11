@@ -253,8 +253,6 @@ form{text-align:left;}
 .btn-pagar:hover{background:var(--primary-hover);}
 .btn-pagar:active{transform:scale(.97);}
 .btn-pagar[disabled]{opacity:.6;cursor:wait;}
-.btn-pagar.secundario{background:transparent;color:var(--primary);border:1.5px solid var(--primary);}
-.btn-pagar.secundario:hover{background:var(--primary-soft, rgba(0,0,0,.04));}
 .pagar-nota{font-size:11.5px;color:var(--muted, #667);margin:6px 2px 10px;line-height:1.45;text-align:left;}
 .pagar-erro{font-size:12px;color:var(--red, #c0392b);margin:6px 2px 0;text-align:left;}
 .aviso-simulado{
@@ -821,15 +819,7 @@ const estados = {
           desligada nesta preview, então o link abaixo não é um pagamento real.
         </div>` : ''}
 
-      <button type="button" class="btn-pagar" id="pagar-cartao">💳 Pagar com cartão de crédito</button>
-      <p class="pagar-nota">No cartão a cobrança é recorrente: você cadastra o
-      cartão uma vez e as parcelas seguintes são cobradas nele, cada uma no
-      seu vencimento.</p>
-      <p class="pagar-erro" id="pagar-cartao-erro" hidden></p>
-
-      <a class="btn-pagar secundario" id="pagar-pix" href="${escapar(estadoCheckout.link || '#')}" target="_blank" rel="noopener noreferrer">
-        Pagar com Pix ou boleto
-      </a>
+      ${botoesPagamento()}
 
       ${linhaMensalidades()}
 
@@ -1469,63 +1459,125 @@ function acompanharLink() {
 }
 
 /**
- * "Pagar com cartão de crédito".
+ * Os botões de pagamento: cartão, Pix e boleto.
  *
- * O cartão recorrente só se cadastra na página do **plano** do Sponte, não
- * na da parcela (o link de Pix e boleto): por ali o Sponte aceita o cartão
- * e não grava. O servidor escolhe a recorrência e devolve o link do plano.
+ * O link do Sponte é o da **parcela**, onde o aluno escolheria a forma. O
+ * servidor faz essa escolha por ele e devolve para onde ir:
+ *
+ * - **Cartão** vira recorrência no **plano inteiro** e abre a página do
+ *   plano — a única onde o cartão de fato grava (pela da parcela, o Sponte
+ *   aceita e descarta).
+ * - **Pix / boleto** valem para **esta** cobrança e abrem a página da
+ *   parcela já no QR Code ou no boleto. As seguintes chegam pela régua.
+ *
+ * Escolhida uma forma, o Sponte não volta atrás sem um link novo. Por isso
+ * a tela passa a mostrar só ela.
  *
  * A aba nova abre já no clique: aberta depois do `await`, o navegador a
  * trata como pop-up e bloqueia.
  */
-function ligarPagarCartao() {
-  const b = $('pagar-cartao');
-  if (!b) return;
-  const erro = $('pagar-cartao-erro');
-  const rotulo = b.textContent;
+const FORMAS_PAGAMENTO = {
+  cartao: {
+    botao: 'Pagar com cartão de crédito', reabrir: 'Cadastrar o cartão',
+    nota: 'Cobrança recorrente: você cadastra o cartão uma vez e cada parcela é cobrada nele no seu vencimento. Escolhendo cartão, Pix e boleto deixam de valer para esta matrícula.',
+    preparando: 'Preparando o cadastro do cartão',
+  },
+  pix: {
+    botao: 'Pagar com Pix', reabrir: 'Abrir o Pix',
+    nota: 'Vale para esta cobrança. As próximas parcelas chegam por mensagem, cada uma no seu vencimento.',
+    preparando: 'Gerando o Pix',
+  },
+  boleto: {
+    botao: 'Pagar com boleto', reabrir: 'Abrir o boleto',
+    nota: 'Vale para esta cobrança. As próximas parcelas chegam por mensagem, cada uma no seu vencimento.',
+    preparando: 'Gerando o boleto',
+  },
+};
 
-  b.addEventListener('click', async () => {
-    if (estadoCheckout.linkCartao) { window.open(estadoCheckout.linkCartao, '_blank', 'noopener'); return; }
-    if (estadoCheckout.simulado) {
-      erro.hidden = false;
-      erro.textContent = 'Simulação: nesta preview não há pagamento real.';
-      return;
-    }
-    const aba = window.open('', '_blank');
-    b.disabled = true;
-    b.textContent = 'Preparando o cadastro do cartão…';
-    erro.hidden = true;
-    try {
-      const r = await fetch(`${urlCheckout()}/cartao`, { method: 'POST', headers: cabecalhoCheckout() });
-      const d = await r.json();
-      if (!d.ok || !d.link) throw new Error(mensagemCartao(d));
-      estadoCheckout.linkCartao = d.link;
-      if (aba) aba.location.href = d.link; else window.location.href = d.link;
-    } catch (e) {
-      if (aba) aba.close();
-      erro.hidden = false;
-      erro.textContent = e.message || 'Não foi possível abrir o pagamento com cartão. Tente de novo.';
-    } finally {
-      b.disabled = false;
-      b.textContent = rotulo;
-    }
+function botoesPagamento() {
+  const escolhida = estadoCheckout.formaEscolhida;
+  const formas = escolhida ? [escolhida] : ['cartao', 'pix', 'boleto'];
+  // Os três com o mesmo peso: nenhuma forma é a "recomendada".
+  return formas.map((f) => {
+    const cfg = FORMAS_PAGAMENTO[f];
+    return `<button type="button" class="btn-pagar" data-forma="${f}">${escolhida ? cfg.reabrir : cfg.botao}</button>
+      <p class="pagar-nota">${cfg.nota}</p>`;
+  }).join('') + '<p class="pagar-erro" id="pagar-erro" hidden></p>';
+}
+
+/** Tela de espera na aba nova: sem ela fica "about:blank" e parece travada. */
+function telaDeEspera(aba, titulo) {
+  try {
+    aba.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Preparando o pagamento…</title>
+      <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0b1120;color:#e2e8f0;text-align:center;padding:24px}
+      .s{width:34px;height:34px;border:3px solid #334155;border-top-color:#22c55e;border-radius:50%;
+      animation:g .7s linear infinite;margin:0 auto 18px}@keyframes g{to{transform:rotate(360deg)}}
+      p{color:#94a3b8;font-size:14px;margin:6px 0 0}</style></head>
+      <body><div><div class="s"></div><h2 style="margin:0;font-size:19px">${titulo}</h2>
+      <p>Isso leva alguns segundos. Não feche esta aba.</p></div></body></html>`);
+    aba.document.close();
+  } catch { /* sem a tela de espera, segue igual */ }
+}
+
+function ligarBotoesPagamento() {
+  const erro = $('pagar-erro');
+  document.querySelectorAll('[data-forma]').forEach((b) => {
+    const forma = b.dataset.forma;
+    const cfg = FORMAS_PAGAMENTO[forma];
+    const rotulo = b.textContent;
+
+    b.addEventListener('click', async () => {
+      if (estadoCheckout.linkEscolhido && estadoCheckout.formaEscolhida === forma) {
+        window.open(estadoCheckout.linkEscolhido, '_blank', 'noopener');
+        return;
+      }
+      if (estadoCheckout.simulado) {
+        erro.hidden = false;
+        erro.textContent = 'Simulação: nesta preview não há pagamento real.';
+        return;
+      }
+      const aba = window.open('', '_blank');
+      if (aba) telaDeEspera(aba, cfg.preparando);
+      document.querySelectorAll('[data-forma]').forEach((x) => { x.disabled = true; });
+      b.textContent = `${cfg.preparando}…`;
+      erro.hidden = true;
+      try {
+        const r = await fetch(`${urlCheckout()}/${forma}`, { method: 'POST', headers: cabecalhoCheckout() });
+        const d = await r.json();
+        if (!d.ok || !d.link) throw new Error(mensagemPagamento(d));
+        estadoCheckout.formaEscolhida = forma;
+        estadoCheckout.linkEscolhido = d.link;
+        if (aba) aba.location.href = d.link; else window.location.href = d.link;
+        mostrar('pagar');   // passa a mostrar só a forma escolhida
+      } catch (e) {
+        if (aba) aba.close();
+        erro.hidden = false;
+        erro.textContent = e.message || 'Não foi possível abrir o pagamento. Tente de novo.';
+        document.querySelectorAll('[data-forma]').forEach((x) => { x.disabled = false; });
+        b.textContent = rotulo;
+      }
+    });
   });
 }
 
-/** O que dizer ao aluno quando o cartão não pôde ser preparado. */
-function mensagemCartao(d) {
+/** O que dizer ao aluno quando a forma não pôde ser preparada. */
+function mensagemPagamento(d) {
   switch (d && d.motivo) {
-    case 'outra_forma': return 'Neste link já foi escolhido Pix ou boleto. Use o botão "Pagar com Pix ou boleto" ou fale com a escola.';
+    case 'outra_forma': return 'Neste pagamento já foi escolhido Pix ou boleto. Para mudar, fale com a escola.';
+    case 'recorrencia': return 'Neste pagamento já foi escolhido cartão. Use o botão do cartão, ou fale com a escola para mudar.';
     case 'pago': return 'Este pagamento já foi feito.';
-    // O Sponte recusou a recorrência; a mensagem dele (quase sempre a do
+    // O Sponte recusou; a mensagem dele (no cartão, quase sempre a do
     // vencimento) é clara o bastante para o aluno.
-    case 'escolher': return `${d.erro || 'O cartão não pôde ser usado agora.'} Use Pix ou boleto, ou fale com a escola.`;
-    default: return 'Não foi possível abrir o pagamento com cartão agora. Tente de novo em instantes.';
+    case 'escolher': return `${d.erro || 'Esta forma não pôde ser usada agora.'} Tente outra forma ou fale com a escola.`;
+    default: return 'Não foi possível abrir o pagamento agora. Tente de novo em instantes.';
   }
 }
 
 function ligarTelaPagamento() {
-  ligarPagarCartao();
+  ligarBotoesPagamento();
   const v = $('ja-paguei');
   if (!v) return;
   v.addEventListener('click', async (e) => {

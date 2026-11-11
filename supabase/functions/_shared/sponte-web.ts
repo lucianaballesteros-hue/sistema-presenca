@@ -83,6 +83,8 @@ export class SponteWeb {
   /** Cookies de sessão, acumulados entre as requisições. */
   #cookies = new Map<string, string>();
   #logado = false;
+  /** Login em andamento: quem chegar no meio espera o mesmo. */
+  #entrando: Promise<void> | null = null;
   /** Fim da última operação enfileirada. Ver `emFila`. */
   #fila: Promise<unknown> = Promise.resolve();
 
@@ -159,7 +161,26 @@ export class SponteWeb {
    * Sucesso é reconhecido por **sair** da página de login, não por um texto
    * específico: a mensagem de boas-vindas muda, a ausência do formulário não.
    */
-  async entrar(): Promise<void> {
+  entrar(): Promise<void> {
+    // Dois logins simultâneos na mesma sessão disputariam os cookies; e o
+    // checkout adianta o login enquanto a matrícula corre (`aquecer`).
+    this.#entrando ??= this.#fazerLogin().finally(() => { this.#entrando = null; });
+    return this.#entrando;
+  }
+
+  /**
+   * Faz o login agora, se ainda não houver sessão, sem lançar.
+   *
+   * O login custa ~2,5 s. O checkout chama isto no começo, em paralelo com
+   * a matrícula, e quando a tela de geração de link abre a sessão já existe.
+   * Falhando aqui, o login é refeito no uso — e lá o erro aparece.
+   */
+  aquecer(): Promise<void> {
+    if (this.#logado) return Promise.resolve();
+    return this.entrar().catch(() => {});
+  }
+
+  async #fazerLogin(): Promise<void> {
     const { html } = await this.#pedir("default.aspx");
     const estado = lerEstado(html);
 
@@ -233,6 +254,7 @@ export class SponteWeb {
 
   /** Busca uma página já autenticado, entrando antes se preciso. */
   async pagina(caminho: string): Promise<{ html: string; url: string }> {
+    if (this.#entrando) await this.#entrando.catch(() => {});
     if (!this.#logado) await this.entrar();
     const r = await this.#pedir(caminho);
 
@@ -597,47 +619,73 @@ function erroDaPagina(html: string): string | null {
   return m ? desescapar(m[1]) : null;
 }
 
+export type FormaEscolhida = "cartao" | "pix" | "boleto";
+
+/** O botão de rádio da página do Sponte Pay para cada forma. */
+const RADIO_DA_FORMA: Record<FormaEscolhida, string> = {
+  cartao: "E1_rbCartao", pix: "E1_rbPix", boleto: "E1_rbBoleto",
+};
+
+export type ResultadoEscolha =
+  | { ok: true; jaEstava: boolean }
+  | { ok: false; estado: EstadoPaginaPagamento; motivo: string };
+
 /**
- * Escolhe "Cartão Recorrente" na página de pagamento da parcela.
+ * Escolhe a forma de pagamento na página da parcela, como o aluno faria.
  *
- * É o mesmo POST que o botão "Prosseguir" do aluno faz. Idempotente: se a
- * recorrência já foi escolhida, não faz nada.
+ * É o mesmo POST do botão "Prosseguir". Idempotente: se a forma já está
+ * escolhida, não faz nada.
  *
- * ⚠️ É irreversível do lado do aluno: depois disso a página não oferece mais
- * Pix nem boleto, a não ser com um link novo. Por isso só roda quando o
- * aluno clica em "Pagar com cartão".
+ * ⚠️ É irreversível do lado do aluno: escolhida a forma, a página não
+ * oferece mais as outras, a não ser com um link novo. Por isso só roda
+ * quando o aluno clica no botão daquela forma.
+ *
+ * Cartão vale para o plano inteiro (vira recorrência). Pix e boleto valem
+ * para esta parcela: as seguintes chegam pela régua do Sponte, cada uma
+ * com a sua escolha.
+ *
+ * A página não distingue, para nós, Pix de boleto já escolhidos — os dois
+ * caem em `outra_forma`. Se um já foi escolhido, pedir o outro devolve
+ * `jaEstava` e abre o que existe; a tela não deixa chegar a isso.
  */
-export async function escolherCartaoRecorrente(
-  urlPagamento: string,
-): Promise<{ ok: true; jaEstava: boolean } | { ok: false; estado: EstadoPaginaPagamento; motivo: string }> {
+export async function escolherFormaPagamento(
+  urlPagamento: string, forma: FormaEscolhida,
+): Promise<ResultadoEscolha> {
   // Sessão própria e sem login: é a página pública, e misturá-la com a
   // sessão do ERP não ganha nada.
   const pub = new SponteWeb({ login: "", senha: "" });
   const pagina = await pub.abrirPublica(urlPagamento);
   const antes = estadoPaginaPagamento(pagina.html);
+  const alvo: EstadoPaginaPagamento = forma === "cartao" ? "recorrencia" : "outra_forma";
 
-  if (antes === "recorrencia") return { ok: true, jaEstava: true };
+  if (antes === alvo) return { ok: true, jaEstava: true };
   if (antes !== "escolher") {
     return {
       ok: false, estado: antes,
       motivo: antes === "pago" ? "a parcela já foi paga"
+        : antes === "recorrencia" ? "já foi escolhido cartão recorrente neste link"
         : antes === "outra_forma" ? "já foi escolhido Pix ou boleto neste link"
         : "a página de pagamento não está disponível",
     };
   }
 
   const r = await pub.postBack(pagina.url, pagina.html, "E1_btnSalvaFormaPagamento", "", {
-    FormaPagamento: "E1_rbCartao",
+    FormaPagamento: RADIO_DA_FORMA[forma],
   });
   const depois = estadoPaginaPagamento(r.html);
-  if (depois === "recorrencia") return { ok: true, jaEstava: false };
+  if (depois === alvo) return { ok: true, jaEstava: false };
 
   return {
     ok: false, estado: depois,
-    // O caso conhecido: "Para pagamentos por Cartão Recorrente, a data de
-    // vencimento deve ser posterior à data atual" (19h no dia do vencimento).
-    motivo: erroDaPagina(r.html) ?? "o Sponte não aceitou a escolha do cartão recorrente",
+    // O caso conhecido, no cartão: "Para pagamentos por Cartão Recorrente,
+    // a data de vencimento deve ser posterior à data atual" (19h no dia).
+    motivo: erroDaPagina(r.html) ?? `o Sponte não aceitou a escolha de ${forma}`,
   };
+}
+
+/** Atalho para o cartão, que é o caso que abriu esta função. */
+export function escolherCartaoRecorrente(urlPagamento: string): Promise<ResultadoEscolha> {
+  return escolherFormaPagamento(urlPagamento, "cartao");
 }
 
 /**

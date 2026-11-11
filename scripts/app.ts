@@ -354,7 +354,7 @@ async function barrarCheckout(
  */
 async function chamarCheckout(
   id: number,
-  quem: { autorizacao?: string; tokenFicha?: string; acao?: "promover" | "cartao" },
+  quem: { autorizacao?: string; tokenFicha?: string; acao?: "promover" | "cartao" | "pix" | "boleto" },
 ): Promise<{ status: number; corpo: any }> {
   if (!URL_CHECKOUT) {
     return {
@@ -1519,19 +1519,20 @@ export async function tratar(
      * — é sequencial, e o vizinho está a um número de distância. Quem
      * autoriza é o segredo que o envio devolveu, ou uma sessão de admin.
      */
-    /* --- Checkout: pagar com cartão de crédito (recorrente) --- *
+    /* --- Checkout: pagar com cartão, Pix ou boleto --- *
      *
      * Antes da rota de baixo, que também casaria com este caminho. Mesma
      * guarda e mesmo encaminhamento: quem escreve no Sponte é a função.
      */
-    if (/^\/api\/checkout\/\d+\/cartao$/.test(rota) && req.method === "POST") {
+    const formaPedida = rota.match(/^\/api\/checkout\/\d+\/(cartao|pix|boleto)$/)?.[1];
+    if (formaPedida && req.method === "POST") {
       const id = Number(rota.split("/")[3]);
       if (await barrarCheckout(req, id)) return json(RECUSA_CHECKOUT, 404);
       const r = await chamarCheckout(id, {
         autorizacao: req.headers.authorization as string | undefined,
         tokenFicha: ((req.headers["x-cadastro-token"] as string | undefined)
           ?? url.searchParams.get("t") ?? "").trim(),
-        acao: "cartao",
+        acao: formaPedida as "cartao" | "pix" | "boleto",
       });
       return json(r.corpo, r.status);
     }
