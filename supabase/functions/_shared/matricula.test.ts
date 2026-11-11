@@ -21,6 +21,7 @@ import {
   progressoVazio,
   promoverMatricula,
   ROTULO_PASSO,
+  ajustarVencimentos,
   SITUACAO_ALUNO,
   SITUACAO_TURMA,
 } from "./matricula.ts";
@@ -314,4 +315,89 @@ test("contatoNoSponte usa o contato do responsável quando há um", () => {
 
 test("contatoNoSponte usa o contato do próprio aluno sem responsável", () => {
   assert.deepEqual(contatoNoSponte(DADOS), { email: "maria@exemplo.com", celular: "11987654321" });
+});
+
+/* ------------------------------------------------------------------ *
+ * Mover as parcelas 2 a N — contra um Sponte falso com estado
+ * ------------------------------------------------------------------ */
+
+/**
+ * Sponte falso que guarda as parcelas e se comporta como o real no ponto
+ * que já mordeu: valor com ponto de milhar é cortado no ponto ("1.272,36"
+ * vira 1,00 — ficha 575, 11/11/2026).
+ */
+function sponteComParcelas(parcelas: Array<{ n: number; venc: string; valor: string }>, vaziasAntes = 0) {
+  const estado = parcelas.map((p) => ({ ...p }));
+  let vazias = vaziasAntes;
+  const enviados: string[] = [];
+  const fetchImpl = (async (_url: string, init: RequestInit) => {
+    const corpo = String(init.body);
+    const op = corpo.match(/<(\w+) xmlns="http:\/\/api\.sponteeducacional\.net\.br\/">/)?.[1] ?? "?";
+    const tag = (n: string) => corpo.match(new RegExp(`<${n}>([^<]*)</${n}>`))?.[1] ?? "";
+    let interno = "<wsVazio><RetornoOperacao>01 - OK</RetornoOperacao></wsVazio>";
+    if (op === "GetParcelas") {
+      interno = vazias-- > 0 ? "" : estado.map((p) =>
+        `<wsParcela><RetornoOperacao>01 - OK</RetornoOperacao><ContaReceberID>1859</ContaReceberID>` +
+        `<NumeroParcela>${p.n}</NumeroParcela><ValorParcela>${p.valor}</ValorParcela>` +
+        `<Vencimento>${p.venc}</Vencimento><CategoriaID>3</CategoriaID></wsParcela>`).join("");
+    }
+    if (op === "UpdateParcela") {
+      const p = estado.find((x) => x.n === Number(tag("nNumeroParcela")))!;
+      const v = tag("nValor");
+      enviados.push(v);
+      const reais = v.includes(".") ? 1 : Number(v.replace(",", "."));   // o corte do Sponte
+      p.valor = reais.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      const [a, m, d] = tag("dDataVencimento").slice(0, 10).split("-");
+      p.venc = `${d}/${m}/${a}`;
+    }
+    const esc = interno.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return new Response(
+      `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>` +
+      `<${op}Response xmlns="http://api.sponteeducacional.net.br/"><${op}Result>${esc}</${op}Result>` +
+      `</${op}Response></soap:Body></soap:Envelope>`, { status: 200 });
+  }) as unknown as typeof fetch;
+  return { fetchImpl, estado, enviados };
+}
+
+const ESPERADO_575: Array<[number, string]> = [[2, "2027-03-01"], [3, "2027-04-01"]];
+
+test("mover parcelas: valor acima de mil chega intacto", async () => {
+  const s = sponteComParcelas([
+    { n: 1, venc: "16/11/2026", valor: "1.272,36" },
+    { n: 2, venc: "16/12/2026", valor: "1.272,36" },
+    { n: 3, venc: "18/01/2027", valor: "1.272,36" },
+  ]);
+  await ajustarVencimentos(CRED, 1068, { formaCobrancaId: -21 }, ESPERADO_575, { fetchImpl: s.fetchImpl });
+
+  assert.deepEqual(s.enviados, ["1272,36", "1272,36"]);
+  assert.deepEqual(s.estado.map((p) => `${p.n} ${p.venc} ${p.valor}`), [
+    "1 16/11/2026 1.272,36", "2 01/03/2027 1.272,36", "3 01/04/2027 1.272,36",
+  ]);
+});
+
+test("mover parcelas: resposta vazia do GetParcelas é tentada de novo", async () => {
+  const s = sponteComParcelas([
+    { n: 1, venc: "16/11/2026", valor: "636,18" },
+    { n: 2, venc: "16/12/2026", valor: "636,18" },
+  ], 2);
+  await ajustarVencimentos(CRED, 1, { formaCobrancaId: -21 }, [[2, "2027-03-01"]], { fetchImpl: s.fetchImpl });
+  assert.equal(s.estado[1].venc, "01/03/2027");
+});
+
+test("mover parcelas: sem conseguir ler o plano, para com erro em vez de seguir", async () => {
+  const s = sponteComParcelas([{ n: 2, venc: "16/12/2026", valor: "636,18" }], 99);
+  await assert.rejects(
+    ajustarVencimentos(CRED, 1, { formaCobrancaId: -21 }, [[2, "2027-03-01"]], { fetchImpl: s.fetchImpl }),
+    /não devolveu as mensalidades/,
+  );
+});
+
+test("mover parcelas: já nas datas certas, nada é regravado", async () => {
+  const s = sponteComParcelas([
+    { n: 1, venc: "16/11/2026", valor: "1.272,36" },
+    { n: 2, venc: "01/03/2027", valor: "1.272,36" },
+    { n: 3, venc: "01/04/2027", valor: "1.272,36" },
+  ]);
+  await ajustarVencimentos(CRED, 1068, { formaCobrancaId: -21 }, ESPERADO_575, { fetchImpl: s.fetchImpl });
+  assert.deepEqual(s.enviados, []);
 });
