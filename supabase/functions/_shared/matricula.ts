@@ -1325,6 +1325,22 @@ export function ajustesDeVencimento(
 }
 
 /**
+ * O valor como o `UpdateParcela` lê: vírgula decimal, **sem** ponto de milhar.
+ *
+ * O `GetParcelas` devolve "1.272,36", e mandar isso de volta grava R$ 1,00 —
+ * o Sponte corta no ponto. Aconteceu na primeira matrícula real com o plano
+ * único (ficha 575, 11/11/2026); nos testes todo valor era menor que mil.
+ */
+export function valorParaSponte(valor: string): string {
+  return valor.replace(/\./g, "").trim();
+}
+
+/** "1.272,36" → 1272.36, para comparar valores sem depender da formatação. */
+export function valorEmReais(valor: string): number {
+  return Number(valor.replace(/\./g, "").replace(",", ".").trim());
+}
+
+/**
  * Move as parcelas 2 a N para o início do curso, e confere.
  *
  * Regrava valor, forma e categoria **iguais** aos que o Sponte devolveu —
@@ -1354,7 +1370,7 @@ async function ajustarVencimentos(
         // A mesma bolsa do `InsertPlano`: vazia poderia tirar o desconto.
         ["nBolsaID", d.bolsaId ? String(d.bolsaId) : ""],
         ["dDataVencimento", new Date(`${a.vencimento}T00:00:00`)],
-        ["nValor", a.valor],
+        ["nValor", valorParaSponte(a.valor)],
         ["nFormaCobrancaID", String(d.formaCobrancaId)],
         ["nCategoriaID", String(CATEGORIA.MENSALIDADE)],
         ["sObservacao", "Mensalidades do curso — cadastro online"],
@@ -1379,7 +1395,8 @@ async function ajustarVencimentos(
       x.includes(`<NumeroParcela>${n}<`));
     return b?.match(/<ValorParcela>([^<]*)</)?.[1]?.trim() ?? "";
   };
-  const mudou = ajustes.find((a) => valor(depois, a.numeroParcela) !== a.valor);
+  const mudou = ajustes.find((a) =>
+    valorEmReais(valor(depois, a.numeroParcela)) !== valorEmReais(a.valor));
   if (mudou) {
     throw new SponteError(
       "resposta_invalida", "UpdateParcela",
