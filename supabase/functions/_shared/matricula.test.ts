@@ -17,6 +17,7 @@ import {
   executarMatricula,
   pagamentoConfirmado,
   PASSOS,
+  precisaDeResponsavel,
   progressoVazio,
   promoverMatricula,
   ROTULO_PASSO,
@@ -116,6 +117,54 @@ test("ids simulados são negativos — nunca se confundem com reais", async () =
   assert.ok(p.sponteAlunoId! < 0, "AlunoID simulado deveria ser negativo");
   assert.ok(p.contratoId! < 0);
   assert.ok(p.contaReceberId! < 0);
+});
+
+/* ------------------------------------------------------------------ *
+ * Responsável financeiro
+ * ------------------------------------------------------------------ */
+
+test("aluno sem responsável informado não ganha cadastro de responsável", () => {
+  // O segundo cadastro com o mesmo CPF quebrava o cartão recorrente.
+  assert.equal(precisaDeResponsavel(DADOS), false);
+  assert.equal(precisaDeResponsavel({ ...DADOS, responsavelNome: "  " }), false);
+});
+
+test("responsável com o CPF do próprio aluno conta como sem responsável", () => {
+  assert.equal(precisaDeResponsavel({
+    ...DADOS, responsavelNome: "Maria", responsavelCpf: "52998224725",
+  }), false);
+});
+
+test("menor com responsável de outro CPF continua com responsável", () => {
+  assert.equal(precisaDeResponsavel({
+    ...DADOS, responsavelNome: "Joana Souza", responsavelCpf: "111.444.777-35",
+  }), true);
+});
+
+test("aluno maior: nenhuma chamada de responsável chega ao Sponte", async () => {
+  const { fetchImpl, chamadas } = fetchFalso({
+    GetAlunos4: "<wsAluno><RetornoOperacao>01 - OK</RetornoOperacao><AlunoID>4321</AlunoID></wsAluno>",
+  });
+  const p = await executarMatricula(CRED, DADOS, progressoVazio(), { fetchImpl, simular: false });
+
+  assert.equal(chamadas.includes("InsertResponsaveis2"), false);
+  assert.equal(chamadas.includes("GetResponsaveis2"), false);
+  assert.equal(chamadas.includes("GetResponsavelFinanceiro"), false);
+  assert.equal(p.responsavelId, null);
+  assert.notEqual(p.erroPasso, "criar_responsavel");
+});
+
+test("menor: o responsável é procurado e criado", async () => {
+  const { fetchImpl, chamadas } = fetchFalso({
+    GetAlunos4: "<wsAluno><RetornoOperacao>01 - OK</RetornoOperacao><AlunoID>4321</AlunoID></wsAluno>",
+    InsertResponsaveis2: "<wsResponsavel><RetornoOperacao>01 - OK</RetornoOperacao><ResponsavelID>77</ResponsavelID></wsResponsavel>",
+  });
+  const p = await executarMatricula(CRED, {
+    ...DADOS, responsavelNome: "Joana Souza", responsavelCpf: "111.444.777-35",
+  }, progressoVazio(), { fetchImpl, simular: false });
+
+  assert.equal(chamadas.includes("InsertResponsaveis2"), true);
+  assert.equal(p.responsavelId, 77);
 });
 
 /* ------------------------------------------------------------------ *

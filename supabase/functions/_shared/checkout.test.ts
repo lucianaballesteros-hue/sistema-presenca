@@ -27,7 +27,7 @@ import {
   inicioDasDemaisMensalidades,
   vencimentoDaAdiantada,
 } from "./checkout.ts";
-import { planejarCobranca } from "./matricula.ts";
+import { ajustesDeVencimento, planejarCobranca, vencimentosDasDemais } from "./matricula.ts";
 
 const HOJE = new Date("2026-10-21T09:00:00");
 
@@ -271,16 +271,66 @@ test("turma já iniciada: nada agora, mensalidades seguidas", () => {
   );
 });
 
-test("turma futura sem taxa: uma parcela agora, as demais com o curso", () => {
+test("turma futura sem taxa: um plano só, a primeira agora e as demais com o curso", () => {
+  // Um plano só, como a escola faz à mão: o cartão recorrente do Sponte Pay
+  // vale para a conta a receber do link, e com a primeira parcela em conta
+  // própria (a antiga "taxa") as mensalidades ficavam fora da recorrência.
   assert.deepEqual(
     planejarCobranca({
       parcelas: 12, valorParcela: MENSAL, inicioDasDemais: "2027-02-08",
     }),
     {
-      agora: { valor: MENSAL, parcelas: 1 },
-      mensalidades: { parcelas: 11, apartirDe: "2027-02-08" },
+      agora: null,
+      mensalidades: { parcelas: 12, apartirDe: null, demaisAPartirDe: "2027-02-08" },
+      primeiraAgora: MENSAL,
     },
   );
+});
+
+test("as parcelas 2 a N vencem a partir do início do curso, mês a mês", () => {
+  assert.deepEqual(vencimentosDasDemais("2027-03-01", 6), [
+    [2, "2027-03-01"], [3, "2027-04-01"], [4, "2027-05-03"], // 01/05 é sábado
+    [5, "2027-06-01"], [6, "2027-07-01"],
+  ]);
+});
+
+test("dia que não existe no mês vai para o último dia", () => {
+  assert.deepEqual(vencimentosDasDemais("2027-01-29", 3), [
+    [2, "2027-01-29"], [3, "2027-03-01"], // 28/02/2027 é domingo
+  ]);
+  assert.deepEqual(vencimentosDasDemais("2027-03-31", 3), [
+    [2, "2027-03-31"], [3, "2027-04-30"],
+  ]);
+});
+
+test("parcela única ou data inválida: nada a mover", () => {
+  assert.deepEqual(vencimentosDasDemais("2027-03-01", 1), []);
+  assert.deepEqual(vencimentosDasDemais("01/03/2027", 4), []);
+});
+
+const parcelaXml = (conta: number, n: number, venc: string, extra = "") =>
+  `<wsParcela><ContaReceberID>${conta}</ContaReceberID><NumeroParcela>${n}</NumeroParcela>` +
+  `<ValorParcela>636,18</ValorParcela><Vencimento>${venc}</Vencimento>` +
+  `<CategoriaID>3</CategoriaID>${extra}</wsParcela>`;
+
+test("ajuste: só o plano de mensalidade mais novo, só o que está fora da data", () => {
+  const xml = [
+    parcelaXml(1700, 2, "10/12/2026"),                 // matrícula antiga
+    parcelaXml(1853, 1, "13/11/2026"),
+    parcelaXml(1853, 2, "13/12/2026"),                 // fora da data
+    parcelaXml(1853, 3, "01/04/2027"),                 // já movida
+    `<wsParcela><ContaReceberID>1900</ContaReceberID><NumeroParcela>2</NumeroParcela>` +
+      `<CategoriaID>6</CategoriaID><Vencimento>13/12/2026</Vencimento></wsParcela>`, // outra categoria
+  ].join("");
+  assert.deepEqual(
+    ajustesDeVencimento(xml, [[2, "2027-03-01"], [3, "2027-04-01"]]),
+    [{ contaReceberId: 1853, numeroParcela: 2, vencimento: "2027-03-01", valor: "636,18" }],
+  );
+});
+
+test("ajuste: parcela paga não se move", () => {
+  const xml = parcelaXml(1853, 2, "13/12/2026", "<DataPagamento>12/12/2026</DataPagamento>");
+  assert.deepEqual(ajustesDeVencimento(xml, [[2, "2027-03-01"]]), []);
 });
 
 test("turma futura com taxa: a taxa é a cobrança de agora", () => {
@@ -327,8 +377,9 @@ test("parcela única em turma futura não deixa plano de mensalidade vazio", () 
   const r = planejarCobranca({
     parcelas: 1, valorParcela: MENSAL, inicioDasDemais: "2027-02-08",
   });
-  assert.deepEqual(r.agora, { valor: MENSAL, parcelas: 1 });
-  assert.equal(r.mensalidades.parcelas, 0);
+  assert.equal(r.agora, null);
+  assert.equal(r.mensalidades.parcelas, 1);
+  assert.equal(r.mensalidades.demaisAPartirDe, null);
 });
 
 test("o aluno nunca paga mais nem menos do que contratou", () => {

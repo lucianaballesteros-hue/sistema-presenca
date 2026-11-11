@@ -62,6 +62,13 @@ test("sem responsável financeiro, bloqueia", () => {
   assert.equal(r.bloqueios.some((b) => b.id === "responsavel"), true);
 });
 
+test("aluno maior paga por si: sem responsável não bloqueia", () => {
+  // As matrículas de adulto feitas à mão têm ResponsavelFinanceiroID 0 e
+  // são cobradas normalmente — o sacado é o próprio aluno.
+  const r = resumirCriterios({ ...COMPLETO, responsavelId: null, proprioAlunoPaga: true });
+  assert.equal(r.bloqueios.some((b) => b.id === "responsavel"), false);
+});
+
 test("sem contrato, bloqueia", () => {
   assert.equal(resumirCriterios({ ...COMPLETO, contratoId: null }).pronto, false);
 });
