@@ -27,7 +27,7 @@ import {
   inicioDasDemaisMensalidades,
   vencimentoDaAdiantada,
 } from "./checkout.ts";
-import { ajustesDeVencimento, planejarCobranca, vencimentosDasDemais } from "./matricula.ts";
+import { ajustesDeVencimento, planejarCobranca, valorEmReais, valorParaSponte, vencimentosDasDemais } from "./matricula.ts";
 
 const HOJE = new Date("2026-10-21T09:00:00");
 
@@ -417,3 +417,17 @@ test("entrada estranha não produz plano inválido", () => {
   }
 });
 
+
+test("valor vai ao Sponte sem ponto de milhar", () => {
+  // "1.272,36" de volta no UpdateParcela gravou R$ 1,00 (ficha 575).
+  assert.equal(valorParaSponte("1.272,36"), "1272,36");
+  assert.equal(valorParaSponte("12.345.678,90"), "12345678,90");
+  assert.equal(valorParaSponte("636,18"), "636,18");
+});
+
+test("valores comparados como número, não como texto", () => {
+  assert.equal(valorEmReais("1.272,36"), 1272.36);
+  assert.equal(valorEmReais("1272,36"), 1272.36);
+  assert.equal(valorEmReais("1,00"), 1);
+  assert.notEqual(valorEmReais("1,00"), valorEmReais("1.272,36"));
+});

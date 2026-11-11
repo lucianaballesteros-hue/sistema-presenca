@@ -1324,6 +1324,29 @@ export function ajustesDeVencimento(
   return ajustes;
 }
 
+/** A resposta do `GetParcelas` traz alguma mensalidade? */
+export function temMensalidades(xml: string): boolean {
+  return (xml.match(/<wsParcela>[\s\S]*?<\/wsParcela>/g) ?? []).some((b) =>
+    Number(b.match(/<ContaReceberID>(\d+)</)?.[1] ?? 0) > 0 &&
+    Number(b.match(/<CategoriaID>(\d+)</)?.[1] ?? 0) === CATEGORIA.MENSALIDADE);
+}
+
+/**
+ * O valor como o `UpdateParcela` lê: vírgula decimal, **sem** ponto de milhar.
+ *
+ * O `GetParcelas` devolve "1.272,36", e mandar isso de volta grava R$ 1,00 —
+ * o Sponte corta no ponto. Aconteceu na primeira matrícula real com o plano
+ * único (ficha 575, 11/11/2026); nos testes todo valor era menor que mil.
+ */
+export function valorParaSponte(valor: string): string {
+  return valor.replace(/\./g, "").trim();
+}
+
+/** "1.272,36" → 1272.36, para comparar valores sem depender da formatação. */
+export function valorEmReais(valor: string): number {
+  return Number(valor.replace(/\./g, "").replace(",", ".").trim());
+}
+
 /**
  * Move as parcelas 2 a N para o início do curso, e confere.
  *
@@ -1332,16 +1355,33 @@ export function ajustesDeVencimento(
  * relê: se alguma parcela não ficou com a data ou mudou de valor, para com
  * erro em vez de seguir gerando link de um plano torto.
  */
-async function ajustarVencimentos(
+export async function ajustarVencimentos(
   cred: CredenciaisSponte, alunoId: number,
   d: { formaCobrancaId: number; bolsaId?: number | null },
   esperado: Array<[number, string]>, opc: OpcoesChamada,
 ): Promise<void> {
-  const ler = () => chamarSoap(
-    "GetParcelas",
-    [...credenciais(cred), ["sParametrosBusca", `AlunoID=${alunoId}`]],
-    opc,
-  );
+  if (!esperado.length) return;
+
+  // O `GetParcelas` já devolveu blocos vazios para um aluno que tinha
+  // parcelas (21/10/2026). Aqui isso seria grave: sem as mensalidades na
+  // resposta, "nada a mover" e "não li nada" se confundem, e o aluno ficaria
+  // com as parcelas correndo a partir de hoje. Então insiste, e não lendo,
+  // para com erro.
+  const ler = async () => {
+    for (let tentativa = 1; tentativa <= 3; tentativa++) {
+      const xml = await chamarSoap(
+        "GetParcelas",
+        [...credenciais(cred), ["sParametrosBusca", `AlunoID=${alunoId}`]],
+        opc,
+      );
+      if (temMensalidades(xml)) return xml;
+    }
+    throw new SponteError(
+      "resposta_invalida", "GetParcelas",
+      "o Sponte não devolveu as mensalidades do plano para mover os vencimentos — " +
+      "tente de novo em instantes",
+    );
+  };
 
   const ajustes = ajustesDeVencimento(await ler(), esperado);
   for (const a of ajustes) {
@@ -1354,7 +1394,7 @@ async function ajustarVencimentos(
         // A mesma bolsa do `InsertPlano`: vazia poderia tirar o desconto.
         ["nBolsaID", d.bolsaId ? String(d.bolsaId) : ""],
         ["dDataVencimento", new Date(`${a.vencimento}T00:00:00`)],
-        ["nValor", a.valor],
+        ["nValor", valorParaSponte(a.valor)],
         ["nFormaCobrancaID", String(d.formaCobrancaId)],
         ["nCategoriaID", String(CATEGORIA.MENSALIDADE)],
         ["sObservacao", "Mensalidades do curso — cadastro online"],
@@ -1379,7 +1419,16 @@ async function ajustarVencimentos(
       x.includes(`<NumeroParcela>${n}<`));
     return b?.match(/<ValorParcela>([^<]*)</)?.[1]?.trim() ?? "";
   };
-  const mudou = ajustes.find((a) => valor(depois, a.numeroParcela) !== a.valor);
+  const sumiu = ajustes.find((a) => !valor(depois, a.numeroParcela));
+  if (sumiu) {
+    throw new SponteError(
+      "resposta_invalida", "UpdateParcela",
+      `a parcela ${sumiu.numeroParcela} não voltou na conferência depois de mover ` +
+      `o vencimento — confira o plano no Sponte.`,
+    );
+  }
+  const mudou = ajustes.find((a) =>
+    valorEmReais(valor(depois, a.numeroParcela)) !== valorEmReais(a.valor));
   if (mudou) {
     throw new SponteError(
       "resposta_invalida", "UpdateParcela",
