@@ -364,7 +364,7 @@ const form = {
   // Endereço
   cep: '', endereco: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '',
   // Responsável (menor de 18)
-  respNome: '', respCpf: '', respParentesco: '', respCelular: '', respEmail: '',
+  respNome: '', respCpf: '', respNascimento: '', respParentesco: '', respCelular: '', respEmail: '',
   // Comercial e pagamento
   origemVenda: '',
   // Em quantas mensalidades. Começa no máximo do plano, que é a condição
@@ -430,6 +430,7 @@ async function salvarRascunho(etapa) {
         complemento: form.complemento, bairro: form.bairro,
         cidade: form.cidade, uf: form.uf,
         responsavelNome: form.respNome, responsavelCpf: form.respCpf,
+        responsavelDataNascimento: dataBrParaIso(form.respNascimento),
         responsavelParentesco: form.respParentesco,
         responsavelCelular: form.respCelular, responsavelEmail: form.respEmail,
         origemVenda: form.origemVenda,
@@ -452,8 +453,11 @@ const token = new URLSearchParams(location.search).get('t');
  * uma pergunta redundante e impede que alguém pule a etapa marcando a caixa
  * errada.
  */
-function idadeDoAluno() {
-  const iso = dataBrParaIso(form.nascimento);
+function idadeDoAluno() { return idadeEm(form.nascimento); }
+
+/** Idade hoje de quem nasceu em `dd/mm/aaaa`, ou `null` se a data não existe. */
+function idadeEm(nascimento) {
+  const iso = dataBrParaIso(nascimento);
   if (!iso) return null;
   const n = new Date(iso + 'T00:00:00');
   if (Number.isNaN(n.getTime())) return null;
@@ -653,6 +657,8 @@ const estados = {
         ${campo('respNome', 'Nome completo do responsável', `type="text" autocomplete="name" value="${escapar(form.respNome)}"`, '', 'Informe o nome do responsável.')}
         <div class="linha-dupla">
           ${campo('respCpf', 'CPF', `type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" value="${escapar(form.respCpf)}"`, '', 'CPF inválido.')}
+          ${campo('respNascimento', 'Nascimento', `type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" value="${escapar(form.respNascimento)}"`, '', 'O responsável precisa ter 18 anos ou mais — confira a data (dd/mm/aaaa).')}
+        </div>
           <div class="campo">
             <label for="respParentesco">Parentesco</label>
             <select id="respParentesco">
@@ -661,7 +667,6 @@ const estados = {
             </select>
             <div class="erro-campo" id="e-respParentesco">Informe o parentesco.</div>
           </div>
-        </div>
         ${campo('respCelular', 'Celular do responsável', `type="tel" inputmode="numeric" maxlength="15" placeholder="(00) 00000-0000" value="${escapar(form.respCelular)}"`, '', 'Informe um celular válido.')}
         ${campo('respEmail', 'E-mail do responsável', `type="email" autocomplete="email" value="${escapar(form.respEmail)}"`, 'Para onde vai o contrato e a cobrança.', 'E-mail inválido.')}
         <div class="acoes">
@@ -752,6 +757,7 @@ const estados = {
           ${l('Nome', form.respNome)}
           ${l('Parentesco', form.respParentesco)}
           ${l('CPF', form.respCpf)}
+          ${l('Nascimento', dataBr(form.respNascimento))}
           ${l('Celular', form.respCelular)}
           ${l('E-mail', form.respEmail)}
           <div class="rev-obs">A cobrança e o link de pagamento vão para o celular e o e-mail do responsável.</div>
@@ -1040,6 +1046,9 @@ function validarEtapa(etapa) {
     responsavel: {
       respNome: !nomeValido(form.respNome),
       respCpf: !cpfValido(form.respCpf),
+      // O Sponte aceita um responsável menor, mas a assinatura do contrato
+      // não: ela recusa o envio dizendo que o responsável é menor de idade.
+      respNascimento: !((i) => i !== null && i >= 18 && i <= 120)(idadeEm(form.respNascimento)),
       respParentesco: !form.respParentesco,
       respCelular: digitos(form.respCelular).length < 10,
       respEmail: !emailValido(form.respEmail),
@@ -1077,7 +1086,7 @@ function ligarComuns() {
 
   for (const [id, fn] of [['cpf', fmtCpf], ['respCpf', fmtCpf], ['celular', fmtCel],
                           ['respCelular', fmtCel], ['cep', fmtCep],
-                          ['nascimento', fmtData]]) {
+                          ['nascimento', fmtData], ['respNascimento', fmtData]]) {
     const el = $(id);
     if (el) el.addEventListener('input', (e) => { e.target.value = fn(e.target.value); });
   }
@@ -1283,6 +1292,7 @@ async function enviar() {
         complemento: form.complemento, bairro: form.bairro,
         cidade: form.cidade, uf: form.uf,
         responsavelNome: form.respNome, responsavelCpf: form.respCpf,
+        responsavelDataNascimento: dataBrParaIso(form.respNascimento),
         responsavelParentesco: form.respParentesco,
         responsavelCelular: form.respCelular, responsavelEmail: form.respEmail,
         origemVenda: form.origemVenda,

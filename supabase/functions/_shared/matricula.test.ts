@@ -15,6 +15,7 @@ import {
   contatoNoSponte,
   type DadosMatricula,
   executarMatricula,
+  nascimentoDoResponsavel,
   pagamentoConfirmado,
   PASSOS,
   precisaDeResponsavel,
@@ -166,6 +167,44 @@ test("menor: o responsável é procurado e criado", async () => {
 
   assert.equal(chamadas.includes("InsertResponsaveis2"), true);
   assert.equal(p.responsavelId, 77);
+});
+
+/** O corpo SOAP de cada `InsertResponsaveis2` que chegou ao Sponte. */
+function capturandoResponsavel() {
+  const { fetchImpl: base } = fetchFalso({
+    GetAlunos4: "<wsAluno><RetornoOperacao>01 - OK</RetornoOperacao><AlunoID>4321</AlunoID></wsAluno>",
+    InsertResponsaveis2: "<wsResponsavel><RetornoOperacao>01 - OK</RetornoOperacao><ResponsavelID>77</ResponsavelID></wsResponsavel>",
+  });
+  const corpos: string[] = [];
+  const fetchImpl = (async (url: string, init: RequestInit) => {
+    if (String(init.body).includes("<InsertResponsaveis2 ")) corpos.push(String(init.body));
+    return base(url, init);
+  }) as unknown as typeof fetch;
+  return { fetchImpl, corpos };
+}
+
+test("menor: o responsável vai ao Sponte com o nascimento dele, não o do aluno", async () => {
+  // Em 13/11/2026 o contrato não pôde ser assinado: o responsável tinha
+  // sido criado com a data do aluno, e a assinatura o via como menor.
+  const { fetchImpl, corpos } = capturandoResponsavel();
+  await executarMatricula(CRED, {
+    ...DADOS, dataNascimento: "2012-05-20",
+    responsavelNome: "Joana Souza", responsavelCpf: "111.444.777-35",
+    responsavelDataNascimento: "1980-03-10",
+  }, progressoVazio(), { fetchImpl, simular: false });
+
+  assert.equal(corpos.length, 1);
+  assert.match(corpos[0], /<dDataNascimento>1980-03-10/);
+  assert.doesNotMatch(corpos[0], /2012-05-20/);
+});
+
+test("ficha antiga, sem o nascimento do responsável: vai em branco, nunca o do aluno", () => {
+  const menor = { dataNascimento: "2012-05-20", responsavelNome: "Joana Souza" };
+  assert.equal(nascimentoDoResponsavel(menor), null);
+  assert.equal(
+    nascimentoDoResponsavel({ ...menor, responsavelDataNascimento: "1980-03-10" }), "1980-03-10");
+  // Sem responsável, o próprio aluno é o responsável financeiro.
+  assert.equal(nascimentoDoResponsavel({ dataNascimento: "1995-05-20" }), "1995-05-20");
 });
 
 /* ------------------------------------------------------------------ *
