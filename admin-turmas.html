@@ -202,7 +202,7 @@
         <label for="m-cobranca">Como cobrar as mensalidades</label>
         <select id="m-cobranca">
           <option value="adiantada" selected>1ª agora, as demais quando a turma começa</option>
-          <option value="sequencial">Todas seguidas, a partir de 5 dias</option>
+          <option value="sequencial">Todas seguidas, a partir de 3 dias úteis</option>
         </select>
         <div class="valor-obs" id="m-cobranca-ajuda"></div>
       </div>
@@ -1107,13 +1107,11 @@ function quandoCobra(plano) {
 
   const quando = `em <strong>${dataBr(inicio)}</strong>, quando a turma inicia`;
 
-  // Sem taxa no plano, a cobrança de agora é uma parcela — mas ela entra no
-  // Sponte como taxa de matrícula, única aba em que pode conviver com as
-  // mensalidades no mesmo contrato. Quem gera o link precisa saber disso:
-  // é assim que a cobrança vai aparecer no extrato e no link do aluno.
+  // Sem taxa no plano, a cobrança de agora é a 1ª mensalidade, adiantada —
+  // no mesmo plano das demais, que vão para o início do curso.
   return temTaxa
     ? `A matrícula é cobrada no ato. As mensalidades começam ${quando}.`
-    : `Uma parcela é cobrada no ato, lançada como taxa de matrícula.
+    : `Uma parcela vence em ${DIAS_UTEIS_PRIMEIRA_ADIANTADA} dias úteis.
        As demais começam ${quando}.`;
 }
 
@@ -1137,6 +1135,8 @@ function quandoCobra(plano) {
  * Fim de semana é pulado; feriado não, como no servidor.
  */
 const DIAS_UTEIS_ATE_COBRAR = 3;
+/** Espelha `DIAS_UTEIS_PRIMEIRA_ADIANTADA` de `_shared/checkout.ts`. */
+const DIAS_UTEIS_PRIMEIRA_ADIANTADA = 2;
 
 function somarDiasUteis(inicio, dias) {
   const d = new Date(inicio);
@@ -1150,8 +1150,8 @@ function somarDiasUteis(inicio, dias) {
 }
 
 /** O vencimento da cobrança de agora, em ISO. */
-const vencimentoDaAdiantada = () =>
-  somarDiasUteis(new Date(), DIAS_UTEIS_ATE_COBRAR).toISOString().slice(0, 10);
+const vencimentoDaAdiantada = (dias = DIAS_UTEIS_ATE_COBRAR) =>
+  somarDiasUteis(new Date(), dias).toISOString().slice(0, 10);
 
 function inicioAdiavel() {
   const t = estado.turmaSelecionada;
@@ -1182,10 +1182,11 @@ function pintarCobranca(plano) {
   campo.style.display = escolhe ? '' : 'none';
   if (escolhe) {
     $('m-cobranca-ajuda').textContent =
-      `Adiantada: uma parcela em ${DIAS_UTEIS_ATE_COBRAR} dias úteis `
-      + `(${dataBr(vencimentoDaAdiantada())}) e as outras `
+      `Adiantada: uma parcela em ${DIAS_UTEIS_PRIMEIRA_ADIANTADA} dias úteis `
+      + `(${dataBr(vencimentoDaAdiantada(DIAS_UTEIS_PRIMEIRA_ADIANTADA))}) e as outras `
       + `${plano.mensalidade.parcelas - 1} a partir de ${dataBr(inicio)}. `
-      + `Sequencial: todas mês a mês, a partir da mesma data.`;
+      + `Sequencial: todas mês a mês, a partir de ${DIAS_UTEIS_ATE_COBRAR} dias úteis `
+      + `(${dataBr(vencimentoDaAdiantada())}).`;
   }
 }
 
