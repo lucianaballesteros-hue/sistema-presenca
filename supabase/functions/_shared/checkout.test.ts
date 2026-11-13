@@ -26,6 +26,8 @@ import {
   somarDiasUteis,
   inicioDasDemaisMensalidades,
   vencimentoDaAdiantada,
+  primeiroVencimentoDaMatricula,
+  DIAS_UTEIS_PRIMEIRA_ADIANTADA,
 } from "./checkout.ts";
 import { ajustesDeVencimento, planejarCobranca, valorEmReais, valorParaSponte, vencimentosDasDemais } from "./matricula.ts";
 
@@ -430,4 +432,26 @@ test("valores comparados como número, não como texto", () => {
   assert.equal(valorEmReais("1272,36"), 1272.36);
   assert.equal(valorEmReais("1,00"), 1);
   assert.notEqual(valorEmReais("1,00"), valorEmReais("1.272,36"));
+});
+
+test("1ª adiantada (demais no início do curso): vence em 2 dias úteis", () => {
+  // Pedido da escola em 13/11/2026: 3 úteis ficava longe para a parcela que
+  // reserva a vaga. Numa quinta, 3 úteis caía na terça; 2 caem na segunda.
+  assert.equal(DIAS_UTEIS_PRIMEIRA_ADIANTADA, 2);
+  const quinta = new Date("2026-11-12T09:00:00");
+  assert.equal(
+    primeiroVencimentoDaMatricula({ inicioDasDemais: "2027-03-01" }, quinta), "2026-11-16");
+  const segunda = new Date("2026-11-16T09:00:00");
+  assert.equal(
+    primeiroVencimentoDaMatricula({ inicioDasDemais: "2027-03-01" }, segunda), "2026-11-18");
+});
+
+test("cobrança seguida e plano com taxa continuam em 3 dias úteis", () => {
+  const quinta = new Date("2026-11-12T09:00:00");
+  // Nada adiado: turma em andamento ou escolha "todas seguidas".
+  assert.equal(primeiroVencimentoDaMatricula({ inicioDasDemais: null }, quinta), "2026-11-17");
+  // Com taxa, quem vence agora é a taxa, não uma mensalidade adiantada.
+  assert.equal(
+    primeiroVencimentoDaMatricula({ inicioDasDemais: "2027-03-01", valorTaxa: 150 }, quinta),
+    "2026-11-17");
 });

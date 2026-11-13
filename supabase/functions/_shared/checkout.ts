@@ -181,8 +181,37 @@ export { DIAS_UTEIS_ATE_COBRAR, somarDiasUteis };
 /** A data em ISO, sem a hora. */
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
-export function vencimentoDaAdiantada(hoje: Date = new Date()): string {
-  return iso(somarDiasUteis(hoje, DIAS_UTEIS_ATE_COBRAR));
+export function vencimentoDaAdiantada(
+  hoje: Date = new Date(), dias: number = DIAS_UTEIS_ATE_COBRAR,
+): string {
+  return iso(somarDiasUteis(hoje, dias));
+}
+
+/**
+ * Dias úteis até vencer a 1ª parcela quando ela é **adiantada** — a que o
+ * aluno paga agora, com as demais indo para o início do curso.
+ *
+ * Mais curto que `DIAS_UTEIS_ATE_COBRAR` a pedido da escola (13/11/2026):
+ * é a parcela que reserva a vaga numa turma que só começa meses depois.
+ * Cobrança seguida continua com os 3 dias. O front repete o número em
+ * `admin-turmas.html`; mudando aqui, mude lá.
+ */
+export const DIAS_UTEIS_PRIMEIRA_ADIANTADA = 2;
+
+/**
+ * O vencimento da parcela que o aluno paga agora.
+ *
+ * Com as demais adiadas para o curso e sem taxa no plano, é a parcela
+ * adiantada: `DIAS_UTEIS_PRIMEIRA_ADIANTADA`. Em todo o resto — turma em
+ * andamento, cobrança seguida, plano com taxa — `DIAS_UTEIS_ATE_COBRAR`.
+ */
+export function primeiroVencimentoDaMatricula(
+  d: { inicioDasDemais: string | null; valorTaxa?: number | null },
+  hoje: Date = new Date(),
+): string {
+  const adiantada = !!d.inicioDasDemais && !(Number(d.valorTaxa ?? 0) > 0);
+  return vencimentoDaAdiantada(
+    hoje, adiantada ? DIAS_UTEIS_PRIMEIRA_ADIANTADA : DIAS_UTEIS_ATE_COBRAR);
 }
 
 /**
@@ -304,9 +333,10 @@ export async function executarCheckout(
   // `inicioDasDemais` nulo quer dizer que não há nada a adiar (turma já
   // iniciada, sem data, ou que começa dentro do prazo de cobrança), e aí
   // é um plano único, como sempre foi.
-  const primeiroVencimento = vencimentoDaAdiantada();
   const inicioDasDemais = inicioDasDemaisMensalidades(
     turma.inicio, new Date(), c.cobrancaModo);
+  const primeiroVencimento = primeiroVencimentoDaMatricula(
+    { inicioDasDemais, valorTaxa: c.valorTaxa });
 
   marca("leituras");
   const p = await executarMatricula(
