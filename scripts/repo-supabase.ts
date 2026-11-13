@@ -849,6 +849,7 @@ function paraCadastro(c: any) {
     complemento: c.complemento, bairro: c.bairro, cidade: c.cidade, uf: c.uf,
 
     responsavelNome: c.responsavel_nome, responsavelCpf: c.responsavel_cpf,
+    responsavelDataNascimento: c.responsavel_data_nascimento ?? null,
     responsavelParentesco: c.responsavel_parentesco,
     responsavelCelular: c.responsavel_celular, responsavelEmail: c.responsavel_email,
 

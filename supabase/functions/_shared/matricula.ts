@@ -380,6 +380,12 @@ export interface DadosMatricula {
    */
   responsavelNome?: string | null;
   responsavelCpf?: string | null;
+  /**
+   * Nascimento do responsável, ISO. Antes de 13/11/2026 o formulário não
+   * perguntava, e o responsável ia ao Sponte com a data **do aluno** — um
+   * menor como responsável, que a assinatura do contrato recusa.
+   */
+  responsavelDataNascimento?: string | null;
   responsavelEmail?: string | null;
   responsavelCelular?: string | null;
 
@@ -817,19 +823,36 @@ export function precisaDeResponsavel(
   return !doResp || doResp !== soDigitos(d.cpf ?? "");
 }
 
+/**
+ * A data de nascimento que vai no cadastro do responsável.
+ *
+ * Havendo responsável, é a **dele** — nunca a do aluno. Até 13/11/2026 ia a
+ * do aluno: o Sponte gravava um responsável menor de idade e a assinatura
+ * do contrato recusava ("o responsável é menor de idade"). Ficha antiga,
+ * sem a data, vai sem nascimento: em branco a escola completa na tela; uma
+ * data errada passava por certa.
+ */
+export function nascimentoDoResponsavel(
+  d: Pick<DadosMatricula, "responsavelNome" | "responsavelDataNascimento" | "dataNascimento">,
+): string | null {
+  if (d.responsavelNome?.trim()) return d.responsavelDataNascimento?.trim() || null;
+  return d.dataNascimento?.trim() || null;
+}
+
 async function criarResponsavel(
   cred: CredenciaisSponte, d: DadosMatricula, alunoId: number, opc: OpcoesChamada, teste = false,
 ): Promise<number | null> {
   const temResponsavel = !!d.responsavelNome?.trim();
   const nome = temResponsavel ? d.responsavelNome!.trim() : d.nome;
   const cpf = temResponsavel ? (d.responsavelCpf ?? "") : d.cpf;
+  const nascimento = nascimentoDoResponsavel(d);
 
   const xml = await chamarSoap(
     "InsertResponsaveis2",
     [
       ...credenciais(cred),
       ["sNome", textoSeguroParaSponte(teste ? `${PREFIXO_TESTE} ${nome}` : nome)],
-      ["dDataNascimento", d.dataNascimento ? new Date(`${d.dataNascimento}T00:00:00`) : null],
+      ["dDataNascimento", nascimento ? new Date(`${nascimento}T00:00:00`) : null],
       // 0 é o único parentesco aceito nos testes; 1 devolve "31 - inválido".
       ["nParentesco", PARENTESCO_PROPRIO_ALUNO],
       ["sCEP", d.cep ? soDigitos(d.cep) : ""],

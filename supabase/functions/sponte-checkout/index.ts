@@ -108,6 +108,7 @@ function paraFicha(c: Record<string, any>): FichaParaCheckout {
     complemento: c.complemento, bairro: c.bairro, cidade: c.cidade, uf: c.uf,
     origemVenda: c.origem_venda,
     responsavelNome: c.responsavel_nome, responsavelCpf: c.responsavel_cpf,
+    responsavelDataNascimento: c.responsavel_data_nascimento ?? null,
     responsavelEmail: c.responsavel_email, responsavelCelular: c.responsavel_celular,
     turmaId: c.sponte_turma_id, cursoId: c.sponte_curso_id,
     planoCursoId: c.plano_curso_id, bolsaId: c.bolsa_id,

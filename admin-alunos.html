@@ -710,7 +710,8 @@ function abrir(id) {
   $('m-resp').style.display = temResp ? '' : 'none';
   if (temResp) {
     $('m-resp-nome').textContent = c.responsavelNome
-      + (c.responsavelParentesco ? ` (${c.responsavelParentesco})` : '');
+      + (c.responsavelParentesco ? ` (${c.responsavelParentesco})` : '')
+      + (c.responsavelDataNascimento ? ` · nasc. ${fmtNasc(c.responsavelDataNascimento)}` : '');
     $('m-resp-contato').textContent =
       [fmtCel(c.responsavelCelular), c.responsavelEmail].filter(Boolean).join(' · ') || 'sem contato';
   }

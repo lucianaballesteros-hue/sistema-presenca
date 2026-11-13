@@ -52,6 +52,7 @@ export interface FichaParaCheckout {
   origemVenda: string | null;
   responsavelNome: string | null;
   responsavelCpf: string | null;
+  responsavelDataNascimento?: string | null;
   responsavelEmail: string | null;
   responsavelCelular: string | null;
   turmaId: number | null;
@@ -319,6 +320,7 @@ export async function executarCheckout(
       complemento: c.complemento, bairro: c.bairro, cidade: c.cidade, uf: c.uf,
       origemVenda: c.origemVenda,
       responsavelNome: c.responsavelNome, responsavelCpf: c.responsavelCpf,
+      responsavelDataNascimento: c.responsavelDataNascimento ?? null,
       responsavelEmail: c.responsavelEmail, responsavelCelular: c.responsavelCelular,
       sponteTurmaId: c.turmaId, sponteCursoId: c.cursoId,
       turmaDataTermino,
