@@ -771,16 +771,16 @@ function pintarPlataformas(c) {
   av.style.display = 'none';
   av.textContent = '';
 
-  // O responsável já existia no Sponte e foi reusado pelo CPF. A matrícula
-  // está completa, mas o ERP não liga responsável existente a aluno novo
-  // por API — esse vínculo se faz na tela deles. Sem este aviso, a lacuna
-  // seria silenciosa: ninguém descobriria que falta.
+  // O responsável já existia no Sponte e foi reusado pelo CPF, mas o vínculo
+  // automático com este aluno falhou (ou a ficha é de antes de 16/11/2026,
+  // quando ele não existia). Sem este aviso, a lacuna seria silenciosa: o
+  // aluno fica com "(Aluno)" como responsável financeiro.
   if (c.responsavelReusado) {
     av.style.display = 'block';
-    av.textContent = 'O responsável financeiro já existia no Sponte e foi reaproveitado '
-      + '(CPF já cadastrado). A matrícula e a cobrança estão completas, mas o vínculo '
-      + 'entre este aluno e o responsável precisa ser feito na tela do Sponte — '
-      + 'a API deles não permite criá-lo.';
+    av.textContent = 'O responsável financeiro já existia no Sponte (CPF já cadastrado) '
+      + 'e não foi possível ligá-lo a este aluno automaticamente. A matrícula e a '
+      + 'cobrança estão completas, mas o vínculo precisa ser feito na tela do Sponte: '
+      + 'aba Responsáveis → Adicionar → marcar como responsável financeiro.';
   }
 
   // Sem credenciais o botão ainda vale a pena: ativa no Presença. Mas quem
