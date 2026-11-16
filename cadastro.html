@@ -1483,8 +1483,11 @@ function acompanharLink() {
  * Escolhida uma forma, o Sponte não volta atrás sem um link novo. Por isso
  * a tela passa a mostrar só ela.
  *
- * A aba nova abre já no clique: aberta depois do `await`, o navegador a
- * trata como pop-up e bloqueia.
+ * O pagamento abre **nesta mesma aba**, não numa nova. Até 16/11/2026 abria
+ * numa aba nova, e a página do plano no Sponte abre o formulário do cartão
+ * com `getOpener().hs` — que, numa aba aberta por esta tela (outra origem),
+ * o navegador bloqueia: o "Cadastrar cartão" não fazia nada. Na mesma aba
+ * não existe opener, e o aluno volta para cá pelo "voltar" do navegador.
  */
 const FORMAS_PAGAMENTO = {
   cartao: {
@@ -1515,23 +1518,6 @@ function botoesPagamento() {
   }).join('') + '<p class="pagar-erro" id="pagar-erro" hidden></p>';
 }
 
-/** Tela de espera na aba nova: sem ela fica "about:blank" e parece travada. */
-function telaDeEspera(aba, titulo) {
-  try {
-    aba.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      <title>Preparando o pagamento…</title>
-      <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-      font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0b1120;color:#e2e8f0;text-align:center;padding:24px}
-      .s{width:34px;height:34px;border:3px solid #334155;border-top-color:#22c55e;border-radius:50%;
-      animation:g .7s linear infinite;margin:0 auto 18px}@keyframes g{to{transform:rotate(360deg)}}
-      p{color:#94a3b8;font-size:14px;margin:6px 0 0}</style></head>
-      <body><div><div class="s"></div><h2 style="margin:0;font-size:19px">${titulo}</h2>
-      <p>Isso leva alguns segundos. Não feche esta aba.</p></div></body></html>`);
-    aba.document.close();
-  } catch { /* sem a tela de espera, segue igual */ }
-}
-
 function ligarBotoesPagamento() {
   const erro = $('pagar-erro');
   document.querySelectorAll('[data-forma]').forEach((b) => {
@@ -1541,7 +1527,7 @@ function ligarBotoesPagamento() {
 
     b.addEventListener('click', async () => {
       if (estadoCheckout.linkEscolhido && estadoCheckout.formaEscolhida === forma) {
-        window.open(estadoCheckout.linkEscolhido, '_blank', 'noopener');
+        window.location.href = estadoCheckout.linkEscolhido;
         return;
       }
       if (estadoCheckout.simulado) {
@@ -1549,8 +1535,6 @@ function ligarBotoesPagamento() {
         erro.textContent = 'Simulação: nesta preview não há pagamento real.';
         return;
       }
-      const aba = window.open('', '_blank');
-      if (aba) telaDeEspera(aba, cfg.preparando);
       document.querySelectorAll('[data-forma]').forEach((x) => { x.disabled = true; });
       b.textContent = `${cfg.preparando}…`;
       erro.hidden = true;
@@ -1560,19 +1544,11 @@ function ligarBotoesPagamento() {
         if (!d.ok || !d.link) throw new Error(mensagemPagamento(d));
         estadoCheckout.formaEscolhida = forma;
         estadoCheckout.linkEscolhido = d.link;
-        // A aba não pode chegar ao Sponte sabendo quem a abriu. A página do
-        // plano abre o formulário do cartão com `getOpener().hs`, e o
-        // `getOpener()` deles devolve `window.opener` sem proteção: sendo
-        // esta página, de outra origem, o navegador bloqueia a leitura e o
-        // "Cadastrar cartão" não faz nada. Pais que receberam o link pelo
-        // WhatsApp (sem opener) conseguiam; os daqui, não (16/11/2026,
-        // reproduzido no Chromium). A aba ainda é about:blank, da nossa
-        // origem, então dá para cortar o vínculo antes de navegar.
-        if (aba) { try { aba.opener = null; } catch { /* segue */ } }
-        if (aba) aba.location.href = d.link; else window.location.href = d.link;
-        mostrar('pagar');   // passa a mostrar só a forma escolhida
+        // Redesenha antes de sair: quem voltar pelo "voltar" encontra só a
+        // forma escolhida, com o botão já destravado para reabrir.
+        mostrar('pagar');
+        window.location.href = d.link;
       } catch (e) {
-        if (aba) aba.close();
         erro.hidden = false;
         erro.textContent = e.message || 'Não foi possível abrir o pagamento. Tente de novo.';
         document.querySelectorAll('[data-forma]').forEach((x) => { x.disabled = false; });
