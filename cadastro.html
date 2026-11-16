@@ -1560,6 +1560,15 @@ function ligarBotoesPagamento() {
         if (!d.ok || !d.link) throw new Error(mensagemPagamento(d));
         estadoCheckout.formaEscolhida = forma;
         estadoCheckout.linkEscolhido = d.link;
+        // A aba não pode chegar ao Sponte sabendo quem a abriu. A página do
+        // plano abre o formulário do cartão com `getOpener().hs`, e o
+        // `getOpener()` deles devolve `window.opener` sem proteção: sendo
+        // esta página, de outra origem, o navegador bloqueia a leitura e o
+        // "Cadastrar cartão" não faz nada. Pais que receberam o link pelo
+        // WhatsApp (sem opener) conseguiam; os daqui, não (16/11/2026,
+        // reproduzido no Chromium). A aba ainda é about:blank, da nossa
+        // origem, então dá para cortar o vínculo antes de navegar.
+        if (aba) { try { aba.opener = null; } catch { /* segue */ } }
         if (aba) aba.location.href = d.link; else window.location.href = d.link;
         mostrar('pagar');   // passa a mostrar só a forma escolhida
       } catch (e) {
