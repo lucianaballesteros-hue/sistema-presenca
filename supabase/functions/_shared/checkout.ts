@@ -405,7 +405,10 @@ export async function executarCheckout(
     erro: p.erro ? `${p.erroPasso ?? ""}: ${p.erro}` : null,
     detalhe: {
       alunoId: p.sponteAlunoId, alunoJaExistia: p.alunoJaExistia,
-      responsavelId: p.responsavelId, contratoId: p.contratoId,
+      responsavelId: p.responsavelId,
+      responsavelReusado: p.responsavelReusado,
+      erroVinculoResponsavel: p.erroVinculoResponsavel ?? null,
+      contratoId: p.contratoId,
       contaReceberId: p.contaReceberId, numeroParcela: p.numeroParcela,
       parcelas: c.parcelas, valorParcela: c.valorParcela, valorTotal: c.valorTotal,
       formaCobrancaId, ultimoPasso: p.ultimoPasso,

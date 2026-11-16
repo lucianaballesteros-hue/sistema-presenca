@@ -234,6 +234,18 @@ export const TIPO_PESSOA = { FISICA: 1, JURIDICA: 2 } as const;
 export const PARENTESCO_PROPRIO_ALUNO = 0;
 
 /**
+ * Parentesco "Responsável", no domínio que a documentação pública do
+ * WSAPIEdu dá: -1 Pai, -2 Mãe, -3 Responsável.
+ *
+ * O 0 acima funciona no `InsertResponsaveis2`, mas no `UpdateResponsaveis2`
+ * ele grava o aluno apontando para o responsável **sem** a linha do vínculo:
+ * a ficha do aluno passa a dar erro 500 na tela do Sponte (testado em
+ * 16/11/2026 nos alunos TESTE-SISTEMA 1019 e 1020). Com -3 o vínculo sai
+ * completo, igual ao feito à mão — e refazê-lo com -3 conserta a ficha.
+ */
+export const PARENTESCO_RESPONSAVEL = -3;
+
+/**
  * O que já aconteceu no ERP.
  *
  * Cada campo preenchido é um passo que **não pode ser repetido**. Um
@@ -278,15 +290,16 @@ export interface ProgressoMatricula {
    */
   valorCobradoAgora: number | null;
   /**
-   * O responsável já existia no ERP e foi reusado pelo CPF.
+   * O responsável já existia no ERP, foi reusado pelo CPF **e o vínculo
+   * com este aluno não se confirmou** — falta fazê-lo na tela do Sponte.
    *
-   * Importa porque a API **não liga** responsável existente a aluno novo
-   * (conferido: `UpdateCompartilhaResponsavel` não adiciona,
-   * `UpdateResponsaveis2` estoura, `InsertResponsaveis2` recusa CPF
-   * repetido). Esse vínculo se faz na tela do Sponte, e esta marca é como
-   * a escola descobre quais matrículas precisam disso.
+   * Desde 16/11/2026 o reuso já vincula por API (`vincularResponsavel`).
+   * A marca fica só para quando isso falha, e é como a escola descobre
+   * quais matrículas precisam de mão.
    */
   responsavelReusado: boolean;
+  /** Por que o vínculo falhou, para a auditoria. Ausente quando não falhou. */
+  erroVinculoResponsavel?: string | null;
   contratoId: number | null;
   /**
    * O plano financeiro já foi gravado.
@@ -797,6 +810,107 @@ async function buscarResponsavelPorCpf(
 
   const id = xml.match(/<ResponsavelID>(\d+)<\/ResponsavelID>/)?.[1];
   return id && Number(id) > 0 ? Number(id) : null;
+}
+
+/**
+ * Liga um responsável que já existe a mais um aluno, como financeiro e
+ * didático — o "Adicionar" da aba Responsáveis do Sponte.
+ *
+ * Feito com `UpdateResponsaveis2`, reenviando o cadastro do responsável
+ * **como está no ERP** e mudando só o `nAlunoID`: os dados são da pessoa,
+ * que pode ser responsável de outro filho, e não cabe ao formulário de um
+ * irmão reescrevê-los. A exceção é a profissão, que `GetResponsaveis2` não
+ * devolve e por isso vai em branco.
+ *
+ * A documentação pública do WSAPIEdu diz que este método "também cria o
+ * vínculo entre o aluno e o responsável". Conferido em 16/11/2026 nos
+ * registros TESTE-SISTEMA (alunos 1018, 1019 e 1020): com parentesco -3
+ * o aluno ganha o responsável como financeiro e didático, ele aparece na
+ * lista de responsáveis do aluno, a ficha abre na tela, e o irmão
+ * **continua** com o mesmo responsável. O receio de 16/10/2026, de que a
+ * operação *movesse* o responsável de um aluno para outro, não se confirmou.
+ *
+ * ⚠️ O parentesco tem de ser -3 (`PARENTESCO_RESPONSAVEL`). Com 0 o Sponte
+ * responde sucesso, mas a ficha do aluno passa a dar erro 500.
+ *
+ * `UpdateAlunos3` com `nResponsavelFinanceiroID` não serve: o Sponte recusa
+ * com "56 - ResponsavelFinanceiroID (Inválido)" quem ainda não está na
+ * lista de responsáveis do aluno.
+ *
+ * Lança se o Sponte recusar ou se, relido, o aluno não estiver com ele.
+ */
+export async function vincularResponsavel(
+  cred: CredenciaisSponte, responsavelId: number, alunoId: number, opc: OpcoesChamada,
+): Promise<void> {
+  const xml = await chamarSoap(
+    "GetResponsaveis2",
+    [...credenciais(cred), ["sParametrosBusca", `ResponsavelID=${responsavelId}`]],
+    opc,
+  );
+  const lido = (n: string) =>
+    (xml.match(new RegExp(`<${n}>([^<]*)</${n}>`))?.[1] ?? "").trim();
+  if (Number(lido("ResponsavelID")) !== responsavelId) {
+    throw new SponteError(
+      "resposta_invalida", "GetResponsaveis2",
+      `responsável ${responsavelId} não encontrado para vincular`, xml.slice(0, 500));
+  }
+
+  // dd/mm/aaaa no retorno; vazio quando o cadastro não tem.
+  const [dia, mes, ano] = lido("DataNascimento").split("/");
+  const nascimento = ano && mes && dia ? new Date(`${ano}-${mes}-${dia}T00:00:00`) : null;
+
+  await chamarSoap(
+    "UpdateResponsaveis2",
+    [
+      ...credenciais(cred),
+      ["nResponsavelID", responsavelId],
+      ["sNome", lido("Nome")],
+      ["dDataNascimento", nascimento],
+      ["nParentesco", PARENTESCO_RESPONSAVEL],
+      ["sCEP", soDigitos(lido("CEP"))],
+      ["sEndereco", lido("Endereco")],
+      ["nNumeroEndereco", soDigitos(lido("NumeroEndereco")) || "0"],
+      ["sRG", lido("RG")],
+      ["sCPFCNPJ", soDigitos(lido("CPFCNPJ"))],
+      ["sCidade", lido("Cidade")], ["sBairro", lido("Bairro")],
+      ["sEmail", lido("Email")],
+      ["sTelefone", soDigitos(lido("Telefone"))],
+      ["sCelular", soDigitos(lido("Celular"))],
+      ["nAlunoID", alunoId],
+      ["lResponsavelFinanceiro", "true"],
+      ["lResponsavelDidatico", "true"],
+      ["sObservacao", lido("Observacao")],
+      ["sSexo", lido("Sexo")], ["sProfissao", ""],
+      ["nTipoPessoa", /jur/i.test(lido("TipoPessoa")) ? TIPO_PESSOA.JURIDICA : TIPO_PESSOA.FISICA],
+      ["sComplementoEndereco", lido("ComplementoEndereco")],
+    ],
+    opc,
+  );
+
+  // "Sucesso" do Sponte já mentiu antes (UpdateCompartilhaResponsavel):
+  // vale o que se lê de volta.
+  const agora = await buscarResponsavelFinanceiro(cred, alunoId, opc);
+  if (agora !== responsavelId) {
+    throw new SponteError(
+      "resposta_invalida", "UpdateResponsaveis2",
+      `o aluno ${alunoId} ficou com o responsável ${agora ?? 0}, e não ${responsavelId}`, "");
+  }
+
+  // E ele precisa estar na **lista** de responsáveis do aluno. Foi o que
+  // faltou com o parentesco 0: o financeiro acima apontava certo, a lista
+  // vinha vazia, e a ficha do aluno não abria mais na tela do Sponte.
+  const aluno = await chamarSoap(
+    "GetAlunos4",
+    [...credenciais(cred), ["sParametrosBusca", `AlunoID=${alunoId}`]],
+    opc,
+  );
+  const lista = aluno.match(/<Responsaveis>([\s\S]*?)<\/Responsaveis>/)?.[1] ?? "";
+  if (!new RegExp(`<ResponsavelID>${responsavelId}</ResponsavelID>`).test(lista)) {
+    throw new SponteError(
+      "resposta_invalida", "UpdateResponsaveis2",
+      `o responsável ${responsavelId} não entrou na lista de responsáveis do aluno ${alunoId}`
+        + " — a ficha pode não abrir na tela do Sponte; conferir à mão", "");
+  }
 }
 
 /**
@@ -1559,10 +1673,8 @@ export async function executarMatricula(
         //
         // Reusar o id é seguro: o `responsavelId` não é repassado ao
         // contrato nem ao plano — ele existe para o menor ter responsável
-        // financeiro no ERP. Associar a pessoa ao novo aluno exigiria
-        // `UpdateResponsaveis2`, que também move o `nAlunoID` e poderia
-        // desfazer o vínculo do irmão. Isso fica para quem conhecer a
-        // regra da escola decidir, na tela do Sponte.
+        // financeiro no ERP. Reusado, ele ainda precisa ser **ligado** a
+        // este aluno (`vincularResponsavel`), sem desfazer o do irmão.
         : await (async () => {
           const doAluno = await buscarResponsavelFinanceiro(cred, p.sponteAlunoId!, opc);
           if (doAluno) return doAluno;
@@ -1570,10 +1682,22 @@ export async function executarMatricula(
           const porCpf = await buscarResponsavelPorCpf(
             cred, dados.responsavelCpf?.trim() || dados.cpf || "", opc);
           if (porCpf) {
-            // Reusado: a matrícula segue, mas o vínculo com este aluno não
-            // existe no ERP e não dá para criá-lo por API. Marcado para a
-            // escola poder fechar isso na tela do Sponte.
-            p.responsavelReusado = true;
+            // Reusado: a pessoa já existe, mas ainda não é responsável
+            // **deste** aluno. Sem o vínculo, o aluno fica com "(Aluno)"
+            // como responsável financeiro: o boleto sai no nome dele e o
+            // Sponte Pay recusa o link quando o e-mail (o do responsável,
+            // ver `contatoNoSponte`) já é de outro sacado — o irmão.
+            // Foi o que parou as fichas 602 e 607 em 16/11/2026.
+            //
+            // Falhar o vínculo não para a matrícula: ela e a cobrança
+            // existem, e a marca leva a ficha para a conferência manual.
+            try {
+              await vincularResponsavel(cred, porCpf, p.sponteAlunoId!, opc);
+              p.responsavelReusado = false;
+            } catch (e) {
+              p.responsavelReusado = true;
+              p.erroVinculoResponsavel = (e as Error).message;
+            }
             return porCpf;
           }
 

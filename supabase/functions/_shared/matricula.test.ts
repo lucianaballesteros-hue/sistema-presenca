@@ -198,6 +198,125 @@ test("menor: o responsável vai ao Sponte com o nascimento dele, não o do aluno
   assert.doesNotMatch(corpos[0], /2012-05-20/);
 });
 
+/* ------------------------------------------------------------------ *
+ * Responsável que já existe (irmão, ex-aluno)
+ * ------------------------------------------------------------------ */
+
+const RESP_EXISTENTE =
+  "<wsResponsavel><RetornoOperacao>01 - OK</RetornoOperacao><ResponsavelID>610</ResponsavelID>"
+  + "<Nome>Renata Ribeiro</Nome><CPFCNPJ>111.444.777-35</CPFCNPJ><DataNascimento>10/03/1980</DataNascimento>"
+  + "<CEP>30.000-000</CEP><Endereco>Rua A</Endereco><NumeroEndereco>10</NumeroEndereco>"
+  + "<Email>renata@exemplo.com</Email><Celular>(31) 99999-0000</Celular><TipoPessoa>Física</TipoPessoa>"
+  + "<Alunos><wsAlunos><AlunoID>1096</AlunoID></wsAlunos></Alunos></wsResponsavel>";
+
+/**
+ * O Sponte de um aluno novo cujo responsável já é de um irmão.
+ *
+ * `GetResponsavelFinanceiro` responde "nenhum" até o `UpdateResponsaveis2`
+ * passar, e o responsável depois — a menos que `naoGrava`, que imita o
+ * "sucesso" que não grava nada.
+ */
+function sponteComIrmao(o: { recusa?: boolean; naoGrava?: boolean; semLista?: boolean } = {}) {
+  const chamadas: string[] = [];
+  const corpos: Record<string, string> = {};
+  let vinculado = false;
+  const responder = (op: string): string => {
+    switch (op) {
+      case "GetAlunos4":
+        // Vinculado de verdade, o responsável aparece na lista do aluno; com
+        // `semLista`, imita o parentesco 0: financeiro certo, lista vazia.
+        return "<wsAluno><RetornoOperacao>01 - OK</RetornoOperacao><AlunoID>1097</AlunoID>"
+          + (vinculado && !o.semLista
+            ? "<Responsaveis><wsResponsaveis><ResponsavelID>610</ResponsavelID></wsResponsaveis></Responsaveis>"
+            : "<Responsaveis />")
+          + "</wsAluno>";
+      case "GetResponsaveis2": return RESP_EXISTENTE;
+      case "GetResponsavelFinanceiro":
+        return vinculado
+          ? "<wsResponsavel><RetornoOperacao>01 - OK</RetornoOperacao><ResponsavelID>610</ResponsavelID></wsResponsavel>"
+          : "<wsResponsavel><RetornoOperacao>43 - Nenhum registro</RetornoOperacao><ResponsavelID>0</ResponsavelID></wsResponsavel>";
+      case "UpdateResponsaveis2":
+        if (o.recusa) return "<wsVazio><RetornoOperacao>05 - Object reference not set</RetornoOperacao></wsVazio>";
+        vinculado = !o.naoGrava;
+        return "<wsVazio><RetornoOperacao>01 - Operação Realizada com Sucesso.</RetornoOperacao></wsVazio>";
+      default: return "<wsVazio><RetornoOperacao>01 - OK</RetornoOperacao></wsVazio>";
+    }
+  };
+  const fetchImpl = (async (_url: string, init: RequestInit) => {
+    const corpo = String(init.body);
+    const op = corpo.match(/<(\w+) xmlns="http:\/\/api\.sponteeducacional\.net\.br\/">/)?.[1] ?? "?";
+    chamadas.push(op);
+    corpos[op] = corpo;
+    const interno = responder(op).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return new Response(
+      `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>`
+      + `<${op}Response xmlns="http://api.sponteeducacional.net.br/"><${op}Result>${interno}`
+      + `</${op}Result></${op}Response></soap:Body></soap:Envelope>`, { status: 200 });
+  }) as unknown as typeof fetch;
+  return { fetchImpl, chamadas, corpos };
+}
+
+const IRMAO: DadosMatricula = {
+  ...DADOS, responsavelNome: "Renata Ribeiro", responsavelCpf: "111.444.777-35",
+  responsavelEmail: "outro@exemplo.com",
+};
+
+test("responsável de um irmão: é ligado ao aluno novo, sem criar outro", async () => {
+  // 16/11/2026, fichas 602 e 607: reusado sem vínculo, o aluno ficou com
+  // "(Aluno)" como responsável — boleto no nome dele, e o Sponte Pay
+  // recusou o link porque o e-mail já era de outro sacado.
+  const { fetchImpl, chamadas, corpos } = sponteComIrmao();
+  const p = await executarMatricula(CRED, IRMAO, progressoVazio(), { fetchImpl, simular: false });
+
+  assert.equal(chamadas.includes("InsertResponsaveis2"), false);
+  assert.equal(chamadas.includes("UpdateResponsaveis2"), true);
+  assert.equal(p.responsavelId, 610);
+  assert.equal(p.responsavelReusado, false);
+
+  const corpo = corpos.UpdateResponsaveis2;
+  assert.match(corpo, /<nResponsavelID>610</);
+  assert.match(corpo, /<nAlunoID>1097</);
+  assert.match(corpo, /<lResponsavelFinanceiro>true</);
+  // -3 = "Responsável". Com 0 a ficha do aluno quebra na tela do Sponte.
+  assert.match(corpo, /<nParentesco>-3</);
+  // Os dados são os que já estão no ERP, não os do formulário do irmão.
+  assert.match(corpo, /<sEmail>renata@exemplo.com</);
+  assert.match(corpo, /<sCPFCNPJ>11144477735</);
+  assert.match(corpo, /<dDataNascimento>1980-03-10/);
+});
+
+test("vínculo recusado: a matrícula segue e a ficha fica marcada para a mão", async () => {
+  const { fetchImpl } = sponteComIrmao({ recusa: true });
+  const p = await executarMatricula(CRED, IRMAO, progressoVazio(), { fetchImpl, simular: false });
+
+  // O Sponte falso não simula os passos seguintes; o que importa é que o
+  // do responsável não seja o que parou.
+  assert.notEqual(p.erroPasso, "criar_responsavel");
+  assert.equal(p.responsavelId, 610);
+  assert.equal(p.responsavelReusado, true);
+  assert.match(p.erroVinculoResponsavel ?? "", /Object reference/);
+});
+
+test("\"sucesso\" que não grava conta como falha: vale o que se relê", async () => {
+  const { fetchImpl } = sponteComIrmao({ naoGrava: true });
+  const p = await executarMatricula(CRED, IRMAO, progressoVazio(), { fetchImpl, simular: false });
+
+  assert.notEqual(p.erroPasso, "criar_responsavel");
+  assert.equal(p.responsavelReusado, true);
+  assert.match(p.erroVinculoResponsavel ?? "", /ficou com o responsável 0/);
+});
+
+test("financeiro certo mas fora da lista do aluno conta como falha", async () => {
+  // O que o parentesco 0 fazia em 16/11/2026: sucesso, financeiro gravado,
+  // lista vazia — e a ficha do aluno com erro 500 na tela.
+  const { fetchImpl } = sponteComIrmao({ semLista: true });
+  const p = await executarMatricula(CRED, IRMAO, progressoVazio(), { fetchImpl, simular: false });
+
+  assert.notEqual(p.erroPasso, "criar_responsavel");
+  assert.equal(p.responsavelReusado, true);
+  assert.match(p.erroVinculoResponsavel ?? "", /lista de responsáveis/);
+});
+
 test("ficha antiga, sem o nascimento do responsável: vai em branco, nunca o do aluno", () => {
   const menor = { dataNascimento: "2012-05-20", responsavelNome: "Joana Souza" };
   assert.equal(nascimentoDoResponsavel(menor), null);
